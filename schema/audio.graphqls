@@ -22,31 +22,16 @@ type AudioConnection implements Connection {
 }
 
 input AudiosInput {
-    listened: Boolean
-}
-
-# AudioOrderFieldsに名前をかえる。
-input AudioOrdering {
-    sort: AudioSort!
-    direction: SortDirection! = ASC
-}
-
-# PublishedAtもたしたい
-enum AudioSort {
-    ID
-    NAME
+    id: ID!
+    name: String!
 }
 
 enum AudioOrderField {
     ID
     NAME
+    PUBLISHED_AT
     CREATED_AT
     UPDATED_AT
-}
-
-enum Category {
-    JIJINETA
-    TOOL
 }
 
 input AudioOrder {

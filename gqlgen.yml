@@ -14,8 +14,8 @@ exec:
 
 # Where should any generated models go?
 model:
-  filename: interfaces/api/graph/model/models_gen.go
-  package: model
+  filename: domain/entity/models_gen.go
+  package: entity
 
 # Where should the resolver implementations go?
 resolver:
@@ -35,7 +35,7 @@ resolver:
 # gqlgen will search for any type names in the schema in these go packages
 # if they match it will use them, otherwise it will generate them.
 autobind:
-  - "github.com/hayashiki/audiy-api/interfaces/api/graph/model"
+  - "github.com/hayashiki/audiy-api/domain/entity"
 
 # This section declares type mapping between the GraphQL and go type systems
 #

@@ -7,15 +7,29 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hayashiki/audiy-api/domain/entity"
 	"github.com/hayashiki/audiy-api/interfaces/api/graph/generated"
-	"github.com/hayashiki/audiy-api/interfaces/api/graph/model"
 )
 
-func (r *queryResolver) Audio(ctx context.Context, id string) (*model.Audio, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *queryResolver) Audio(ctx context.Context, id string) (*entity.Audio, error) {
+	return r.audioUsecase.Get(ctx, id)
 }
 
-func (r *queryResolver) Audios(ctx context.Context, cursor string, orderBy []*model.AudioOrder) (*model.AudioConnection, error) {
+func (r *queryResolver) Audios(ctx context.Context, cursor *string, limit *int, order []string) (*entity.AudioConnection, error) {
+	if *cursor == "" {
+		*cursor = ""
+	}
+	if *limit == 0 {
+		*limit = 100
+	}
+	if len(order) > 0 {
+		order = []string{"-published"}
+	}
+
+	return r.audioUsecase.GetConnection(ctx, *cursor, *limit, order)
+}
+
+func (r *queryResolver) Version(ctx context.Context) (*entity.Version, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 

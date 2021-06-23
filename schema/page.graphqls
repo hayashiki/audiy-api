@@ -1,14 +1,7 @@
 type PageInfo {
-    # けす
     cursor: String!
-    # けす
     totalPage: Int!
-    # けす
     hasMore: Boolean!
-    hasNextPage: Boolean!
-    hasPreviousPage: Boolean!
-    startCursor: String
-    endCursor: String
 }
 
 enum SortDirection {
@@ -30,22 +23,16 @@ interface Node {
     id: ID!
 }
 
-# ForwardPagination 次ページ
-input ForwardPagination {
-    first: Int!
-    after: String
-}
 
-# BackwardPagination 前ページ
-input BackwardPagination {
-    last: Int!
-    before: String
-}
+## eg.key: published=, value=true
+#input Filter {
+#    key: String!
+#    value: String!
+#}
 
-input PageCondition {
-    backward: BackwardPagination
-    forward: ForwardPagination
+input QuerySpec {
+#    filter: [Filter!]
+    order: [AudioOrder!] = [{field: ID, direction: ASC}]
+    cursor: Cursor!
+    limit: Int = 100
 }
-
-scalar Time
-scalar Cursor
