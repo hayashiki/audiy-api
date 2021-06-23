@@ -1,0 +1,55 @@
+type Audio implements Node {
+    id: ID!
+    name: String!
+    length: Int!
+    likeCount: Int!
+    playCount: Int!
+    url: String!
+    minetype: String!
+    publishedAt: Time!
+    createdAt: Time!
+    updatedAt: Time!
+}
+
+type AudioEdge implements Edge {
+    cursor: Cursor!
+    node: Audio!
+}
+
+type AudioConnection implements Connection {
+    pageInfo: PageInfo!
+    edges: [AudioEdge]!
+}
+
+input AudiosInput {
+    listened: Boolean
+}
+
+# AudioOrderFieldsに名前をかえる。
+input AudioOrdering {
+    sort: AudioSort!
+    direction: SortDirection! = ASC
+}
+
+# PublishedAtもたしたい
+enum AudioSort {
+    ID
+    NAME
+}
+
+enum AudioOrderField {
+    ID
+    NAME
+    CREATED_AT
+    UPDATED_AT
+}
+
+enum Category {
+    JIJINETA
+    TOOL
+}
+
+input AudioOrder {
+    field: AudioOrderField
+    direction: SortDirection
+}

@@ -1,0 +1,51 @@
+type PageInfo {
+    # けす
+    cursor: String!
+    # けす
+    totalPage: Int!
+    # けす
+    hasMore: Boolean!
+    hasNextPage: Boolean!
+    hasPreviousPage: Boolean!
+    startCursor: String
+    endCursor: String
+}
+
+enum SortDirection {
+    ASC
+    DESC
+}
+
+interface Connection {
+    pageInfo: PageInfo!
+    edges: [Edge]!
+}
+
+interface Edge {
+    cursor: Cursor!
+    node: Node!
+}
+
+interface Node {
+    id: ID!
+}
+
+# ForwardPagination 次ページ
+input ForwardPagination {
+    first: Int!
+    after: String
+}
+
+# BackwardPagination 前ページ
+input BackwardPagination {
+    last: Int!
+    before: String
+}
+
+input PageCondition {
+    backward: BackwardPagination
+    forward: ForwardPagination
+}
+
+scalar Time
+scalar Cursor

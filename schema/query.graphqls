@@ -1,0 +1,7 @@
+type Query {
+    Audio(id: ID!): Audio
+    Audios(
+        cursor: Cursor!
+        orderBy: [AudioOrder!] = [{field: ID, direction: ASC}]
+    ): AudioConnection!
+}
