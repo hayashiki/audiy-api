@@ -8,8 +8,12 @@ import "github.com/hayashiki/audiy-api/application/usecase"
 
 type Resolver struct{
 	audioUsecase usecase.AudioUsecase
+	audioUserUsecase usecase.AudioUserUsecase
 }
 
-func NewResolver(audioUsecase usecase.AudioUsecase) *Resolver {
-	return &Resolver{audioUsecase: audioUsecase}
+func NewResolver(audioUsecase usecase.AudioUsecase, audioUserUsecase usecase.AudioUserUsecase) *Resolver {
+	return &Resolver{
+		audioUsecase: audioUsecase,
+		audioUserUsecase: audioUserUsecase,
+	}
 }

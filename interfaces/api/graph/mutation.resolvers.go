@@ -15,6 +15,17 @@ func (r *mutationResolver) CreateAudio(ctx context.Context, input entity.AudiosI
 	panic(fmt.Errorf("not implemented"))
 }
 
+func (r *mutationResolver) CreateUserAudio(ctx context.Context, input entity.UserAudioInput) (*entity.Audio, error) {
+	auth, err := ForContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	r.audioUserUsecase.Save(ctx, auth.ID, input.AudioID)
+
+	// TODO: set create success response
+	return nil, nil
+}
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 

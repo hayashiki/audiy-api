@@ -1,15 +1,12 @@
 package ds
 
 import (
+	"cloud.google.com/go/datastore"
 	"context"
 	"errors"
 	"google.golang.org/api/iterator"
 	"log"
 	"os"
-	"reflect"
-	"time"
-
-	"cloud.google.com/go/datastore"
 )
 
 var (
@@ -81,6 +78,7 @@ func (d *DataStore) GetAll(
 		query = query.Order(order)
 	}
 
+	log.Printf("query debug %+v", opts.Order)
 	it := d.Client.Run(ctx, query)
 
 	entities := make([]interface{}, 0)
@@ -114,13 +112,13 @@ func (d *DataStore) GetAll(
 
 func (d *DataStore) Put(ctx context.Context, doc EntitySpec) (*datastore.Key, error) {
 	key := doc.GetKey()
-	val := reflect.ValueOf(doc).Elem()
-	now := reflect.ValueOf(time.Now())
-
-	if key.Incomplete() {
-		val.FieldByName("CreatedAt").Set(now)
-	}
-	val.FieldByName("UpdatedAt").Set(now)
+	//val := reflect.ValueOf(doc).Elem()
+	//now := reflect.ValueOf(time.Now())
+	//
+	//if key.Incomplete() {
+	//	val.FieldByName("CreatedAt").Set(now)
+	//}
+	//val.FieldByName("UpdatedAt").Set(now)
 
 	key, err := d.Client.Put(ctx, key, doc)
 	if err != nil {
@@ -130,3 +128,15 @@ func (d *DataStore) Put(ctx context.Context, doc EntitySpec) (*datastore.Key, er
 
 	return key, err
 }
+
+func (d *DataStore) Delete(ctx context.Context, doc EntitySpec) (*datastore.Key, error) {
+	key := doc.GetKey()
+	err := d.Client.Delete(ctx, key)
+	if err != nil {
+		return nil, err
+	}
+	doc.SetID(key)
+
+	return key, err
+}
+

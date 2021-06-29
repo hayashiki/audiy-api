@@ -22,8 +22,8 @@ func (r *queryResolver) Audios(ctx context.Context, cursor *string, limit *int, 
 	if *limit == 0 {
 		*limit = 100
 	}
-	if len(order) > 0 {
-		order = []string{"-published"}
+	if len(order) == 0 {
+		order = []string{"-published_at"}
 	}
 
 	return r.audioUsecase.GetConnection(ctx, *cursor, *limit, order)

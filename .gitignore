@@ -1,0 +1,17 @@
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+*.test
+
+*.out
+
+bin/
+vendor/
+
+credentials/
+.env
+docker-compose.override.yml
+tmp/

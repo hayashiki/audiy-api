@@ -29,6 +29,12 @@ func (r *Audio) GetKey() *datastore.Key {
 	return datastore.NameKey(AudioKind, r.ID, nil)
 }
 
+func GetAudioKey(id string) *datastore.Key {
+	entity := Audio{ID: id}
+	return entity.GetKey()
+}
+
+
 func NewAudio(id, name string, length int, url, mimetype string, created time.Time) *Audio {
 	return &Audio{
 		ID:          id,

@@ -5,22 +5,22 @@ package graph
 
 import (
 	"context"
-	"fmt"
-
 	"github.com/hayashiki/audiy-api/domain/entity"
 	"github.com/hayashiki/audiy-api/interfaces/api/graph/generated"
 )
 
 func (r *audioResolver) LikeCount(ctx context.Context, obj *entity.Audio) (int, error) {
-	panic(fmt.Errorf("not implemented"))
+	return 0, nil
 }
 
 func (r *audioResolver) PlayCount(ctx context.Context, obj *entity.Audio) (int, error) {
-	panic(fmt.Errorf("not implemented"))
+	return 0, nil
 }
 
-func (r *audioResolver) Minetype(ctx context.Context, obj *entity.Audio) (string, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *audioResolver) Played(ctx context.Context, obj *entity.Audio) (bool, error) {
+	r.audioUsecase.Get(ctx, obj.ID)
+
+	return true, nil
 }
 
 // Audio returns generated.AudioResolver implementation.

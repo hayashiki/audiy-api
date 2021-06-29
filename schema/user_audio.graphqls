@@ -1,0 +1,12 @@
+type UserAudio implements Node {
+    id: ID!
+    userID: String!
+    audio: Audio!
+    createdAt: Time!
+    updatedAt: Time!
+}
+
+input UserAudioInput {
+    audioID: ID!
+    userID: ID!
+}

@@ -5,7 +5,8 @@ type Audio implements Node {
     likeCount: Int!
     playCount: Int!
     url: String!
-    minetype: String!
+    mimetype: String!
+    played: Boolean!
     publishedAt: Time!
     createdAt: Time!
     updatedAt: Time!

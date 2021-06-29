@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"github.com/hayashiki/audiy-api/interfaces/middleware"
 	"net/http"
 
 	"github.com/hayashiki/audiy-api/application/usecase"
@@ -26,6 +27,9 @@ func (s *registry) NewHandler() http.Handler {
 	// infrastructure
 	dsStore := ds.Connect()
 
+	// middleware
+	authenticator := middleware.NewAuthenticator()
+
 	// repository
 	repo := entity.NewAudioRepository(dsStore)
 
@@ -39,5 +43,5 @@ func (s *registry) NewHandler() http.Handler {
 	// router
 	router := router.NewRouter(rootHandler, queryHandler, queryHandler)
 
-	return router.CreateHandler()
+	return router.CreateHandler(authenticator)
 }

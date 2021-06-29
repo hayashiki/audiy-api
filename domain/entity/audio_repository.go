@@ -11,6 +11,7 @@ type AudioRepository interface {
 	Find(context.Context, string) (*Audio, error)
 	FindAll(ctx context.Context, cursor string, limit int, sort ...string) ([]*Audio, string, error)
 	Save(context.Context, *Audio) error
+	Remove(ctx context.Context, item *Audio) error
 }
 
 // AudioRepository operates Audio entity
@@ -56,3 +57,10 @@ func (repo *audioRepository) Save(ctx context.Context, item *Audio) error {
 	_, err := repo.Put(ctx, item)
 	return err
 }
+
+// Delete saves audios
+func (repo *audioRepository) Remove(ctx context.Context, item *Audio) error {
+	_, err := repo.Delete(ctx, item)
+	return err
+}
+

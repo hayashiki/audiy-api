@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"time"
 )
 
 type Connection interface {
@@ -54,6 +55,21 @@ type QuerySpec struct {
 	Order  []*AudioOrder `json:"order"`
 	Cursor string        `json:"cursor"`
 	Limit  *int          `json:"limit"`
+}
+
+type UserAudio struct {
+	ID        string    `json:"id"`
+	UserID    string    `json:"userID"`
+	Audio     *Audio    `json:"audio"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+func (UserAudio) IsNode() {}
+
+type UserAudioInput struct {
+	AudioID string `json:"audioID"`
+	UserID  string `json:"userID"`
 }
 
 type Version struct {
