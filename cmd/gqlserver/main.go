@@ -1,14 +1,10 @@
 package main
 
 import (
+	"github.com/hayashiki/audiy-api/interfaces/registry"
 	"log"
 	"net/http"
 	"os"
-
-	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/hayashiki/audiy-api/graph"
-	"github.com/hayashiki/audiy-api/graph/generated"
 )
 
 const defaultPort = "8080"
@@ -19,10 +15,10 @@ func main() {
 		port = defaultPort
 	}
 
-	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
+	registry := registry.NewRegistry()
 
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
+	h := registry.NewHandler()
+	http.Handle("/", h)
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
