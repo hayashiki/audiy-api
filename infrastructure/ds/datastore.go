@@ -109,6 +109,45 @@ func (d *DataStore) GetAll(
 }
 
 
+func (d *DataStore) GetAll2(
+	ctx context.Context,
+	q Query2,
+	generator func() interface{},
+) ([]interface{}, string, error) {
+	v, ok := q.(*dsQuery)
+	if !ok {
+		return nil, "", errors.New("failed to build query")
+	}
+
+	it := d.Client.Run(ctx, v.Query)
+
+	entities := make([]interface{}, 0)
+
+	for {
+		entity := generator()
+
+		_, err := it.Next(entity)
+		if errors.Is(err, iterator.Done) {
+			break
+		}
+		if _, ok := err.(*datastore.ErrFieldMismatch); ok {
+			entities = append(entities, entity)
+			continue
+		}
+		if err != nil {
+			return entities, "", err
+		}
+		entities = append(entities, entity)
+	}
+
+	cursor, err := it.Cursor()
+	if err != nil {
+		return entities, "", err
+	}
+
+	return entities, cursor.String(), nil
+}
+
 
 func (d *DataStore) Put(ctx context.Context, doc EntitySpec) (*datastore.Key, error) {
 	key := doc.GetKey()

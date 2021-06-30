@@ -69,7 +69,6 @@ func (UserAudio) IsNode() {}
 
 type UserAudioInput struct {
 	AudioID string `json:"audioID"`
-	UserID  string `json:"userID"`
 }
 
 type Version struct {

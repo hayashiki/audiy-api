@@ -19,14 +19,14 @@ var (
 	errNoUserInContext = errors.New("no user in context")
 )
 
-var keyAuth = &key{"auth"}
+var KeyAuth = &key{"auth"}
 
 func SetAuth(ctx context.Context, auth *Auth) context.Context {
-	return context.WithValue(ctx, keyAuth, auth)
+	return context.WithValue(ctx, KeyAuth, auth)
 }
 
 func ForContext(ctx context.Context) (*Auth, error) {
-	auth, ok := ctx.Value(keyAuth).(*Auth)
+	auth, ok := ctx.Value(KeyAuth).(*Auth)
 	if !ok {
 		return nil, errNoUserInContext
 	}

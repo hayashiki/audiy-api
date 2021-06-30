@@ -8,5 +8,4 @@ type UserAudio implements Node {
 
 input UserAudioInput {
     audioID: ID!
-    userID: ID!
 }

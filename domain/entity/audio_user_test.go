@@ -42,3 +42,17 @@ func TestAnotherAudioUser(t *testing.T) {
 	}
 }
 
+func TestExistsAudioUser(t *testing.T) {
+	log.Println(os.Getenv("GCP_PROJECT"))
+	ctx := context.Background()
+	dsDataSource := ds.Connect()
+	audioRepo := NewAudioRepository(dsDataSource)
+	audio, _ := audioRepo.Find(ctx, "")
+	audioUserRepo := audioUserRepository{dsDataSource}
+	_, err := audioUserRepo.Exists(ctx, 111111, audio.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+

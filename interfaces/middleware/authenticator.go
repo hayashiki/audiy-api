@@ -25,11 +25,8 @@ func (a *authenticator) AuthMiddleware(h http.Handler) http.Handler {
 
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		bearer := r.Header.Get("Authorization")
-		if bearer == "dummy" {
-			idToken := strings.Replace(bearer, "Bearer ", "", 1)
-			idTokenMap, err := idtoken.Validate(context.Background(), idToken, "185245971175-sctlo6t5hkgr2mu1qnkgp3s54hju8bi2.apps.googleusercontent.com")
-			log.Printf("idTokenMap %+v, %+v", idTokenMap, err)
-			ctx = SetAuth(ctx, &graph.Auth{
+		if bearer == "Bearer dummy" {
+			ctx = graph.SetAuth(ctx, &graph.Auth{
 				ID:   111111,
 				Name: "hayashiki",
 				Email: "hayashiki@example.com",
@@ -42,7 +39,7 @@ func (a *authenticator) AuthMiddleware(h http.Handler) http.Handler {
 			id := int64(idTokenMap.Claims["id"].(float64))
 			email := idTokenMap.Claims["email"].(string)
 			name := idTokenMap.Claims["fullname"].(string)
-			ctx = context.WithValue(r.Context(), keyAuth, &graph.Auth{
+			ctx = context.WithValue(r.Context(), graph.KeyAuth, &graph.Auth{
 				ID:   id,
 				Email: email,
 				Name: name,
