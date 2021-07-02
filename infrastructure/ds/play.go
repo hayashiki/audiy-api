@@ -8,22 +8,22 @@ import (
 )
 
 // AudioRepository operates Audio entity
-type audioUserRepository struct {
+type playRepository struct {
 	client *datastore.Client
 }
 
 // Find finds audio given id
-func (repo *audioUserRepository) Find(ctx context.Context, userID int64, audioID string) (*entity.AudioUser, error) {
+func (repo *playRepository) Find(ctx context.Context, userID int64, audioID string) (*entity.Play, error) {
 	panic("implement me")
 }
 
-func NewAudioUserRepository(client *datastore.Client) entity.AudioUserRepository {
-	return &audioUserRepository{client: client}
+func NewPlayRepository(client *datastore.Client) entity.AudioUserRepository {
+	return &playRepository{client: client}
 }
 
-func (repo *audioUserRepository) Exists(ctx context.Context, userID int64, audioID string) (bool, error) {
+func (repo *playRepository) Exists(ctx context.Context, userID int64, audioID string) (bool, error) {
 	q := datastore.NewQuery(entity.AudioUserKind).Filter("user_id=", userID).Filter("audio_id=", audioID).KeysOnly().Limit(1)
-	var dst []*entity.UserAudio
+	var dst []*entity.Play
 
 	keys, err := repo.client.GetAll(ctx, q, dst)
 	if err != nil {
@@ -36,7 +36,7 @@ func (repo *audioUserRepository) Exists(ctx context.Context, userID int64, audio
 }
 
 // Save saves audios
-func (repo *audioUserRepository) Save(ctx context.Context, item *entity.AudioUser) error {
+func (repo *playRepository) Save(ctx context.Context, item *entity.Play) error {
 	// TODO: if exists
 	_, err := repo.client.Put(ctx,  datastore.IncompleteKey(entity.AudioUserKind, nil),item)
 	return err

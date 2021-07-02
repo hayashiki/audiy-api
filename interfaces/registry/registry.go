@@ -29,7 +29,7 @@ func (s *registry) NewHandler() http.Handler {
 	dsStore := ds.Connect()
 
 	dsCli, _ := ds.NewClient(context.Background(), os.Getenv("GCP_PROJECT"))
-	audioUserRepo := ds.NewAudioUserRepository(dsCli)
+	audioUserRepo := ds.NewPlayRepository(dsCli)
 
 	// middleware
 	authenticator := middleware.NewAuthenticator()

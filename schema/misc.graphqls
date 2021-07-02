@@ -1,2 +1,46 @@
 scalar Time
 scalar Cursor
+
+
+type Like implements Node {
+    id: ID!
+    user: User!
+    audio: Audio!
+    createdAt: Time!
+    updatedAt: Time!
+}
+
+type Star implements Node {
+    id: ID!
+    user: User!
+    audio: Audio!
+    createdAt: Time!
+    updatedAt: Time!
+}
+
+type User implements Node {
+    id: ID!
+    email: String!
+}
+
+type Comment implements Node {
+    id: ID!
+    user: User!
+    body: String!
+    createdAt: Time!
+    updatedAt: Time!
+}
+
+type ToggleStarResult {
+    star: Star!
+    action: String!
+    success: Boolean!
+}
+
+type ToggleLikeResult {
+#    audioID: ID!
+#    userID: ID!
+    like: Like!
+    action: String!
+    success: Boolean!
+}

@@ -1,5 +1,10 @@
 type Mutation {
-    # Admin-only interface
     createAudio(input: AudiosInput!): Audio
-    createUserAudio(input: UserAudioInput!): Audio
+    #TODO: playedに変更する
+    createPlay(input: UpdateAudioInput!): Audio
+
+    createComment(input: UpdateAudioInput!): Comment
+
+    toggleStar(input: UpdateAudioInput!): ToggleStarResult
+    toggleLike(input: UpdateAudioInput!): ToggleLikeResult
 }

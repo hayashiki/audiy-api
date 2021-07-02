@@ -1,0 +1,25 @@
+touch application/usecase/like.go
+touch application/usecase/star.go
+touch application/usecase/comment.go
+
+type CommentUsecase interface {
+
+}
+
+# resolverをいじる
+
+func NewResolver(
+	audioUsecase usecase.AudioUsecase,
+	audioUserUsecase usecase.AudioUserUsecase,
+	starUsecase usecase.StarUsecase,
+	likeUsecase usecase.LikeUsecase,
+	commentUsecase usecase.CommentUsecase,
+	) *Resolver {
+	return &Resolver{
+		audioUsecase: audioUsecase,
+		audioUserUsecase: audioUserUsecase,
+		starUsecase: starUsecase,
+		likeUsecase: likeUsecase,
+		commentUsecase: commentUsecase,
+	}
+}

@@ -45,6 +45,16 @@ type AudiosInput struct {
 	Name string `json:"name"`
 }
 
+type Comment struct {
+	ID        string    `json:"id"`
+	User      *User     `json:"user"`
+	Body      string    `json:"body"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+func (Comment) IsNode() {}
+
 type PageInfo struct {
 	Cursor    string `json:"cursor"`
 	TotalPage int    `json:"totalPage"`
@@ -57,17 +67,19 @@ type QuerySpec struct {
 	Limit  *int          `json:"limit"`
 }
 
-type UserAudio struct {
-	ID        string    `json:"id"`
-	UserID    string    `json:"userID"`
-	Audio     *Audio    `json:"audio"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+type ToggleLikeResult struct {
+	Like    *Like  `json:"like"`
+	Action  string `json:"action"`
+	Success bool   `json:"success"`
 }
 
-func (UserAudio) IsNode() {}
+type ToggleStarResult struct {
+	Star    *Star  `json:"star"`
+	Action  string `json:"action"`
+	Success bool   `json:"success"`
+}
 
-type UserAudioInput struct {
+type UpdateAudioInput struct {
 	AudioID string `json:"audioID"`
 }
 

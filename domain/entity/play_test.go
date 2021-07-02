@@ -15,7 +15,7 @@ func TestAudioUser(t *testing.T) {
 	audioRepo := NewAudioRepository(dsDataSource)
 	audio, _ := audioRepo.Find(ctx, "")
 
-	audioUser := NewAudioUser(111111, audio.ID)
+	audioUser := NewPlay(111111, audio.ID)
 
 	audioUserRepo := audioUserRepository{dsDataSource}
 	t.Log(audioUser)
@@ -32,7 +32,7 @@ func TestAnotherAudioUser(t *testing.T) {
 	audioRepo := NewAudioRepository(dsDataSource)
 	audio, _ := audioRepo.Find(ctx, "")
 
-	audioUser := NewAudioUser(111111, audio.ID)
+	audioUser := NewPlay(111111, audio.ID)
 
 	audioUserRepo := audioUserRepository{dsDataSource}
 	t.Log(audioUser)
