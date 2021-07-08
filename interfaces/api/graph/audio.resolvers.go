@@ -5,6 +5,7 @@ package graph
 
 import (
 	"context"
+
 	"github.com/hayashiki/audiy-api/domain/entity"
 	"github.com/hayashiki/audiy-api/interfaces/api/graph/generated"
 )
@@ -18,9 +19,11 @@ func (r *audioResolver) PlayCount(ctx context.Context, obj *entity.Audio) (int, 
 }
 
 func (r *audioResolver) Played(ctx context.Context, obj *entity.Audio) (bool, error) {
-	r.audioUsecase.Get(ctx, obj.ID)
-
-	return true, nil
+	auth, err := ForContext(ctx)
+	if err != nil {
+		return false, err
+	}
+	return r.audioUserUsecase.Exists(ctx, auth.ID, obj.ID)
 }
 
 // Audio returns generated.AudioResolver implementation.

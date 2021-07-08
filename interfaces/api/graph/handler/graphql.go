@@ -13,10 +13,10 @@ import (
 )
 
 // NewQueryHandler returns GraphQL Server.
-func NewQueryHandler(audioUsecase usecase.AudioUsecase) http.Handler {
+func NewQueryHandler(audioUsecase usecase.AudioUsecase, audioUserUsecase usecase.AudioUserUsecase) http.Handler {
 	srv := handler.New(generated.NewExecutableSchema(
 		generated.Config{
-			Resolvers:  graph.NewResolver(audioUsecase),
+			Resolvers:  graph.NewResolver(audioUsecase, audioUserUsecase),
 			Directives: generated.DirectiveRoot{},
 			Complexity: generated.ComplexityRoot{},
 		},

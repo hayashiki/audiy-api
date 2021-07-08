@@ -536,7 +536,6 @@ input QuerySpec {
 
 input UserAudioInput {
     audioID: ID!
-    userID: ID!
 }
 `, BuiltIn: false},
 	{Name: "schema/version.graphqls", Input: `type Version {
@@ -3019,14 +3018,6 @@ func (ec *executionContext) unmarshalInputUserAudioInput(ctx context.Context, ob
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("audioID"))
 			it.AudioID, err = ec.unmarshalNID2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "userID":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userID"))
-			it.UserID, err = ec.unmarshalNID2string(ctx, v)
 			if err != nil {
 				return it, err
 			}

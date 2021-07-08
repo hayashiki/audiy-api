@@ -1,11 +1,12 @@
 package registry
 
 import (
+	"context"
 	"github.com/hayashiki/audiy-api/interfaces/middleware"
 	"net/http"
+	"os"
 
 	"github.com/hayashiki/audiy-api/application/usecase"
-	"github.com/hayashiki/audiy-api/domain/entity"
 	"github.com/hayashiki/audiy-api/infrastructure/ds"
 	"github.com/hayashiki/audiy-api/interfaces/api/graph/handler"
 	"github.com/hayashiki/audiy-api/interfaces/api/graph/router"
@@ -27,17 +28,21 @@ func (s *registry) NewHandler() http.Handler {
 	// infrastructure
 	dsStore := ds.Connect()
 
+	dsCli, _ := ds.NewClient(context.Background(), os.Getenv("GCP_PROJECT"))
+	audioUserRepo := ds.NewAudioUserRepository(dsCli)
+
 	// middleware
 	authenticator := middleware.NewAuthenticator()
 
 	// repository
-	repo := entity.NewAudioRepository(dsStore)
+	repo := ds.NewAudioRepository(dsStore)
 
 	// usecase
 	audioUsecase := usecase.NewAudioUsecase(repo)
+	audioUserUsecase := usecase.NewAudioUserUsecase(audioUserRepo)
 
 	// handler
-	queryHandler := handler.NewQueryHandler(audioUsecase)
+	queryHandler := handler.NewQueryHandler(audioUsecase, audioUserUsecase)
 	rootHandler := handler.NewRootHandler()
 
 	// router
