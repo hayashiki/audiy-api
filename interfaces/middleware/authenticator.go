@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"context"
-	"github.com/hayashiki/audiy-api/interfaces/api/graph"
+	"github.com/hayashiki/audiy-api/interfaces/api/graph/auth"
 	"google.golang.org/api/idtoken"
 	"log"
 	"net/http"
@@ -26,7 +26,7 @@ func (a *authenticator) AuthMiddleware(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		bearer := r.Header.Get("Authorization")
 		if bearer == "Bearer dummy" {
-			ctx = graph.SetAuth(ctx, &graph.Auth{
+			ctx = auth.SetAuth(ctx, &auth.Auth{
 				ID:   111111,
 				Name: "hayashiki",
 				Email: "hayashiki@example.com",
@@ -39,7 +39,7 @@ func (a *authenticator) AuthMiddleware(h http.Handler) http.Handler {
 			id := int64(idTokenMap.Claims["id"].(float64))
 			email := idTokenMap.Claims["email"].(string)
 			name := idTokenMap.Claims["fullname"].(string)
-			ctx = context.WithValue(r.Context(), graph.KeyAuth, &graph.Auth{
+			ctx = context.WithValue(r.Context(), auth.KeyAuth, &auth.Auth{
 				ID:   id,
 				Email: email,
 				Name: name,

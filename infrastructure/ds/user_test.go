@@ -33,12 +33,21 @@ func TestCRUDUser(t *testing.T) {
 
 	dsDataSource := Connect()
 	audioRepo := audioRepository{dsDataSource}
-	audio, _ := audioRepo.Find(ctx, "")
+	audio, _ := audioRepo.Find(ctx, "F023GTZRRU2")
 
 	playRepo := playRepository{dsCli}
 
-	newPlay := entity.NewPlay(user.ID, audio.ID)
-	if err := playRepo.Save(ctx, newPlay); err != nil {
+	log.Println(userKey)
+
+	exists, err = playRepo.Exists(ctx, user.ID, audio.ID)
+	if err != nil {
 		t.Fatal(err)
+	}
+	log.Println(exists)
+	if !exists {
+		newPlay := entity.NewPlay(user.ID, audio.ID)
+		if err := playRepo.Save(ctx, newPlay); err != nil {
+			t.Fatal(err)
+		}
 	}
 }

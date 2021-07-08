@@ -12,9 +12,9 @@ type userRepository struct {
 	client *datastore.Client
 }
 
-//func NewUserRepository(client *datastore.Client) entity.UserRepository {
-//	return &userRepository{client: client}
-//}
+func NewUserRepository(client *datastore.Client) entity.UserRepository {
+	return &userRepository{client: client}
+}
 
 func (repo *userRepository) Exists(ctx context.Context, userKey *datastore.Key) (bool, error) {
 	q := datastore.NewQuery(entity.UserKind).Filter("__key__=", userKey).KeysOnly().Limit(1)
@@ -30,10 +30,19 @@ func (repo *userRepository) Exists(ctx context.Context, userKey *datastore.Key) 
 	return false, nil
 }
 
+// Get user
+func (repo *userRepository) Get(ctx context.Context, userID int64) (*entity.User, error) {
+	var user entity.User
+	err := repo.client.Get(ctx, datastore.IDKey(entity.UserKind, userID, nil), &user)
+	user.ID = user.Key.ID
+	return &user, err
+}
+
 // Save saves user
 func (repo *userRepository) Save(ctx context.Context, user *entity.User) error {
 	// TODO: if exists
-	_, err := repo.client.Put(ctx, datastore.IDKey(entity.UserKind, user.ID, nil), user)
+	key, err := repo.client.Put(ctx, datastore.IDKey(entity.UserKind, user.ID, nil), user)
+	user.Key = key
 	return err
 }
 

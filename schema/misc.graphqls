@@ -23,14 +23,6 @@ type User implements Node {
     email: String!
 }
 
-type Comment implements Node {
-    id: ID!
-    user: User!
-    body: String!
-    createdAt: Time!
-    updatedAt: Time!
-}
-
 type ToggleStarResult {
     star: Star!
     action: String!

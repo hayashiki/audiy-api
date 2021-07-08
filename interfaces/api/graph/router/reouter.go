@@ -8,7 +8,7 @@ import (
 )
 
 type Router interface {
-	CreateHandler(authenticator middleware.Authenticator) http.Handler
+	CreateHandler() http.Handler
 }
 
 func NewRouter(r http.Handler, q http.Handler, l http.Handler) Router {
@@ -25,10 +25,10 @@ type router struct {
 	HealthHandler http.Handler
 }
 
-func (r router) CreateHandler(authenticator middleware.Authenticator) http.Handler {
+func (r router) CreateHandler() http.Handler {
 	mux := mux.NewRouter()
 	mux.Handle("/", r.RootHandler)
-	mux.Handle("/query", middleware.Cors(authenticator.AuthMiddleware(r.QueryHandler)))
+	mux.Handle("/query", middleware.Cors(r.QueryHandler))
 	mux.Handle("/health", r.HealthHandler)
 	return mux
 }

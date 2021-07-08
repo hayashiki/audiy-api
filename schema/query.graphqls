@@ -6,4 +6,9 @@ type Query {
         order: [String!]
     ): AudioConnection!
     version: Version!
+    comments(
+        cursor: Cursor
+        limit: Int
+        order: [String!]
+    ): AudioConnection!
 }

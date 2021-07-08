@@ -2,8 +2,8 @@ package entity
 
 import "context"
 
-// AudioUserRepository interface
+// UserRepository interface
 type UserRepository interface {
-	Exists(ctx context.Context, userID int64) (bool, error)
 	Save(context.Context, *User) error
+	Get(ctx context.Context, id int64) (*User, error)
 }

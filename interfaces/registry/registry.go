@@ -29,24 +29,29 @@ func (s *registry) NewHandler() http.Handler {
 	dsStore := ds.Connect()
 
 	dsCli, _ := ds.NewClient(context.Background(), os.Getenv("GCP_PROJECT"))
-	audioUserRepo := ds.NewPlayRepository(dsCli)
+	playRepo := ds.NewPlayRepository(dsCli)
+	commentRepo := ds.NewCommentRepository(dsCli)
+	userRepo := ds.NewUserRepository(dsCli)
 
 	// middleware
 	authenticator := middleware.NewAuthenticator()
 
 	// repository
-	repo := ds.NewAudioRepository(dsStore)
+	audioRepo := ds.NewAudioRepository(dsStore)
 
 	// usecase
-	audioUsecase := usecase.NewAudioUsecase(repo)
-	audioUserUsecase := usecase.NewAudioUserUsecase(audioUserRepo)
+	audioUsecase := usecase.NewAudioUsecase(audioRepo)
+	playUsecase := usecase.NewPlayUsecase(playRepo)
+	commentUsecase := usecase.NewCommentUsecase(commentRepo)
+	userUsecase := usecase.NewUserUsecase(userRepo)
 
 	// handler
-	queryHandler := handler.NewQueryHandler(audioUsecase, audioUserUsecase)
+	queryHandler := handler.NewQueryHandler(userUsecase, audioUsecase, playUsecase, commentUsecase)
+	authenticator.AuthMiddleware(queryHandler)
 	rootHandler := handler.NewRootHandler()
 
 	// router
 	router := router.NewRouter(rootHandler, queryHandler, queryHandler)
 
-	return router.CreateHandler(authenticator)
+	return router.CreateHandler()
 }

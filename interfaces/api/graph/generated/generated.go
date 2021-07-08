@@ -38,6 +38,8 @@ type Config struct {
 
 type ResolverRoot interface {
 	Audio() AudioResolver
+	Comment() CommentResolver
+	Like() LikeResolver
 	Mutation() MutationResolver
 	Play() PlayResolver
 	Query() QueryResolver
@@ -80,6 +82,21 @@ type ComplexityRoot struct {
 		User      func(childComplexity int) int
 	}
 
+	CommentConnection struct {
+		Edges    func(childComplexity int) int
+		PageInfo func(childComplexity int) int
+	}
+
+	CommentEdge struct {
+		Cursor func(childComplexity int) int
+		Node   func(childComplexity int) int
+	}
+
+	DeleteCommentResult struct {
+		ID      func(childComplexity int) int
+		Success func(childComplexity int) int
+	}
+
 	Like struct {
 		Audio     func(childComplexity int) int
 		CreatedAt func(childComplexity int) int
@@ -90,10 +107,12 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		CreateAudio   func(childComplexity int, input entity.AudiosInput) int
-		CreateComment func(childComplexity int, input entity.UpdateAudioInput) int
+		CreateComment func(childComplexity int, input entity.CreateCommentInput) int
 		CreatePlay    func(childComplexity int, input entity.UpdateAudioInput) int
+		DeleteComment func(childComplexity int, id string) int
 		ToggleLike    func(childComplexity int, input entity.UpdateAudioInput) int
 		ToggleStar    func(childComplexity int, input entity.UpdateAudioInput) int
+		UpdateComment func(childComplexity int, input entity.UpdateCommentInput) int
 	}
 
 	PageInfo struct {
@@ -111,9 +130,10 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Audio   func(childComplexity int, id string) int
-		Audios  func(childComplexity int, cursor *string, limit *int, order []string) int
-		Version func(childComplexity int) int
+		Audio    func(childComplexity int, id string) int
+		Audios   func(childComplexity int, cursor *string, limit *int, order []string) int
+		Comments func(childComplexity int, cursor *string, limit *int, order []string) int
+		Version  func(childComplexity int) int
 	}
 
 	Star struct {
@@ -153,10 +173,19 @@ type AudioResolver interface {
 
 	Played(ctx context.Context, obj *entity.Audio) (bool, error)
 }
+type CommentResolver interface {
+	User(ctx context.Context, obj *entity.Comment) (*entity.User, error)
+}
+type LikeResolver interface {
+	User(ctx context.Context, obj *entity.Like) (*entity.User, error)
+	Audio(ctx context.Context, obj *entity.Like) (*entity.Audio, error)
+}
 type MutationResolver interface {
 	CreateAudio(ctx context.Context, input entity.AudiosInput) (*entity.Audio, error)
 	CreatePlay(ctx context.Context, input entity.UpdateAudioInput) (*entity.Audio, error)
-	CreateComment(ctx context.Context, input entity.UpdateAudioInput) (*entity.Comment, error)
+	CreateComment(ctx context.Context, input entity.CreateCommentInput) (*entity.Comment, error)
+	UpdateComment(ctx context.Context, input entity.UpdateCommentInput) (*entity.Comment, error)
+	DeleteComment(ctx context.Context, id string) (*entity.DeleteCommentResult, error)
 	ToggleStar(ctx context.Context, input entity.UpdateAudioInput) (*entity.ToggleStarResult, error)
 	ToggleLike(ctx context.Context, input entity.UpdateAudioInput) (*entity.ToggleLikeResult, error)
 }
@@ -168,6 +197,7 @@ type QueryResolver interface {
 	Audio(ctx context.Context, id string) (*entity.Audio, error)
 	Audios(ctx context.Context, cursor *string, limit *int, order []string) (*entity.AudioConnection, error)
 	Version(ctx context.Context) (*entity.Version, error)
+	Comments(ctx context.Context, cursor *string, limit *int, order []string) (*entity.AudioConnection, error)
 }
 type StarResolver interface {
 	User(ctx context.Context, obj *entity.Star) (*entity.User, error)
@@ -329,6 +359,48 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Comment.User(childComplexity), true
 
+	case "CommentConnection.edges":
+		if e.complexity.CommentConnection.Edges == nil {
+			break
+		}
+
+		return e.complexity.CommentConnection.Edges(childComplexity), true
+
+	case "CommentConnection.pageInfo":
+		if e.complexity.CommentConnection.PageInfo == nil {
+			break
+		}
+
+		return e.complexity.CommentConnection.PageInfo(childComplexity), true
+
+	case "CommentEdge.cursor":
+		if e.complexity.CommentEdge.Cursor == nil {
+			break
+		}
+
+		return e.complexity.CommentEdge.Cursor(childComplexity), true
+
+	case "CommentEdge.node":
+		if e.complexity.CommentEdge.Node == nil {
+			break
+		}
+
+		return e.complexity.CommentEdge.Node(childComplexity), true
+
+	case "DeleteCommentResult.id":
+		if e.complexity.DeleteCommentResult.ID == nil {
+			break
+		}
+
+		return e.complexity.DeleteCommentResult.ID(childComplexity), true
+
+	case "DeleteCommentResult.success":
+		if e.complexity.DeleteCommentResult.Success == nil {
+			break
+		}
+
+		return e.complexity.DeleteCommentResult.Success(childComplexity), true
+
 	case "Like.audio":
 		if e.complexity.Like.Audio == nil {
 			break
@@ -386,7 +458,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateComment(childComplexity, args["input"].(entity.UpdateAudioInput)), true
+		return e.complexity.Mutation.CreateComment(childComplexity, args["input"].(entity.CreateCommentInput)), true
 
 	case "Mutation.createPlay":
 		if e.complexity.Mutation.CreatePlay == nil {
@@ -399,6 +471,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreatePlay(childComplexity, args["input"].(entity.UpdateAudioInput)), true
+
+	case "Mutation.deleteComment":
+		if e.complexity.Mutation.DeleteComment == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteComment_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteComment(childComplexity, args["id"].(string)), true
 
 	case "Mutation.toggleLike":
 		if e.complexity.Mutation.ToggleLike == nil {
@@ -423,6 +507,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.ToggleStar(childComplexity, args["input"].(entity.UpdateAudioInput)), true
+
+	case "Mutation.updateComment":
+		if e.complexity.Mutation.UpdateComment == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateComment_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateComment(childComplexity, args["input"].(entity.UpdateCommentInput)), true
 
 	case "PageInfo.cursor":
 		if e.complexity.PageInfo.Cursor == nil {
@@ -503,6 +599,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Audios(childComplexity, args["cursor"].(*string), args["limit"].(*int), args["order"].([]string)), true
+
+	case "Query.comments":
+		if e.complexity.Query.Comments == nil {
+			break
+		}
+
+		args, err := ec.field_Query_comments_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Comments(childComplexity, args["cursor"].(*string), args["limit"].(*int), args["order"].([]string)), true
 
 	case "Query.version":
 		if e.complexity.Query.Version == nil {
@@ -722,6 +830,52 @@ input AudioOrder {
     direction: SortDirection
 }
 `, BuiltIn: false},
+	{Name: "schema/comment.graphqls", Input: `### Comment ###
+type Comment implements Node {
+    id: ID!
+    user: User!
+    body: String!
+    createdAt: Time!
+    updatedAt: Time!
+}
+
+type CommentEdge implements Edge {
+    cursor: Cursor!
+    node: Comment!
+}
+
+type CommentConnection implements Connection {
+    pageInfo: PageInfo!
+    edges: [CommentEdge]!
+}
+
+input CommentFilter {
+    role: String
+}
+
+input CreateCommentInput {
+    audioID: ID!
+    body: String!
+}
+
+input UpdateCommentInput {
+    id: ID!
+}
+
+type DeleteCommentResult {
+  success: Boolean!
+  id: ID!
+}
+
+enum CommentOrderField {
+  ID
+}
+
+input CommentOrder {
+  field: CommentOrderField
+  direction: SortDirection
+}
+`, BuiltIn: false},
 	{Name: "schema/misc.graphqls", Input: `scalar Time
 scalar Cursor
 
@@ -747,14 +901,6 @@ type User implements Node {
     email: String!
 }
 
-type Comment implements Node {
-    id: ID!
-    user: User!
-    body: String!
-    createdAt: Time!
-    updatedAt: Time!
-}
-
 type ToggleStarResult {
     star: Star!
     action: String!
@@ -771,10 +917,12 @@ type ToggleLikeResult {
 `, BuiltIn: false},
 	{Name: "schema/mutation.graphqls", Input: `type Mutation {
     createAudio(input: AudiosInput!): Audio
-    #TODO: playedに変更する
+
     createPlay(input: UpdateAudioInput!): Audio
 
-    createComment(input: UpdateAudioInput!): Comment
+    createComment(input: CreateCommentInput!): Comment!
+    updateComment(input: UpdateCommentInput!): Comment!
+    deleteComment(id: ID!): DeleteCommentResult!
 
     toggleStar(input: UpdateAudioInput!): ToggleStarResult
     toggleLike(input: UpdateAudioInput!): ToggleLikeResult
@@ -839,6 +987,16 @@ input UpdateAudioInput {
         order: [String!]
     ): AudioConnection!
     version: Version!
+    comments(
+        cursor: Cursor
+        limit: Int
+        order: [String!]
+    ): AudioConnection!
+}
+`, BuiltIn: false},
+	{Name: "schema/user.graphqls", Input: `input CreateUserInput {
+    id: ID!
+    email: String!
 }
 `, BuiltIn: false},
 	{Name: "schema/version.graphqls", Input: `type Version {
@@ -871,10 +1029,10 @@ func (ec *executionContext) field_Mutation_createAudio_args(ctx context.Context,
 func (ec *executionContext) field_Mutation_createComment_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 entity.UpdateAudioInput
+	var arg0 entity.CreateCommentInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNUpdateAudioInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐUpdateAudioInput(ctx, tmp)
+		arg0, err = ec.unmarshalNCreateCommentInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCreateCommentInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -895,6 +1053,21 @@ func (ec *executionContext) field_Mutation_createPlay_args(ctx context.Context, 
 		}
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteComment_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -920,6 +1093,21 @@ func (ec *executionContext) field_Mutation_toggleStar_args(ctx context.Context, 
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalNUpdateAudioInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐUpdateAudioInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateComment_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 entity.UpdateCommentInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNUpdateCommentInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐUpdateCommentInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -959,6 +1147,39 @@ func (ec *executionContext) field_Query_audio_args(ctx context.Context, rawArgs 
 }
 
 func (ec *executionContext) field_Query_audios_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["cursor"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cursor"))
+		arg0, err = ec.unmarshalOCursor2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["cursor"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["limit"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["limit"] = arg1
+	var arg2 []string
+	if tmp, ok := rawArgs["order"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("order"))
+		arg2, err = ec.unmarshalOString2ᚕstringᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["order"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_comments_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 *string
@@ -1584,9 +1805,9 @@ func (ec *executionContext) _Comment_id(ctx context.Context, field graphql.Colle
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(int64)
 	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
+	return ec.marshalNID2int64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Comment_user(ctx context.Context, field graphql.CollectedField, obj *entity.Comment) (ret graphql.Marshaler) {
@@ -1600,14 +1821,14 @@ func (ec *executionContext) _Comment_user(ctx context.Context, field graphql.Col
 		Object:     "Comment",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.User, nil
+		return ec.resolvers.Comment().User(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1729,6 +1950,216 @@ func (ec *executionContext) _Comment_updatedAt(ctx context.Context, field graphq
 	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _CommentConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *entity.CommentConnection) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "CommentConnection",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PageInfo, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*entity.PageInfo)
+	fc.Result = res
+	return ec.marshalNPageInfo2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐPageInfo(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _CommentConnection_edges(ctx context.Context, field graphql.CollectedField, obj *entity.CommentConnection) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "CommentConnection",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Edges, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*entity.CommentEdge)
+	fc.Result = res
+	return ec.marshalNCommentEdge2ᚕᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCommentEdge(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _CommentEdge_cursor(ctx context.Context, field graphql.CollectedField, obj *entity.CommentEdge) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "CommentEdge",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Cursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNCursor2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _CommentEdge_node(ctx context.Context, field graphql.CollectedField, obj *entity.CommentEdge) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "CommentEdge",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Node, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*entity.Comment)
+	fc.Result = res
+	return ec.marshalNComment2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐComment(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DeleteCommentResult_success(ctx context.Context, field graphql.CollectedField, obj *entity.DeleteCommentResult) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "DeleteCommentResult",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Success, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _DeleteCommentResult_id(ctx context.Context, field graphql.CollectedField, obj *entity.DeleteCommentResult) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "DeleteCommentResult",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Like_id(ctx context.Context, field graphql.CollectedField, obj *entity.Like) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1775,14 +2206,14 @@ func (ec *executionContext) _Like_user(ctx context.Context, field graphql.Collec
 		Object:     "Like",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.User, nil
+		return ec.resolvers.Like().User(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1810,14 +2241,14 @@ func (ec *executionContext) _Like_audio(ctx context.Context, field graphql.Colle
 		Object:     "Like",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Audio, nil
+		return ec.resolvers.Like().Audio(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2007,18 +2438,105 @@ func (ec *executionContext) _Mutation_createComment(ctx context.Context, field g
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateComment(rctx, args["input"].(entity.UpdateAudioInput))
+		return ec.resolvers.Mutation().CreateComment(rctx, args["input"].(entity.CreateCommentInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(*entity.Comment)
 	fc.Result = res
-	return ec.marshalOComment2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐComment(ctx, field.Selections, res)
+	return ec.marshalNComment2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐComment(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_updateComment(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_updateComment_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateComment(rctx, args["input"].(entity.UpdateCommentInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*entity.Comment)
+	fc.Result = res
+	return ec.marshalNComment2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐComment(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_deleteComment(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_deleteComment_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteComment(rctx, args["id"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*entity.DeleteCommentResult)
+	fc.Result = res
+	return ec.marshalNDeleteCommentResult2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐDeleteCommentResult(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_toggleStar(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2493,6 +3011,48 @@ func (ec *executionContext) _Query_version(ctx context.Context, field graphql.Co
 	res := resTmp.(*entity.Version)
 	fc.Result = res
 	return ec.marshalNVersion2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐVersion(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_comments(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_comments_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Comments(rctx, args["cursor"].(*string), args["limit"].(*int), args["order"].([]string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*entity.AudioConnection)
+	fc.Result = res
+	return ec.marshalNAudioConnection2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -4234,6 +4794,110 @@ func (ec *executionContext) unmarshalInputAudiosInput(ctx context.Context, obj i
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputCommentFilter(ctx context.Context, obj interface{}) (entity.CommentFilter, error) {
+	var it entity.CommentFilter
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "role":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("role"))
+			it.Role, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputCommentOrder(ctx context.Context, obj interface{}) (entity.CommentOrder, error) {
+	var it entity.CommentOrder
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "field":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("field"))
+			it.Field, err = ec.unmarshalOCommentOrderField2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCommentOrderField(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "direction":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("direction"))
+			it.Direction, err = ec.unmarshalOSortDirection2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐSortDirection(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputCreateCommentInput(ctx context.Context, obj interface{}) (entity.CreateCommentInput, error) {
+	var it entity.CreateCommentInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "audioID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("audioID"))
+			it.AudioID, err = ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "body":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("body"))
+			it.Body, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputCreateUserInput(ctx context.Context, obj interface{}) (entity.CreateUserInput, error) {
+	var it entity.CreateUserInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			it.ID, err = ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "email":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("email"))
+			it.Email, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputQuerySpec(ctx context.Context, obj interface{}) (entity.QuerySpec, error) {
 	var it entity.QuerySpec
 	var asMap = obj.(map[string]interface{})
@@ -4297,6 +4961,26 @@ func (ec *executionContext) unmarshalInputUpdateAudioInput(ctx context.Context, 
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputUpdateCommentInput(ctx context.Context, obj interface{}) (entity.UpdateCommentInput, error) {
+	var it entity.UpdateCommentInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			it.ID, err = ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -4312,6 +4996,13 @@ func (ec *executionContext) _Connection(ctx context.Context, sel ast.SelectionSe
 			return graphql.Null
 		}
 		return ec._AudioConnection(ctx, sel, obj)
+	case entity.CommentConnection:
+		return ec._CommentConnection(ctx, sel, &obj)
+	case *entity.CommentConnection:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._CommentConnection(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -4328,6 +5019,13 @@ func (ec *executionContext) _Edge(ctx context.Context, sel ast.SelectionSet, obj
 			return graphql.Null
 		}
 		return ec._AudioEdge(ctx, sel, obj)
+	case entity.CommentEdge:
+		return ec._CommentEdge(ctx, sel, &obj)
+	case *entity.CommentEdge:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._CommentEdge(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -4344,6 +5042,13 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 			return graphql.Null
 		}
 		return ec._Audio(ctx, sel, obj)
+	case entity.Comment:
+		return ec._Comment(ctx, sel, &obj)
+	case *entity.Comment:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._Comment(ctx, sel, obj)
 	case entity.Like:
 		return ec._Like(ctx, sel, &obj)
 	case *entity.Like:
@@ -4365,13 +5070,6 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 			return graphql.Null
 		}
 		return ec._User(ctx, sel, obj)
-	case entity.Comment:
-		return ec._Comment(ctx, sel, &obj)
-	case *entity.Comment:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._Comment(ctx, sel, obj)
 	case entity.Play:
 		return ec._Play(ctx, sel, &obj)
 	case *entity.Play:
@@ -4570,25 +5268,130 @@ func (ec *executionContext) _Comment(ctx context.Context, sel ast.SelectionSet, 
 		case "id":
 			out.Values[i] = ec._Comment_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "user":
-			out.Values[i] = ec._Comment_user(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Comment_user(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "body":
 			out.Values[i] = ec._Comment_body(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "createdAt":
 			out.Values[i] = ec._Comment_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "updatedAt":
 			out.Values[i] = ec._Comment_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var commentConnectionImplementors = []string{"CommentConnection", "Connection"}
+
+func (ec *executionContext) _CommentConnection(ctx context.Context, sel ast.SelectionSet, obj *entity.CommentConnection) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, commentConnectionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CommentConnection")
+		case "pageInfo":
+			out.Values[i] = ec._CommentConnection_pageInfo(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "edges":
+			out.Values[i] = ec._CommentConnection_edges(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var commentEdgeImplementors = []string{"CommentEdge", "Edge"}
+
+func (ec *executionContext) _CommentEdge(ctx context.Context, sel ast.SelectionSet, obj *entity.CommentEdge) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, commentEdgeImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CommentEdge")
+		case "cursor":
+			out.Values[i] = ec._CommentEdge_cursor(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "node":
+			out.Values[i] = ec._CommentEdge_node(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var deleteCommentResultImplementors = []string{"DeleteCommentResult"}
+
+func (ec *executionContext) _DeleteCommentResult(ctx context.Context, sel ast.SelectionSet, obj *entity.DeleteCommentResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, deleteCommentResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("DeleteCommentResult")
+		case "success":
+			out.Values[i] = ec._DeleteCommentResult_success(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "id":
+			out.Values[i] = ec._DeleteCommentResult_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -4617,27 +5420,45 @@ func (ec *executionContext) _Like(ctx context.Context, sel ast.SelectionSet, obj
 		case "id":
 			out.Values[i] = ec._Like_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "user":
-			out.Values[i] = ec._Like_user(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Like_user(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "audio":
-			out.Values[i] = ec._Like_audio(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Like_audio(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "createdAt":
 			out.Values[i] = ec._Like_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "updatedAt":
 			out.Values[i] = ec._Like_updatedAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -4671,6 +5492,19 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_createPlay(ctx, field)
 		case "createComment":
 			out.Values[i] = ec._Mutation_createComment(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "updateComment":
+			out.Values[i] = ec._Mutation_updateComment(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "deleteComment":
+			out.Values[i] = ec._Mutation_deleteComment(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "toggleStar":
 			out.Values[i] = ec._Mutation_toggleStar(ctx, field)
 		case "toggleLike":
@@ -4837,6 +5671,20 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_version(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "comments":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_comments(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -5395,6 +6243,62 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) marshalNComment2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐComment(ctx context.Context, sel ast.SelectionSet, v entity.Comment) graphql.Marshaler {
+	return ec._Comment(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNComment2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐComment(ctx context.Context, sel ast.SelectionSet, v *entity.Comment) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Comment(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNCommentEdge2ᚕᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCommentEdge(ctx context.Context, sel ast.SelectionSet, v []*entity.CommentEdge) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOCommentEdge2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCommentEdge(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) unmarshalNCreateCommentInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCreateCommentInput(ctx context.Context, v interface{}) (entity.CreateCommentInput, error) {
+	res, err := ec.unmarshalInputCreateCommentInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNCursor2string(ctx context.Context, v interface{}) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -5408,6 +6312,20 @@ func (ec *executionContext) marshalNCursor2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNDeleteCommentResult2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐDeleteCommentResult(ctx context.Context, sel ast.SelectionSet, v entity.DeleteCommentResult) graphql.Marshaler {
+	return ec._DeleteCommentResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNDeleteCommentResult2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐDeleteCommentResult(ctx context.Context, sel ast.SelectionSet, v *entity.DeleteCommentResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._DeleteCommentResult(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNID2int64(ctx context.Context, v interface{}) (int64, error) {
@@ -5517,6 +6435,11 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 
 func (ec *executionContext) unmarshalNUpdateAudioInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐUpdateAudioInput(ctx context.Context, v interface{}) (entity.UpdateAudioInput, error) {
 	res, err := ec.unmarshalInputUpdateAudioInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNUpdateCommentInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐUpdateCommentInput(ctx context.Context, v interface{}) (entity.UpdateCommentInput, error) {
+	res, err := ec.unmarshalInputUpdateCommentInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -5855,11 +6778,27 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return graphql.MarshalBoolean(*v)
 }
 
-func (ec *executionContext) marshalOComment2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐComment(ctx context.Context, sel ast.SelectionSet, v *entity.Comment) graphql.Marshaler {
+func (ec *executionContext) marshalOCommentEdge2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCommentEdge(ctx context.Context, sel ast.SelectionSet, v *entity.CommentEdge) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
-	return ec._Comment(ctx, sel, v)
+	return ec._CommentEdge(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOCommentOrderField2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCommentOrderField(ctx context.Context, v interface{}) (*entity.CommentOrderField, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(entity.CommentOrderField)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOCommentOrderField2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCommentOrderField(ctx context.Context, sel ast.SelectionSet, v *entity.CommentOrderField) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) unmarshalOCursor2ᚖstring(ctx context.Context, v interface{}) (*string, error) {

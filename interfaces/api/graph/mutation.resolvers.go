@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"fmt"
+	auth2 "github.com/hayashiki/audiy-api/interfaces/api/graph/auth"
 
 	"github.com/hayashiki/audiy-api/domain/entity"
 	"github.com/hayashiki/audiy-api/interfaces/api/graph/generated"
@@ -19,16 +20,24 @@ func (r *mutationResolver) CreatePlay(ctx context.Context, input entity.UpdateAu
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *mutationResolver) CreateComment(ctx context.Context, input entity.UpdateAudioInput) (*entity.Comment, error) {
-	auth, err := ForContext(ctx)
+func (r *mutationResolver) CreateComment(ctx context.Context, input entity.CreateCommentInput) (*entity.Comment, error) {
+	auth, err := auth2.ForContext(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return r.commentUsecase.Save(ctx, auth.ID, input.AudioID)
+	return r.commentUsecase.Save(ctx, auth.ID, input)
+}
+
+func (r *mutationResolver) UpdateComment(ctx context.Context, input entity.UpdateCommentInput) (*entity.Comment, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) DeleteComment(ctx context.Context, id string) (*entity.DeleteCommentResult, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *mutationResolver) ToggleStar(ctx context.Context, input entity.UpdateAudioInput) (*entity.ToggleStarResult, error) {
-	auth, err := ForContext(ctx)
+	auth, err := auth2.ForContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -66,20 +75,3 @@ func (r *mutationResolver) ToggleLike(ctx context.Context, input entity.UpdateAu
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
 type mutationResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-func (r *mutationResolver) CreateUserAudio(ctx context.Context, input entity.UserAudioInput) (*entity.Audio, error) {
-	auth, err := ForContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	r.audioUserUsecase.Save(ctx, auth.ID, input.AudioID)
-
-	// TODO: set create success response
-	return nil, nil
-}

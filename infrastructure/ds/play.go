@@ -1,9 +1,10 @@
 package ds
 
 import (
-	"cloud.google.com/go/datastore"
 	"context"
 	"fmt"
+
+	"cloud.google.com/go/datastore"
 	"github.com/hayashiki/audiy-api/domain/entity"
 )
 
@@ -17,12 +18,14 @@ func (repo *playRepository) Find(ctx context.Context, userID int64, audioID stri
 	panic("implement me")
 }
 
-func NewPlayRepository(client *datastore.Client) entity.AudioUserRepository {
+func NewPlayRepository(client *datastore.Client) entity.PlayRepository {
 	return &playRepository{client: client}
 }
 
 func (repo *playRepository) Exists(ctx context.Context, userID int64, audioID string) (bool, error) {
-	q := datastore.NewQuery(entity.AudioUserKind).Filter("user_id=", userID).Filter("audio_id=", audioID).KeysOnly().Limit(1)
+	userKey := entity.GetUserKey(userID)
+	audioKey := entity.GetAudioKey(audioID)
+	q := datastore.NewQuery(entity.AudioUserKind).Filter("user_key=", userKey).Filter("audio_key=", audioKey).KeysOnly().Limit(1)
 	var dst []*entity.Play
 
 	keys, err := repo.client.GetAll(ctx, q, dst)
@@ -38,6 +41,6 @@ func (repo *playRepository) Exists(ctx context.Context, userID int64, audioID st
 // Save saves audios
 func (repo *playRepository) Save(ctx context.Context, item *entity.Play) error {
 	// TODO: if exists
-	_, err := repo.client.Put(ctx,  datastore.IncompleteKey(entity.AudioUserKind, nil),item)
+	_, err := repo.client.Put(ctx, datastore.IncompleteKey(entity.AudioUserKind, nil), item)
 	return err
 }

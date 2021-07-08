@@ -33,6 +33,10 @@ func (r *queryResolver) Version(ctx context.Context) (*entity.Version, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
+func (r *queryResolver) Comments(ctx context.Context, cursor *string, limit *int, order []string) (*entity.AudioConnection, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 

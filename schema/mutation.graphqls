@@ -1,9 +1,11 @@
 type Mutation {
     createAudio(input: AudiosInput!): Audio
-    #TODO: playedに変更する
+
     createPlay(input: UpdateAudioInput!): Audio
 
-    createComment(input: UpdateAudioInput!): Comment
+    createComment(input: CreateCommentInput!): Comment!
+    updateComment(input: UpdateCommentInput!): Comment!
+    deleteComment(id: ID!): DeleteCommentResult!
 
     toggleStar(input: UpdateAudioInput!): ToggleStarResult
     toggleLike(input: UpdateAudioInput!): ToggleLikeResult

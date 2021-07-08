@@ -7,25 +7,28 @@ import "github.com/hayashiki/audiy-api/application/usecase"
 // It serves as dependency injection for your app, add any dependencies you require here.
 
 type Resolver struct {
-	audioUsecase     usecase.AudioUsecase
-	audioUserUsecase usecase.AudioUserUsecase
-	starUsecase      usecase.StarUsecase
-	likeUsecase      usecase.LikeUsecase
-	commentUsecase   usecase.CommentUsecase
+	userUsecase    usecase.UserUsecase
+	audioUsecase   usecase.AudioUsecase
+	playUsecase    usecase.PlayUsecase
+	starUsecase    usecase.StarUsecase
+	likeUsecase    usecase.LikeUsecase
+	commentUsecase usecase.CommentUsecase
 }
 
 func NewResolver(
+	userUsecase    usecase.UserUsecase,
 	audioUsecase usecase.AudioUsecase,
-	audioUserUsecase usecase.AudioUserUsecase,
-	starUsecase usecase.StarUsecase,
-	likeUsecase usecase.LikeUsecase,
+	audioUserUsecase usecase.PlayUsecase,
+	//starUsecase usecase.StarUsecase,
+	//likeUsecase usecase.LikeUsecase,
 	commentUsecase usecase.CommentUsecase,
 ) *Resolver {
 	return &Resolver{
-		audioUsecase:     audioUsecase,
-		audioUserUsecase: audioUserUsecase,
-		starUsecase:      starUsecase,
-		likeUsecase:      likeUsecase,
+		userUsecase: userUsecase,
+		audioUsecase: audioUsecase,
+		playUsecase:  audioUserUsecase,
+		//starUsecase:      starUsecase,
+		//likeUsecase:      likeUsecase,
 		commentUsecase:   commentUsecase,
 	}
 }
