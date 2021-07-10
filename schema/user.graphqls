@@ -1,0 +1,4 @@
+input CreateUserInput {
+    id: ID!
+    email: String!
+}

@@ -1,11 +1,11 @@
-type UserAudio implements Node {
+type Play implements Node {
     id: ID!
-    userID: String!
+    user: User!
     audio: Audio!
     createdAt: Time!
     updatedAt: Time!
 }
 
-input UserAudioInput {
+input UpdateAudioInput {
     audioID: ID!
 }

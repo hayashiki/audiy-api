@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"strconv"
-	"time"
 )
 
 type Connection interface {
@@ -45,6 +44,44 @@ type AudiosInput struct {
 	Name string `json:"name"`
 }
 
+type CommentConnection struct {
+	PageInfo *PageInfo      `json:"pageInfo"`
+	Edges    []*CommentEdge `json:"edges"`
+}
+
+func (CommentConnection) IsConnection() {}
+
+type CommentEdge struct {
+	Cursor string   `json:"cursor"`
+	Node   *Comment `json:"node"`
+}
+
+func (CommentEdge) IsEdge() {}
+
+type CommentFilter struct {
+	Role *string `json:"role"`
+}
+
+type CommentOrder struct {
+	Field     *CommentOrderField `json:"field"`
+	Direction *SortDirection     `json:"direction"`
+}
+
+type CreateCommentInput struct {
+	AudioID string `json:"audioID"`
+	Body    string `json:"body"`
+}
+
+type CreateUserInput struct {
+	ID    string `json:"id"`
+	Email string `json:"email"`
+}
+
+type DeleteCommentResult struct {
+	Success bool   `json:"success"`
+	ID      string `json:"id"`
+}
+
 type PageInfo struct {
 	Cursor    string `json:"cursor"`
 	TotalPage int    `json:"totalPage"`
@@ -57,18 +94,24 @@ type QuerySpec struct {
 	Limit  *int          `json:"limit"`
 }
 
-type UserAudio struct {
-	ID        string    `json:"id"`
-	UserID    string    `json:"userID"`
-	Audio     *Audio    `json:"audio"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+type ToggleLikeResult struct {
+	Like    *Like  `json:"like"`
+	Action  string `json:"action"`
+	Success bool   `json:"success"`
 }
 
-func (UserAudio) IsNode() {}
+type ToggleStarResult struct {
+	Star    *Star  `json:"star"`
+	Action  string `json:"action"`
+	Success bool   `json:"success"`
+}
 
-type UserAudioInput struct {
+type UpdateAudioInput struct {
 	AudioID string `json:"audioID"`
+}
+
+type UpdateCommentInput struct {
+	ID string `json:"id"`
 }
 
 type Version struct {
@@ -120,6 +163,45 @@ func (e *AudioOrderField) UnmarshalGQL(v interface{}) error {
 }
 
 func (e AudioOrderField) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type CommentOrderField string
+
+const (
+	CommentOrderFieldID CommentOrderField = "ID"
+)
+
+var AllCommentOrderField = []CommentOrderField{
+	CommentOrderFieldID,
+}
+
+func (e CommentOrderField) IsValid() bool {
+	switch e {
+	case CommentOrderFieldID:
+		return true
+	}
+	return false
+}
+
+func (e CommentOrderField) String() string {
+	return string(e)
+}
+
+func (e *CommentOrderField) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = CommentOrderField(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid CommentOrderField", str)
+	}
+	return nil
+}
+
+func (e CommentOrderField) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 

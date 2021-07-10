@@ -34,7 +34,6 @@ func GetAudioKey(id string) *datastore.Key {
 	return entity.GetKey()
 }
 
-
 func NewAudio(id, name string, length int, url, mimetype string, created time.Time) *Audio {
 	return &Audio{
 		ID:          id,
@@ -47,18 +46,6 @@ func NewAudio(id, name string, length int, url, mimetype string, created time.Ti
 		UpdatedAt:   time.Now(),
 	}
 }
-
-//func (r* Audio) GetKey() *datastore.GetKey {
-//	if r.ID == "" {
-//		return nil
-//	}
-//	return datastore.NameKey(AudioKind, r.ID, nil)
-//	//IDKeyをやめてNameKeyに変更した
-//	//	if r.ID == 0 {
-//	//		return datastore.IncompleteKey(AudioKind, nil)
-//	//	}
-//	//	return datastore.IDKey(AudioKind, r.ID, nil)
-//}
 
 func (r *Audio) SetID(key *datastore.Key) {
 	r.ID = key.Name

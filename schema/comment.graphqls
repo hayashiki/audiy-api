@@ -1,0 +1,45 @@
+### Comment ###
+type Comment implements Node {
+    id: ID!
+    user: User!
+    body: String!
+    createdAt: Time!
+    updatedAt: Time!
+}
+
+type CommentEdge implements Edge {
+    cursor: Cursor!
+    node: Comment!
+}
+
+type CommentConnection implements Connection {
+    pageInfo: PageInfo!
+    edges: [CommentEdge]!
+}
+
+input CommentFilter {
+    role: String
+}
+
+input CreateCommentInput {
+    audioID: ID!
+    body: String!
+}
+
+input UpdateCommentInput {
+    id: ID!
+}
+
+type DeleteCommentResult {
+  success: Boolean!
+  id: ID!
+}
+
+enum CommentOrderField {
+  ID
+}
+
+input CommentOrder {
+  field: CommentOrderField
+  direction: SortDirection
+}

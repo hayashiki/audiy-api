@@ -1,0 +1,12 @@
+query {
+    audios(cursor: "", limit: 10){
+        edges {
+            node {
+                id
+                url
+                played
+                publishedAt
+            }
+        }
+    }
+}

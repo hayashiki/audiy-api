@@ -1,23 +1,23 @@
-package entity
+package ds
 
 import (
 	"context"
-	"github.com/hayashiki/audiy-api/infrastructure/ds"
+	"github.com/hayashiki/audiy-api/domain/entity"
 	"testing"
 	"time"
 )
 
 func TestFindAudio(t *testing.T) {
-	dsDataSource := ds.Connect()
+	dsDataSource := Connect()
 	repo := NewAudioRepository(dsDataSource)
 
 	testAudios(t, repo)
 }
 
-func testAudios(t *testing.T, repo AudioRepository) {
+func testAudios(t *testing.T, repo entity.AudioRepository) {
 	ctx := context.Background()
 	pub := time.Now()
-	audio := &Audio{
+	audio := &entity.Audio{
 		ID:          "14145",
 		//Name:        "hoge",
 		//Length:      100,
