@@ -47,11 +47,10 @@ func (s *registry) NewHandler() http.Handler {
 
 	// handler
 	queryHandler := handler.NewQueryHandler(userUsecase, audioUsecase, playUsecase, commentUsecase)
-	authenticator.AuthMiddleware(queryHandler)
 	rootHandler := handler.NewRootHandler()
 
 	// router
-	router := router.NewRouter(rootHandler, queryHandler, queryHandler)
+	router := router.NewRouter(rootHandler, authenticator.AuthMiddleware(queryHandler), authenticator.AuthMiddleware(queryHandler))
 
 	return router.CreateHandler()
 }

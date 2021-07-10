@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"fmt"
+	auth2 "github.com/hayashiki/audiy-api/interfaces/api/graph/auth"
 
 	"github.com/hayashiki/audiy-api/domain/entity"
 	"github.com/hayashiki/audiy-api/interfaces/api/graph/generated"
@@ -16,6 +17,11 @@ func (r *queryResolver) Audio(ctx context.Context, id string) (*entity.Audio, er
 }
 
 func (r *queryResolver) Audios(ctx context.Context, cursor *string, limit *int, order []string) (*entity.AudioConnection, error) {
+	_, err := auth2.ForContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	if *cursor == "" {
 		*cursor = ""
 	}
