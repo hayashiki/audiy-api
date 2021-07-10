@@ -19,8 +19,7 @@ func TestCommentSave(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dsDataSource := Connect()
-	audioRepo := audioRepository{dsDataSource}
+	audioRepo := audioRepository{dsCli}
 	audio, err := audioRepo.Find(ctx, "F023GTZRRU2")
 	if err != nil {
 		t.Fatal(err)

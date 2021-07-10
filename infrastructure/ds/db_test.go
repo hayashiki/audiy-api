@@ -3,15 +3,17 @@ package ds
 import (
 	"context"
 	"github.com/hayashiki/audiy-api/domain/entity"
+	"os"
 	"testing"
 	"time"
 )
 
 func TestFindAudio(t *testing.T) {
-	dsDataSource := Connect()
-	repo := NewAudioRepository(dsDataSource)
-
-	testAudios(t, repo)
+	ctx := context.Background()
+	dsCli, _ := NewClient(ctx, os.Getenv("GCP_PROJECT"))
+	audioRepo := audioRepository{dsCli}
+	//playRepo := playRepository{dsCli}
+	testAudios(t, &audioRepo)
 }
 
 func testAudios(t *testing.T, repo entity.AudioRepository) {

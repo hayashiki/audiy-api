@@ -26,18 +26,16 @@ func (s *registry) NewHandler() http.Handler {
 	//dsCli := ds.Client()
 	//dsStore := &ds.DataStore{Client: dsCli}
 	// infrastructure
-	dsStore := ds.Connect()
-
 	dsCli, _ := ds.NewClient(context.Background(), os.Getenv("GCP_PROJECT"))
+
+	// repository
 	playRepo := ds.NewPlayRepository(dsCli)
 	commentRepo := ds.NewCommentRepository(dsCli)
 	userRepo := ds.NewUserRepository(dsCli)
+	audioRepo := ds.NewAudioRepository(dsCli)
 
 	// middleware
 	authenticator := middleware.NewAuthenticator()
-
-	// repository
-	audioRepo := ds.NewAudioRepository(dsStore)
 
 	// usecase
 	audioUsecase := usecase.NewAudioUsecase(audioRepo)
