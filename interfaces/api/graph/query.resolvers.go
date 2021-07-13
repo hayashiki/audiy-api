@@ -6,9 +6,9 @@ package graph
 import (
 	"context"
 	"fmt"
-	auth2 "github.com/hayashiki/audiy-api/interfaces/api/graph/auth"
 
 	"github.com/hayashiki/audiy-api/domain/entity"
+	auth2 "github.com/hayashiki/audiy-api/interfaces/api/graph/auth"
 	"github.com/hayashiki/audiy-api/interfaces/api/graph/generated"
 )
 

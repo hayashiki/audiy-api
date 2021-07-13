@@ -72,6 +72,11 @@ type CreateCommentInput struct {
 	Body    string `json:"body"`
 }
 
+type CreatePlayPayload struct {
+	Result bool  `json:"result"`
+	Play   *Play `json:"play"`
+}
+
 type CreateUserInput struct {
 	ID    string `json:"id"`
 	Email string `json:"email"`

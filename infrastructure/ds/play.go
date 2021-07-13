@@ -8,12 +8,12 @@ import (
 	"github.com/hayashiki/audiy-api/domain/entity"
 )
 
-// AudioRepository operates Audio entity
+// playRepository operates play entity
 type playRepository struct {
 	client *datastore.Client
 }
 
-// Find finds audio given id
+// Find finds play given userID and audioID
 func (repo *playRepository) Find(ctx context.Context, userID int64, audioID string) (*entity.Play, error) {
 	panic("implement me")
 }
@@ -25,7 +25,7 @@ func NewPlayRepository(client *datastore.Client) entity.PlayRepository {
 func (repo *playRepository) Exists(ctx context.Context, userID int64, audioID string) (bool, error) {
 	userKey := entity.GetUserKey(userID)
 	audioKey := entity.GetAudioKey(audioID)
-	q := datastore.NewQuery(entity.AudioUserKind).Filter("user_key=", userKey).Filter("audio_key=", audioKey).KeysOnly().Limit(1)
+	q := datastore.NewQuery(entity.PlayKind).Filter("user_key=", userKey).Filter("audio_key=", audioKey).KeysOnly().Limit(1)
 	var dst []*entity.Play
 
 	keys, err := repo.client.GetAll(ctx, q, dst)
@@ -41,6 +41,6 @@ func (repo *playRepository) Exists(ctx context.Context, userID int64, audioID st
 // Save saves audios
 func (repo *playRepository) Save(ctx context.Context, item *entity.Play) error {
 	// TODO: if exists
-	_, err := repo.client.Put(ctx, datastore.IncompleteKey(entity.AudioUserKind, nil), item)
+	_, err := repo.client.Put(ctx, datastore.IncompleteKey(entity.PlayKind, nil), item)
 	return err
 }

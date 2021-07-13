@@ -6,9 +6,8 @@ package graph
 import (
 	"context"
 	"fmt"
-	auth2 "github.com/hayashiki/audiy-api/interfaces/api/graph/auth"
-
 	"github.com/hayashiki/audiy-api/domain/entity"
+	auth2 "github.com/hayashiki/audiy-api/interfaces/api/graph/auth"
 	"github.com/hayashiki/audiy-api/interfaces/api/graph/generated"
 )
 
@@ -16,8 +15,12 @@ func (r *mutationResolver) CreateAudio(ctx context.Context, input entity.AudiosI
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *mutationResolver) CreatePlay(ctx context.Context, input entity.UpdateAudioInput) (*entity.Audio, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) CreatePlay(ctx context.Context, input entity.UpdateAudioInput) (*entity.Play, error) {
+	auth, err := auth2.ForContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return r.playUsecase.Save(ctx, auth.ID, input.AudioID)
 }
 
 func (r *mutationResolver) CreateComment(ctx context.Context, input entity.CreateCommentInput) (*entity.Comment, error) {

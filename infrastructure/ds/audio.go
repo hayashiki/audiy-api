@@ -42,9 +42,9 @@ func (repo *audioRepository) FindAll(ctx context.Context, cursor string, limit i
 	//for _, filter := range opts.Filters {
 	//	query = query.Filter(filter.key, filter.value)
 	//}
-	//for _, order := range sort {
-	//	query = query.Order(order)
-	//}
+	for _, order := range sort {
+		query = query.Order(order)
+	}
 	it := repo.client.Run(ctx, query)
 	entities := make([]*entity.Audio, 0)
 	for {
@@ -61,6 +61,7 @@ func (repo *audioRepository) FindAll(ctx context.Context, cursor string, limit i
 		if err != nil {
 			return entities, "", err
 		}
+		entity.ID = entity.Key.Name
 		entities = append(entities, entity)
 	}
 

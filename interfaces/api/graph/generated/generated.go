@@ -92,6 +92,11 @@ type ComplexityRoot struct {
 		Node   func(childComplexity int) int
 	}
 
+	CreatePlayPayload struct {
+		Play   func(childComplexity int) int
+		Result func(childComplexity int) int
+	}
+
 	DeleteCommentResult struct {
 		ID      func(childComplexity int) int
 		Success func(childComplexity int) int
@@ -182,7 +187,7 @@ type LikeResolver interface {
 }
 type MutationResolver interface {
 	CreateAudio(ctx context.Context, input entity.AudiosInput) (*entity.Audio, error)
-	CreatePlay(ctx context.Context, input entity.UpdateAudioInput) (*entity.Audio, error)
+	CreatePlay(ctx context.Context, input entity.UpdateAudioInput) (*entity.Play, error)
 	CreateComment(ctx context.Context, input entity.CreateCommentInput) (*entity.Comment, error)
 	UpdateComment(ctx context.Context, input entity.UpdateCommentInput) (*entity.Comment, error)
 	DeleteComment(ctx context.Context, id string) (*entity.DeleteCommentResult, error)
@@ -386,6 +391,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.CommentEdge.Node(childComplexity), true
+
+	case "CreatePlayPayload.play":
+		if e.complexity.CreatePlayPayload.Play == nil {
+			break
+		}
+
+		return e.complexity.CreatePlayPayload.Play(childComplexity), true
+
+	case "CreatePlayPayload.result":
+		if e.complexity.CreatePlayPayload.Result == nil {
+			break
+		}
+
+		return e.complexity.CreatePlayPayload.Result(childComplexity), true
 
 	case "DeleteCommentResult.id":
 		if e.complexity.DeleteCommentResult.ID == nil {
@@ -918,7 +937,7 @@ type ToggleLikeResult {
 	{Name: "schema/mutation.graphqls", Input: `type Mutation {
     createAudio(input: AudiosInput!): Audio
 
-    createPlay(input: UpdateAudioInput!): Audio
+    createPlay(input: UpdateAudioInput!): Play
 
     createComment(input: CreateCommentInput!): Comment!
     updateComment(input: UpdateCommentInput!): Comment!
@@ -977,6 +996,11 @@ input QuerySpec {
 
 input UpdateAudioInput {
     audioID: ID!
+}
+
+type CreatePlayPayload {
+    result: Boolean!
+    play: Play!
 }
 `, BuiltIn: false},
 	{Name: "schema/query.graphqls", Input: `type Query {
@@ -2090,6 +2114,76 @@ func (ec *executionContext) _CommentEdge_node(ctx context.Context, field graphql
 	return ec.marshalNComment2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐComment(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _CreatePlayPayload_result(ctx context.Context, field graphql.CollectedField, obj *entity.CreatePlayPayload) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "CreatePlayPayload",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Result, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _CreatePlayPayload_play(ctx context.Context, field graphql.CollectedField, obj *entity.CreatePlayPayload) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "CreatePlayPayload",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Play, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*entity.Play)
+	fc.Result = res
+	return ec.marshalNPlay2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐPlay(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _DeleteCommentResult_success(ctx context.Context, field graphql.CollectedField, obj *entity.DeleteCommentResult) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2408,9 +2502,9 @@ func (ec *executionContext) _Mutation_createPlay(ctx context.Context, field grap
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*entity.Audio)
+	res := resTmp.(*entity.Play)
 	fc.Result = res
-	return ec.marshalOAudio2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudio(ctx, field.Selections, res)
+	return ec.marshalOPlay2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐPlay(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createComment(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -5374,6 +5468,38 @@ func (ec *executionContext) _CommentEdge(ctx context.Context, sel ast.SelectionS
 	return out
 }
 
+var createPlayPayloadImplementors = []string{"CreatePlayPayload"}
+
+func (ec *executionContext) _CreatePlayPayload(ctx context.Context, sel ast.SelectionSet, obj *entity.CreatePlayPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, createPlayPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CreatePlayPayload")
+		case "result":
+			out.Values[i] = ec._CreatePlayPayload_result(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "play":
+			out.Values[i] = ec._CreatePlayPayload_play(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var deleteCommentResultImplementors = []string{"DeleteCommentResult"}
 
 func (ec *executionContext) _DeleteCommentResult(ctx context.Context, sel ast.SelectionSet, obj *entity.DeleteCommentResult) graphql.Marshaler {
@@ -6393,6 +6519,16 @@ func (ec *executionContext) marshalNPageInfo2ᚖgithubᚗcomᚋhayashikiᚋaudiy
 	return ec._PageInfo(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNPlay2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐPlay(ctx context.Context, sel ast.SelectionSet, v *entity.Play) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Play(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNStar2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐStar(ctx context.Context, sel ast.SelectionSet, v *entity.Star) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -6829,6 +6965,13 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 		return graphql.Null
 	}
 	return graphql.MarshalInt(*v)
+}
+
+func (ec *executionContext) marshalOPlay2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐPlay(ctx context.Context, sel ast.SelectionSet, v *entity.Play) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Play(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOSortDirection2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐSortDirection(ctx context.Context, v interface{}) (*entity.SortDirection, error) {

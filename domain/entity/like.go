@@ -5,8 +5,11 @@ import (
 	"time"
 )
 
+const LikeKind = "Like"
+
 type Like struct {
-	ID        string    `json:"id"`
+	Key       *datastore.Key `datastore:"__key__"`
+	ID        int64    `json:"id" datastore:"-"`
 	UserKey    *datastore.Key `json:"user_key" datastore:"user_key"`
 	AudioKey   *datastore.Key `json:"audio_key" datastore:"audio_key"`
 	CreatedAt time.Time `json:"createdAt"`
