@@ -1,9 +1,10 @@
 package ds
 
 import (
-	"cloud.google.com/go/datastore"
 	"context"
 	"fmt"
+
+	"cloud.google.com/go/datastore"
 	"github.com/hayashiki/audiy-api/domain/entity"
 )
 
@@ -12,8 +13,7 @@ type likeRepository struct {
 	client *datastore.Client
 }
 
-// Find finds play given userID and audioID
-func (repo *likeRepository) Find(ctx context.Context, userID int64, audioID string) (*entity.Like, error) {
+func (repo *likeRepository) FindByRel(ctx context.Context, userID int64, audioID string) (*entity.Like, error) {
 	userKey := entity.GetUserKey(userID)
 	audioKey := entity.GetAudioKey(audioID)
 	q := datastore.NewQuery(entity.PlayKind).Filter("user_key=", userKey).Filter("audio_key=", audioKey).Limit(1)
@@ -26,6 +26,24 @@ func (repo *likeRepository) Find(ctx context.Context, userID int64, audioID stri
 
 	dst[0].ID = keys[0].ID
 	return dst[0], nil
+}
+
+func (repo *likeRepository) Delete(ctx context.Context, id int64) error {
+	key := datastore.IDKey(entity.LikeKind, id, nil)
+	return repo.client.Delete(ctx, key)
+}
+
+// Find finds play given userID and audioID
+func (repo *likeRepository) Find(ctx context.Context, id int64) (*entity.Like, error) {
+	var dst *entity.Like
+	key := datastore.IDKey(entity.LikeKind, id, nil)
+
+	err := repo.client.Get(ctx, key, &dst)
+	if err != nil {
+		return nil, fmt.Errorf("not found like %w", err)
+	}
+	dst.ID = key.ID
+	return dst, nil
 }
 
 func NewLikeRepository(client *datastore.Client) entity.LikeRepository {

@@ -7,6 +7,8 @@ type Audio implements Node {
     url: String!
     mimetype: String!
     played: Boolean!
+    liked: Boolean!
+    stared: Boolean!
     publishedAt: Time!
     createdAt: Time!
     updatedAt: Time!

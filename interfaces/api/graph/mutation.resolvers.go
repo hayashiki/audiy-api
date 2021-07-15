@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"fmt"
+
 	"github.com/hayashiki/audiy-api/domain/entity"
 	auth2 "github.com/hayashiki/audiy-api/interfaces/api/graph/auth"
 	"github.com/hayashiki/audiy-api/interfaces/api/graph/generated"
@@ -36,41 +37,6 @@ func (r *mutationResolver) UpdateComment(ctx context.Context, input entity.Updat
 }
 
 func (r *mutationResolver) DeleteComment(ctx context.Context, id string) (*entity.DeleteCommentResult, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
-func (r *mutationResolver) ToggleStar(ctx context.Context, input entity.UpdateAudioInput) (*entity.ToggleStarResult, error) {
-	auth, err := auth2.ForContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	exists, err := r.starUsecase.Exists(ctx, auth.ID, input.AudioID)
-
-	if exists {
-		star, err := r.starUsecase.Delete(ctx, auth.ID, input.AudioID)
-		if err != nil {
-			return nil, err
-		}
-		return &entity.ToggleStarResult{
-			Star:    star,
-			Action:  "deleted",
-			Success: false,
-		}, nil
-
-	}
-	star, err := r.starUsecase.Save(ctx, auth.ID, input.AudioID)
-	if err != nil {
-		return nil, err
-	}
-	return &entity.ToggleStarResult{
-		Star:    star,
-		Action:  "created",
-		Success: false,
-	}, nil
-}
-
-func (r *mutationResolver) ToggleLike(ctx context.Context, input entity.UpdateAudioInput) (*entity.ToggleLikeResult, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 

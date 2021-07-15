@@ -7,7 +7,6 @@ import (
 )
 
 type LikeUsecase interface {
-	Toggle(ctx context.Context, userID int64, audioID string) (*entity.ToggleLikeResult, error)
 	Exists(ctx context.Context, userID int64, audioID string) (bool, error)
 	Save(ctx context.Context, userID int64, audioID string) (*entity.Like, error)
 	Delete(ctx context.Context, userID int64, audioID string) (*entity.Like, error)
@@ -21,18 +20,21 @@ type likeUsecase struct {
 	likeRepo entity.LikeRepository
 }
 
-func (l *likeUsecase) Toggle(ctx context.Context, userID int64, audioID string) (*entity.ToggleLikeResult, error) {
-	panic("implement me")
-}
-
 func (l *likeUsecase) Exists(ctx context.Context, userID int64, audioID string) (bool, error) {
 	panic("implement me")
 }
 
 func (l *likeUsecase) Save(ctx context.Context, userID int64, audioID string) (*entity.Like, error) {
-	panic("implement me")
+	newLike := entity.NewLike(userID, audioID)
+	err := l.likeRepo.Save(ctx, newLike)
+	return newLike, err
 }
 
 func (l *likeUsecase) Delete(ctx context.Context, userID int64, audioID string) (*entity.Like, error) {
-	panic("implement me")
+	like, err := l.likeRepo.FindByRel(ctx, userID, audioID)
+	if err != nil {
+		return nil, err
+	}
+	err = l.likeRepo.Delete(ctx, like.ID)
+	return like, err
 }

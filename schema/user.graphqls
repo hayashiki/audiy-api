@@ -1,3 +1,8 @@
+type User implements Node {
+    id: ID!
+    email: String!
+}
+
 input CreateUserInput {
     id: ID!
     email: String!

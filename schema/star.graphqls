@@ -1,0 +1,16 @@
+type Star implements Node {
+    id: ID!
+    user: User!
+    audio: Audio!
+    createdAt: Time!
+    updatedAt: Time!
+}
+
+input DeleteStarInput {
+    id: ID!
+}
+
+extend type Mutation {
+    createStar(input: UpdateAudioInput!): Star
+    deleteStar(input: UpdateAudioInput!): Star
+}

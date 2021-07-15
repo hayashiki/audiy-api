@@ -2,14 +2,14 @@ package usecase
 
 import (
 	"context"
+
 	"github.com/hayashiki/audiy-api/domain/entity"
 )
 
 type StarUsecase interface {
-	Toggle(ctx context.Context, userID int64, audioID string) (*entity.ToggleStarResult, error)
 	Exists(ctx context.Context, userID int64, audioID string) (bool, error)
 	Save(ctx context.Context, userID int64, audioID string) (*entity.Star, error)
-	Delete(ctx context.Context, id int64) (*entity.Star, error)
+	Delete(ctx context.Context, userID int64, audioID string) (*entity.Star, error)
 }
 
 func NewStarUsecase(starRepo entity.StarRepository) StarUsecase {
@@ -18,26 +18,6 @@ func NewStarUsecase(starRepo entity.StarRepository) StarUsecase {
 
 type starUsecase struct {
 	starRepo entity.StarRepository
-}
-
-func (s *starUsecase) Toggle(ctx context.Context, userID int64, audioID string) (*entity.ToggleStarResult, error) {
-	exists, err := s.Exists(ctx, userID, audioID)
-	if err != nil {
-		return nil, err
-	}
-	if exists {
-		star, err := s.starRepo.FindByRel(ctx, userID, audioID)
-		if err != nil {
-			return nil, err
-		}
-		star, err = s.Delete(ctx, star.ID)
-		return &entity.ToggleStarResult{
-			Star:    star,
-			Action:  "deleted",
-			Success: true,
-		}, nil
-	}
-	return nil, nil
 }
 
 func (s *starUsecase) Exists(ctx context.Context, userID int64, audioID string) (bool, error) {
@@ -50,8 +30,8 @@ func (s *starUsecase) Save(ctx context.Context, userID int64, audioID string) (*
 	return newsStar, err
 }
 
-func (s *starUsecase) Delete(ctx context.Context, id int64) (*entity.Star, error) {
-	star, err := s.starRepo.Find(ctx, id)
+func (s *starUsecase) Delete(ctx context.Context, userID int64, audioID string) (*entity.Star, error) {
+	star, err := s.starRepo.FindByRel(ctx, userID, audioID)
 	err = s.starRepo.Delete(ctx, star.ID)
 	if err != nil {
 		return nil, err
