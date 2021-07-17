@@ -16,19 +16,19 @@ type Resolver struct {
 }
 
 func NewResolver(
-	userUsecase    usecase.UserUsecase,
+	userUsecase usecase.UserUsecase,
 	audioUsecase usecase.AudioUsecase,
-	audioUserUsecase usecase.PlayUsecase,
-	//starUsecase usecase.StarUsecase,
-	//likeUsecase usecase.LikeUsecase,
+	playUsecase usecase.PlayUsecase,
+	starUsecase usecase.StarUsecase,
+	likeUsecase usecase.LikeUsecase,
 	commentUsecase usecase.CommentUsecase,
 ) *Resolver {
 	return &Resolver{
-		userUsecase: userUsecase,
-		audioUsecase: audioUsecase,
-		playUsecase:  audioUserUsecase,
-		//starUsecase:      starUsecase,
-		//likeUsecase:      likeUsecase,
-		commentUsecase:   commentUsecase,
+		userUsecase:    userUsecase,
+		audioUsecase:   audioUsecase,
+		playUsecase:    playUsecase,
+		starUsecase:    starUsecase,
+		likeUsecase:    likeUsecase,
+		commentUsecase: commentUsecase,
 	}
 }

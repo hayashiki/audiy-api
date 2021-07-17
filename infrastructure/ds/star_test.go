@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestCommentSave(t *testing.T) {
+func TestStarRepository_Exists(t *testing.T) {
 	log.Println(os.Getenv("GCP_PROJECT"))
 	ctx := context.Background()
 	dsCli, _ := NewClient(ctx, os.Getenv("GCP_PROJECT"))
@@ -25,16 +25,25 @@ func TestCommentSave(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	commentRepo := commentRepository{dsCli}
-	t.Log(user)
-	t.Log(audio.ID)
-	newComment := entity.NewComment(user.ID, audio.ID, "hogehoge")
-	if err := commentRepo.Save(ctx, newComment); err != nil {
+	starRepo := starRepository{client: dsCli}
+
+	star := entity.NewStar(user.ID, audio.ID)
+	err = starRepo.Save(ctx, star)
+	if err != nil {
 		t.Error(err)
+		return
 	}
 
-	comments, nextCursor, err := commentRepo.GetAll(ctx, "", 2, "id")
-	log.Println(comments)
-	log.Println(nextCursor)
-	log.Println(err)
+	exists, err := starRepo.Exists(ctx, user.ID, audio.ID)
+	if err != nil {
+		t.Error(err)
+	}
+	if got, want := true, exists; got != want {
+		t.Errorf("Exists got %v, want %v", got, want)
+	}
+	err = starRepo.Delete(ctx, star.ID)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 }

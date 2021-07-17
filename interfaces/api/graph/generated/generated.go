@@ -55,11 +55,13 @@ type ComplexityRoot struct {
 		ID          func(childComplexity int) int
 		Length      func(childComplexity int) int
 		LikeCount   func(childComplexity int) int
+		Liked       func(childComplexity int) int
 		Mimetype    func(childComplexity int) int
 		Name        func(childComplexity int) int
 		PlayCount   func(childComplexity int) int
 		Played      func(childComplexity int) int
 		PublishedAt func(childComplexity int) int
+		Stared      func(childComplexity int) int
 		URL         func(childComplexity int) int
 		UpdatedAt   func(childComplexity int) int
 	}
@@ -92,6 +94,11 @@ type ComplexityRoot struct {
 		Node   func(childComplexity int) int
 	}
 
+	CreatePlayPayload struct {
+		Play   func(childComplexity int) int
+		Result func(childComplexity int) int
+	}
+
 	DeleteCommentResult struct {
 		ID      func(childComplexity int) int
 		Success func(childComplexity int) int
@@ -108,10 +115,12 @@ type ComplexityRoot struct {
 	Mutation struct {
 		CreateAudio   func(childComplexity int, input entity.AudiosInput) int
 		CreateComment func(childComplexity int, input entity.CreateCommentInput) int
+		CreateLike    func(childComplexity int, input entity.UpdateAudioInput) int
 		CreatePlay    func(childComplexity int, input entity.UpdateAudioInput) int
+		CreateStar    func(childComplexity int, input entity.UpdateAudioInput) int
 		DeleteComment func(childComplexity int, id string) int
-		ToggleLike    func(childComplexity int, input entity.UpdateAudioInput) int
-		ToggleStar    func(childComplexity int, input entity.UpdateAudioInput) int
+		DeleteLike    func(childComplexity int, input entity.UpdateAudioInput) int
+		DeleteStar    func(childComplexity int, input entity.UpdateAudioInput) int
 		UpdateComment func(childComplexity int, input entity.UpdateCommentInput) int
 	}
 
@@ -144,18 +153,6 @@ type ComplexityRoot struct {
 		User      func(childComplexity int) int
 	}
 
-	ToggleLikeResult struct {
-		Action  func(childComplexity int) int
-		Like    func(childComplexity int) int
-		Success func(childComplexity int) int
-	}
-
-	ToggleStarResult struct {
-		Action  func(childComplexity int) int
-		Star    func(childComplexity int) int
-		Success func(childComplexity int) int
-	}
-
 	User struct {
 		Email func(childComplexity int) int
 		ID    func(childComplexity int) int
@@ -172,6 +169,8 @@ type AudioResolver interface {
 	PlayCount(ctx context.Context, obj *entity.Audio) (int, error)
 
 	Played(ctx context.Context, obj *entity.Audio) (bool, error)
+	Liked(ctx context.Context, obj *entity.Audio) (bool, error)
+	Stared(ctx context.Context, obj *entity.Audio) (bool, error)
 }
 type CommentResolver interface {
 	User(ctx context.Context, obj *entity.Comment) (*entity.User, error)
@@ -182,12 +181,14 @@ type LikeResolver interface {
 }
 type MutationResolver interface {
 	CreateAudio(ctx context.Context, input entity.AudiosInput) (*entity.Audio, error)
-	CreatePlay(ctx context.Context, input entity.UpdateAudioInput) (*entity.Audio, error)
+	CreatePlay(ctx context.Context, input entity.UpdateAudioInput) (*entity.Play, error)
 	CreateComment(ctx context.Context, input entity.CreateCommentInput) (*entity.Comment, error)
 	UpdateComment(ctx context.Context, input entity.UpdateCommentInput) (*entity.Comment, error)
 	DeleteComment(ctx context.Context, id string) (*entity.DeleteCommentResult, error)
-	ToggleStar(ctx context.Context, input entity.UpdateAudioInput) (*entity.ToggleStarResult, error)
-	ToggleLike(ctx context.Context, input entity.UpdateAudioInput) (*entity.ToggleLikeResult, error)
+	CreateLike(ctx context.Context, input entity.UpdateAudioInput) (*entity.Like, error)
+	DeleteLike(ctx context.Context, input entity.UpdateAudioInput) (*entity.Like, error)
+	CreateStar(ctx context.Context, input entity.UpdateAudioInput) (*entity.Star, error)
+	DeleteStar(ctx context.Context, input entity.UpdateAudioInput) (*entity.Star, error)
 }
 type PlayResolver interface {
 	User(ctx context.Context, obj *entity.Play) (*entity.User, error)
@@ -247,6 +248,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Audio.LikeCount(childComplexity), true
 
+	case "Audio.liked":
+		if e.complexity.Audio.Liked == nil {
+			break
+		}
+
+		return e.complexity.Audio.Liked(childComplexity), true
+
 	case "Audio.mimetype":
 		if e.complexity.Audio.Mimetype == nil {
 			break
@@ -281,6 +289,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Audio.PublishedAt(childComplexity), true
+
+	case "Audio.stared":
+		if e.complexity.Audio.Stared == nil {
+			break
+		}
+
+		return e.complexity.Audio.Stared(childComplexity), true
 
 	case "Audio.url":
 		if e.complexity.Audio.URL == nil {
@@ -387,6 +402,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.CommentEdge.Node(childComplexity), true
 
+	case "CreatePlayPayload.play":
+		if e.complexity.CreatePlayPayload.Play == nil {
+			break
+		}
+
+		return e.complexity.CreatePlayPayload.Play(childComplexity), true
+
+	case "CreatePlayPayload.result":
+		if e.complexity.CreatePlayPayload.Result == nil {
+			break
+		}
+
+		return e.complexity.CreatePlayPayload.Result(childComplexity), true
+
 	case "DeleteCommentResult.id":
 		if e.complexity.DeleteCommentResult.ID == nil {
 			break
@@ -460,6 +489,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.CreateComment(childComplexity, args["input"].(entity.CreateCommentInput)), true
 
+	case "Mutation.createLike":
+		if e.complexity.Mutation.CreateLike == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createLike_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateLike(childComplexity, args["input"].(entity.UpdateAudioInput)), true
+
 	case "Mutation.createPlay":
 		if e.complexity.Mutation.CreatePlay == nil {
 			break
@@ -471,6 +512,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreatePlay(childComplexity, args["input"].(entity.UpdateAudioInput)), true
+
+	case "Mutation.createStar":
+		if e.complexity.Mutation.CreateStar == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createStar_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateStar(childComplexity, args["input"].(entity.UpdateAudioInput)), true
 
 	case "Mutation.deleteComment":
 		if e.complexity.Mutation.DeleteComment == nil {
@@ -484,29 +537,29 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.DeleteComment(childComplexity, args["id"].(string)), true
 
-	case "Mutation.toggleLike":
-		if e.complexity.Mutation.ToggleLike == nil {
+	case "Mutation.deleteLike":
+		if e.complexity.Mutation.DeleteLike == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_toggleLike_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_deleteLike_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.ToggleLike(childComplexity, args["input"].(entity.UpdateAudioInput)), true
+		return e.complexity.Mutation.DeleteLike(childComplexity, args["input"].(entity.UpdateAudioInput)), true
 
-	case "Mutation.toggleStar":
-		if e.complexity.Mutation.ToggleStar == nil {
+	case "Mutation.deleteStar":
+		if e.complexity.Mutation.DeleteStar == nil {
 			break
 		}
 
-		args, err := ec.field_Mutation_toggleStar_args(context.TODO(), rawArgs)
+		args, err := ec.field_Mutation_deleteStar_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Mutation.ToggleStar(childComplexity, args["input"].(entity.UpdateAudioInput)), true
+		return e.complexity.Mutation.DeleteStar(childComplexity, args["input"].(entity.UpdateAudioInput)), true
 
 	case "Mutation.updateComment":
 		if e.complexity.Mutation.UpdateComment == nil {
@@ -654,48 +707,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Star.User(childComplexity), true
 
-	case "ToggleLikeResult.action":
-		if e.complexity.ToggleLikeResult.Action == nil {
-			break
-		}
-
-		return e.complexity.ToggleLikeResult.Action(childComplexity), true
-
-	case "ToggleLikeResult.like":
-		if e.complexity.ToggleLikeResult.Like == nil {
-			break
-		}
-
-		return e.complexity.ToggleLikeResult.Like(childComplexity), true
-
-	case "ToggleLikeResult.success":
-		if e.complexity.ToggleLikeResult.Success == nil {
-			break
-		}
-
-		return e.complexity.ToggleLikeResult.Success(childComplexity), true
-
-	case "ToggleStarResult.action":
-		if e.complexity.ToggleStarResult.Action == nil {
-			break
-		}
-
-		return e.complexity.ToggleStarResult.Action(childComplexity), true
-
-	case "ToggleStarResult.star":
-		if e.complexity.ToggleStarResult.Star == nil {
-			break
-		}
-
-		return e.complexity.ToggleStarResult.Star(childComplexity), true
-
-	case "ToggleStarResult.success":
-		if e.complexity.ToggleStarResult.Success == nil {
-			break
-		}
-
-		return e.complexity.ToggleStarResult.Success(childComplexity), true
-
 	case "User.email":
 		if e.complexity.User.Email == nil {
 			break
@@ -797,6 +808,8 @@ var sources = []*ast.Source{
     url: String!
     mimetype: String!
     played: Boolean!
+    liked: Boolean!
+    stared: Boolean!
     publishedAt: Time!
     createdAt: Time!
     updatedAt: Time!
@@ -876,56 +889,34 @@ input CommentOrder {
   direction: SortDirection
 }
 `, BuiltIn: false},
+	{Name: "schema/like.graphqls", Input: `type Like implements Node {
+    id: ID!
+    user: User!
+    audio: Audio!
+    createdAt: Time!
+    updatedAt: Time!
+}
+
+input DeleteLikeInput {
+    id: ID!
+}
+
+extend type Mutation {
+    createLike(input: UpdateAudioInput!): Like
+    deleteLike(input: UpdateAudioInput!): Like
+}
+`, BuiltIn: false},
 	{Name: "schema/misc.graphqls", Input: `scalar Time
 scalar Cursor
-
-
-type Like implements Node {
-    id: ID!
-    user: User!
-    audio: Audio!
-    createdAt: Time!
-    updatedAt: Time!
-}
-
-type Star implements Node {
-    id: ID!
-    user: User!
-    audio: Audio!
-    createdAt: Time!
-    updatedAt: Time!
-}
-
-type User implements Node {
-    id: ID!
-    email: String!
-}
-
-type ToggleStarResult {
-    star: Star!
-    action: String!
-    success: Boolean!
-}
-
-type ToggleLikeResult {
-#    audioID: ID!
-#    userID: ID!
-    like: Like!
-    action: String!
-    success: Boolean!
-}
 `, BuiltIn: false},
 	{Name: "schema/mutation.graphqls", Input: `type Mutation {
     createAudio(input: AudiosInput!): Audio
 
-    createPlay(input: UpdateAudioInput!): Audio
+    createPlay(input: UpdateAudioInput!): Play
 
     createComment(input: CreateCommentInput!): Comment!
     updateComment(input: UpdateCommentInput!): Comment!
     deleteComment(id: ID!): DeleteCommentResult!
-
-    toggleStar(input: UpdateAudioInput!): ToggleStarResult
-    toggleLike(input: UpdateAudioInput!): ToggleLikeResult
 }
 `, BuiltIn: false},
 	{Name: "schema/page.graphqls", Input: `type PageInfo {
@@ -978,6 +969,11 @@ input QuerySpec {
 input UpdateAudioInput {
     audioID: ID!
 }
+
+type CreatePlayPayload {
+    result: Boolean!
+    play: Play!
+}
 `, BuiltIn: false},
 	{Name: "schema/query.graphqls", Input: `type Query {
     audio(id: ID!): Audio
@@ -994,7 +990,29 @@ input UpdateAudioInput {
     ): AudioConnection!
 }
 `, BuiltIn: false},
-	{Name: "schema/user.graphqls", Input: `input CreateUserInput {
+	{Name: "schema/star.graphqls", Input: `type Star implements Node {
+    id: ID!
+    user: User!
+    audio: Audio!
+    createdAt: Time!
+    updatedAt: Time!
+}
+
+input DeleteStarInput {
+    id: ID!
+}
+
+extend type Mutation {
+    createStar(input: UpdateAudioInput!): Star
+    deleteStar(input: UpdateAudioInput!): Star
+}
+`, BuiltIn: false},
+	{Name: "schema/user.graphqls", Input: `type User implements Node {
+    id: ID!
+    email: String!
+}
+
+input CreateUserInput {
     id: ID!
     email: String!
 }
@@ -1041,7 +1059,37 @@ func (ec *executionContext) field_Mutation_createComment_args(ctx context.Contex
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_createLike_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 entity.UpdateAudioInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNUpdateAudioInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐUpdateAudioInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_createPlay_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 entity.UpdateAudioInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNUpdateAudioInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐUpdateAudioInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createStar_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 entity.UpdateAudioInput
@@ -1071,7 +1119,7 @@ func (ec *executionContext) field_Mutation_deleteComment_args(ctx context.Contex
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_toggleLike_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Mutation_deleteLike_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 entity.UpdateAudioInput
@@ -1086,7 +1134,7 @@ func (ec *executionContext) field_Mutation_toggleLike_args(ctx context.Context, 
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_toggleStar_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Mutation_deleteStar_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 entity.UpdateAudioInput
@@ -1514,6 +1562,76 @@ func (ec *executionContext) _Audio_played(ctx context.Context, field graphql.Col
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Audio().Played(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Audio_liked(ctx context.Context, field graphql.CollectedField, obj *entity.Audio) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Audio",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Audio().Liked(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Audio_stared(ctx context.Context, field graphql.CollectedField, obj *entity.Audio) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Audio",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Audio().Stared(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2090,6 +2208,76 @@ func (ec *executionContext) _CommentEdge_node(ctx context.Context, field graphql
 	return ec.marshalNComment2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐComment(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _CreatePlayPayload_result(ctx context.Context, field graphql.CollectedField, obj *entity.CreatePlayPayload) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "CreatePlayPayload",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Result, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _CreatePlayPayload_play(ctx context.Context, field graphql.CollectedField, obj *entity.CreatePlayPayload) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "CreatePlayPayload",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Play, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*entity.Play)
+	fc.Result = res
+	return ec.marshalNPlay2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐPlay(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _DeleteCommentResult_success(ctx context.Context, field graphql.CollectedField, obj *entity.DeleteCommentResult) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2190,9 +2378,9 @@ func (ec *executionContext) _Like_id(ctx context.Context, field graphql.Collecte
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(int64)
 	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
+	return ec.marshalNID2int64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Like_user(ctx context.Context, field graphql.CollectedField, obj *entity.Like) (ret graphql.Marshaler) {
@@ -2408,9 +2596,9 @@ func (ec *executionContext) _Mutation_createPlay(ctx context.Context, field grap
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*entity.Audio)
+	res := resTmp.(*entity.Play)
 	fc.Result = res
-	return ec.marshalOAudio2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudio(ctx, field.Selections, res)
+	return ec.marshalOPlay2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐPlay(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createComment(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2539,7 +2727,7 @@ func (ec *executionContext) _Mutation_deleteComment(ctx context.Context, field g
 	return ec.marshalNDeleteCommentResult2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐDeleteCommentResult(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_toggleStar(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_createLike(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2556,7 +2744,7 @@ func (ec *executionContext) _Mutation_toggleStar(ctx context.Context, field grap
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_toggleStar_args(ctx, rawArgs)
+	args, err := ec.field_Mutation_createLike_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -2564,7 +2752,7 @@ func (ec *executionContext) _Mutation_toggleStar(ctx context.Context, field grap
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().ToggleStar(rctx, args["input"].(entity.UpdateAudioInput))
+		return ec.resolvers.Mutation().CreateLike(rctx, args["input"].(entity.UpdateAudioInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2573,12 +2761,12 @@ func (ec *executionContext) _Mutation_toggleStar(ctx context.Context, field grap
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*entity.ToggleStarResult)
+	res := resTmp.(*entity.Like)
 	fc.Result = res
-	return ec.marshalOToggleStarResult2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐToggleStarResult(ctx, field.Selections, res)
+	return ec.marshalOLike2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐLike(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_toggleLike(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_deleteLike(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2595,7 +2783,7 @@ func (ec *executionContext) _Mutation_toggleLike(ctx context.Context, field grap
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_toggleLike_args(ctx, rawArgs)
+	args, err := ec.field_Mutation_deleteLike_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -2603,7 +2791,7 @@ func (ec *executionContext) _Mutation_toggleLike(ctx context.Context, field grap
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().ToggleLike(rctx, args["input"].(entity.UpdateAudioInput))
+		return ec.resolvers.Mutation().DeleteLike(rctx, args["input"].(entity.UpdateAudioInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2612,9 +2800,87 @@ func (ec *executionContext) _Mutation_toggleLike(ctx context.Context, field grap
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*entity.ToggleLikeResult)
+	res := resTmp.(*entity.Like)
 	fc.Result = res
-	return ec.marshalOToggleLikeResult2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐToggleLikeResult(ctx, field.Selections, res)
+	return ec.marshalOLike2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐLike(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_createStar(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_createStar_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateStar(rctx, args["input"].(entity.UpdateAudioInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*entity.Star)
+	fc.Result = res
+	return ec.marshalOStar2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐStar(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_deleteStar(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_deleteStar_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteStar(rctx, args["input"].(entity.UpdateAudioInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*entity.Star)
+	fc.Result = res
+	return ec.marshalOStar2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐStar(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PageInfo_cursor(ctx context.Context, field graphql.CollectedField, obj *entity.PageInfo) (ret graphql.Marshaler) {
@@ -3156,9 +3422,9 @@ func (ec *executionContext) _Star_id(ctx context.Context, field graphql.Collecte
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(int64)
 	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
+	return ec.marshalNID2int64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Star_user(ctx context.Context, field graphql.CollectedField, obj *entity.Star) (ret graphql.Marshaler) {
@@ -3299,216 +3565,6 @@ func (ec *executionContext) _Star_updatedAt(ctx context.Context, field graphql.C
 	res := resTmp.(time.Time)
 	fc.Result = res
 	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _ToggleLikeResult_like(ctx context.Context, field graphql.CollectedField, obj *entity.ToggleLikeResult) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "ToggleLikeResult",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Like, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*entity.Like)
-	fc.Result = res
-	return ec.marshalNLike2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐLike(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _ToggleLikeResult_action(ctx context.Context, field graphql.CollectedField, obj *entity.ToggleLikeResult) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "ToggleLikeResult",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Action, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _ToggleLikeResult_success(ctx context.Context, field graphql.CollectedField, obj *entity.ToggleLikeResult) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "ToggleLikeResult",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Success, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _ToggleStarResult_star(ctx context.Context, field graphql.CollectedField, obj *entity.ToggleStarResult) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "ToggleStarResult",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Star, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*entity.Star)
-	fc.Result = res
-	return ec.marshalNStar2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐStar(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _ToggleStarResult_action(ctx context.Context, field graphql.CollectedField, obj *entity.ToggleStarResult) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "ToggleStarResult",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Action, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _ToggleStarResult_success(ctx context.Context, field graphql.CollectedField, obj *entity.ToggleStarResult) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "ToggleStarResult",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Success, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(bool)
-	fc.Result = res
-	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *entity.User) (ret graphql.Marshaler) {
@@ -4898,6 +4954,46 @@ func (ec *executionContext) unmarshalInputCreateUserInput(ctx context.Context, o
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputDeleteLikeInput(ctx context.Context, obj interface{}) (entity.DeleteLikeInput, error) {
+	var it entity.DeleteLikeInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			it.ID, err = ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputDeleteStarInput(ctx context.Context, obj interface{}) (entity.DeleteStarInput, error) {
+	var it entity.DeleteStarInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			it.ID, err = ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputQuerySpec(ctx context.Context, obj interface{}) (entity.QuerySpec, error) {
 	var it entity.QuerySpec
 	var asMap = obj.(map[string]interface{})
@@ -5056,6 +5152,13 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 			return graphql.Null
 		}
 		return ec._Like(ctx, sel, obj)
+	case entity.Play:
+		return ec._Play(ctx, sel, &obj)
+	case *entity.Play:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._Play(ctx, sel, obj)
 	case entity.Star:
 		return ec._Star(ctx, sel, &obj)
 	case *entity.Star:
@@ -5070,13 +5173,6 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 			return graphql.Null
 		}
 		return ec._User(ctx, sel, obj)
-	case entity.Play:
-		return ec._Play(ctx, sel, &obj)
-	case *entity.Play:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._Play(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -5159,6 +5255,34 @@ func (ec *executionContext) _Audio(ctx context.Context, sel ast.SelectionSet, ob
 					}
 				}()
 				res = ec._Audio_played(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "liked":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Audio_liked(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "stared":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Audio_stared(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -5374,6 +5498,38 @@ func (ec *executionContext) _CommentEdge(ctx context.Context, sel ast.SelectionS
 	return out
 }
 
+var createPlayPayloadImplementors = []string{"CreatePlayPayload"}
+
+func (ec *executionContext) _CreatePlayPayload(ctx context.Context, sel ast.SelectionSet, obj *entity.CreatePlayPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, createPlayPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CreatePlayPayload")
+		case "result":
+			out.Values[i] = ec._CreatePlayPayload_result(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "play":
+			out.Values[i] = ec._CreatePlayPayload_play(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var deleteCommentResultImplementors = []string{"DeleteCommentResult"}
 
 func (ec *executionContext) _DeleteCommentResult(ctx context.Context, sel ast.SelectionSet, obj *entity.DeleteCommentResult) graphql.Marshaler {
@@ -5505,10 +5661,14 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "toggleStar":
-			out.Values[i] = ec._Mutation_toggleStar(ctx, field)
-		case "toggleLike":
-			out.Values[i] = ec._Mutation_toggleLike(ctx, field)
+		case "createLike":
+			out.Values[i] = ec._Mutation_createLike(ctx, field)
+		case "deleteLike":
+			out.Values[i] = ec._Mutation_deleteLike(ctx, field)
+		case "createStar":
+			out.Values[i] = ec._Mutation_createStar(ctx, field)
+		case "deleteStar":
+			out.Values[i] = ec._Mutation_deleteStar(ctx, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5758,80 +5918,6 @@ func (ec *executionContext) _Star(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = ec._Star_updatedAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var toggleLikeResultImplementors = []string{"ToggleLikeResult"}
-
-func (ec *executionContext) _ToggleLikeResult(ctx context.Context, sel ast.SelectionSet, obj *entity.ToggleLikeResult) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, toggleLikeResultImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("ToggleLikeResult")
-		case "like":
-			out.Values[i] = ec._ToggleLikeResult_like(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "action":
-			out.Values[i] = ec._ToggleLikeResult_action(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "success":
-			out.Values[i] = ec._ToggleLikeResult_success(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var toggleStarResultImplementors = []string{"ToggleStarResult"}
-
-func (ec *executionContext) _ToggleStarResult(ctx context.Context, sel ast.SelectionSet, obj *entity.ToggleStarResult) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, toggleStarResultImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("ToggleStarResult")
-		case "star":
-			out.Values[i] = ec._ToggleStarResult_star(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "action":
-			out.Values[i] = ec._ToggleStarResult_action(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "success":
-			out.Values[i] = ec._ToggleStarResult_success(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -6373,16 +6459,6 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 	return res
 }
 
-func (ec *executionContext) marshalNLike2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐLike(ctx context.Context, sel ast.SelectionSet, v *entity.Like) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._Like(ctx, sel, v)
-}
-
 func (ec *executionContext) marshalNPageInfo2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v *entity.PageInfo) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -6393,14 +6469,14 @@ func (ec *executionContext) marshalNPageInfo2ᚖgithubᚗcomᚋhayashikiᚋaudiy
 	return ec._PageInfo(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNStar2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐStar(ctx context.Context, sel ast.SelectionSet, v *entity.Star) graphql.Marshaler {
+func (ec *executionContext) marshalNPlay2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐPlay(ctx context.Context, sel ast.SelectionSet, v *entity.Play) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
 		}
 		return graphql.Null
 	}
-	return ec._Star(ctx, sel, v)
+	return ec._Play(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
@@ -6831,6 +6907,20 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	return graphql.MarshalInt(*v)
 }
 
+func (ec *executionContext) marshalOLike2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐLike(ctx context.Context, sel ast.SelectionSet, v *entity.Like) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Like(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOPlay2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐPlay(ctx context.Context, sel ast.SelectionSet, v *entity.Play) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Play(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalOSortDirection2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐSortDirection(ctx context.Context, v interface{}) (*entity.SortDirection, error) {
 	if v == nil {
 		return nil, nil
@@ -6845,6 +6935,13 @@ func (ec *executionContext) marshalOSortDirection2ᚖgithubᚗcomᚋhayashikiᚋ
 		return graphql.Null
 	}
 	return v
+}
+
+func (ec *executionContext) marshalOStar2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐStar(ctx context.Context, sel ast.SelectionSet, v *entity.Star) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Star(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {
@@ -6905,20 +7002,6 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 		return graphql.Null
 	}
 	return graphql.MarshalString(*v)
-}
-
-func (ec *executionContext) marshalOToggleLikeResult2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐToggleLikeResult(ctx context.Context, sel ast.SelectionSet, v *entity.ToggleLikeResult) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._ToggleLikeResult(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalOToggleStarResult2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐToggleStarResult(ctx context.Context, sel ast.SelectionSet, v *entity.ToggleStarResult) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._ToggleStarResult(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

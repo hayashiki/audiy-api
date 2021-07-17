@@ -1,12 +1,9 @@
 type Mutation {
     createAudio(input: AudiosInput!): Audio
 
-    createPlay(input: UpdateAudioInput!): Audio
+    createPlay(input: UpdateAudioInput!): Play
 
     createComment(input: CreateCommentInput!): Comment!
     updateComment(input: UpdateCommentInput!): Comment!
     deleteComment(id: ID!): DeleteCommentResult!
-
-    toggleStar(input: UpdateAudioInput!): ToggleStarResult
-    toggleLike(input: UpdateAudioInput!): ToggleLikeResult
 }

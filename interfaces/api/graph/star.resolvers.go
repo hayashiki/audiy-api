@@ -5,33 +5,37 @@ package graph
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/hayashiki/audiy-api/domain/entity"
+	auth2 "github.com/hayashiki/audiy-api/interfaces/api/graph/auth"
 	"github.com/hayashiki/audiy-api/interfaces/api/graph/generated"
 )
 
-func (r *likeResolver) User(ctx context.Context, obj *entity.Like) (*entity.User, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) CreateStar(ctx context.Context, input entity.UpdateAudioInput) (*entity.Star, error) {
+	auth, err := auth2.ForContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return r.starUsecase.Save(ctx, auth.ID, input.AudioID)
 }
 
-func (r *likeResolver) Audio(ctx context.Context, obj *entity.Like) (*entity.Audio, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) DeleteStar(ctx context.Context, input entity.UpdateAudioInput) (*entity.Star, error) {
+	auth, err := auth2.ForContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return r.starUsecase.Delete(ctx, auth.ID, input.AudioID)
 }
 
 func (r *starResolver) User(ctx context.Context, obj *entity.Star) (*entity.User, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.userUsecase.Get(ctx, obj.UserKey.ID)
 }
 
 func (r *starResolver) Audio(ctx context.Context, obj *entity.Star) (*entity.Audio, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.audioUsecase.Get(ctx, obj.AudioKey.Name)
 }
-
-// Like returns generated.LikeResolver implementation.
-func (r *Resolver) Like() generated.LikeResolver { return &likeResolver{r} }
 
 // Star returns generated.StarResolver implementation.
 func (r *Resolver) Star() generated.StarResolver { return &starResolver{r} }
 
-type likeResolver struct{ *Resolver }
 type starResolver struct{ *Resolver }

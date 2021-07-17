@@ -6,17 +6,7 @@ import (
 	"cloud.google.com/go/datastore"
 )
 
-const AudioUserKind = "Play"
-
-//type Play struct {
-//	ID        string    `json:"id"`
-//	User      *User     `json:"user"`
-//	Audio     *Audio    `json:"audio"`
-//	CreatedAt time.Time `json:"createdAt"`
-//	UpdatedAt time.Time `json:"updatedAt"`
-//}
-
-func (Play) IsNode() {}
+const PlayKind = "Play"
 
 type Play struct {
 	Key       *datastore.Key `datastore:"__key__"`
@@ -27,8 +17,10 @@ type Play struct {
 	UpdatedAt   time.Time      `json:"updated_at" datastore:"updated_at"`
 }
 
+func (Play) IsNode() {}
+
 func (a Play) GetKey() *datastore.Key {
-	return datastore.IncompleteKey(AudioUserKind, nil)
+	return datastore.IncompleteKey(PlayKind, nil)
 }
 
 func (a Play) SetID(key *datastore.Key) {

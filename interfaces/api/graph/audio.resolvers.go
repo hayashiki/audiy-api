@@ -5,13 +5,19 @@ package graph
 
 import (
 	"context"
-	auth2 "github.com/hayashiki/audiy-api/interfaces/api/graph/auth"
 
 	"github.com/hayashiki/audiy-api/domain/entity"
+	auth2 "github.com/hayashiki/audiy-api/interfaces/api/graph/auth"
 	"github.com/hayashiki/audiy-api/interfaces/api/graph/generated"
 )
 
 func (r *audioResolver) LikeCount(ctx context.Context, obj *entity.Audio) (int, error) {
+	auth, err := auth2.ForContext(ctx)
+	if err != nil {
+		return 0, err
+	}
+	r.playUsecase.Exists(ctx, auth.ID, obj.ID)
+
 	return 0, nil
 }
 
@@ -25,6 +31,22 @@ func (r *audioResolver) Played(ctx context.Context, obj *entity.Audio) (bool, er
 		return false, err
 	}
 	return r.playUsecase.Exists(ctx, auth.ID, obj.ID)
+}
+
+func (r *audioResolver) Liked(ctx context.Context, obj *entity.Audio) (bool, error) {
+	auth, err := auth2.ForContext(ctx)
+	if err != nil {
+		return false, err
+	}
+	return r.likeUsecase.Exists(ctx, auth.ID, obj.ID)
+}
+
+func (r *audioResolver) Stared(ctx context.Context, obj *entity.Audio) (bool, error) {
+	auth, err := auth2.ForContext(ctx)
+	if err != nil {
+		return false, err
+	}
+	return r.starUsecase.Exists(ctx, auth.ID, obj.ID)
 }
 
 // Audio returns generated.AudioResolver implementation.

@@ -1,18 +1,22 @@
 package ds
 
 import (
+	"cloud.google.com/go/datastore"
 	"context"
+	"errors"
 	"github.com/hayashiki/audiy-api/domain/entity"
+	"google.golang.org/api/iterator"
+	"log"
 )
 
 // AudioRepository operates Audio entity
 type audioRepository struct {
-	*DataStore
+	client *datastore.Client
 }
 
 // NewAudioRepository returns the AudioRepository
-func NewAudioRepository(store *DataStore) entity.AudioRepository {
-	return &audioRepository{store}
+func NewAudioRepository(client *datastore.Client) entity.AudioRepository {
+	return &audioRepository{client: client}
 }
 
 // Exists exists item
@@ -23,36 +27,71 @@ func (repo *audioRepository) Exists(ctx context.Context, id string) bool {
 
 // FindAll finds all radios
 func (repo *audioRepository) FindAll(ctx context.Context, cursor string, limit int, sort ...string) ([]*entity.Audio, string, error) {
-	q := NewCursorQuery(entity.AudioKind, nil, limit, cursor, sort...)
-	rr, nextCursor, err := repo.GetAll(ctx, q, func() interface{} {
-		var radio entity.Audio
-		return &radio
-	})
-	radios := make([]*entity.Audio, len(rr))
-	for i, r := range rr {
-		ar := r.(*entity.Audio)
-		ar.SetID(ar.Key)
-		radios[i] = ar
+	query := datastore.NewQuery(entity.AudioKind)
+	if cursor != "" {
+		dsCursor, err := datastore.DecodeCursor(cursor)
+		if err != nil {
+			//TODO
+			log.Printf("failed to decode %v", err)
+		}
+		query = query.Start(dsCursor)
 	}
-	return radios, nextCursor, err
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	//for _, filter := range opts.Filters {
+	//	query = query.Filter(filter.key, filter.value)
+	//}
+	for _, order := range sort {
+		query = query.Order(order)
+	}
+	it := repo.client.Run(ctx, query)
+	entities := make([]*entity.Audio, 0)
+	for {
+		entity := &entity.Audio{}
+
+		_, err := it.Next(entity)
+		if errors.Is(err, iterator.Done) {
+			break
+		}
+		if _, ok := err.(*datastore.ErrFieldMismatch); ok {
+			entities = append(entities, entity)
+			continue
+		}
+		if err != nil {
+			return entities, "", err
+		}
+		entity.ID = entity.Key.Name
+		entities = append(entities, entity)
+	}
+
+	nextCursor, err := it.Cursor()
+	if err != nil {
+		return entities, "", err
+	}
+
+	return entities, nextCursor.String(), nil
 }
 
 // Find finds audio given id
 func (repo *audioRepository) Find(ctx context.Context, id string) (*entity.Audio, error) {
-	item := &entity.Audio{ID: id}
-	return item, repo.Get(ctx, item)
+	var audio entity.Audio
+	err := repo.client.Get(ctx, datastore.NameKey(entity.AudioKind, id, nil), &audio)
+	audio.ID = audio.Key.Name
+	return &audio, err
 }
 
 // Save saves audios
-func (repo *audioRepository) Save(ctx context.Context, item *entity.Audio) error {
-	_, err := repo.Put(ctx, item)
+func (repo *audioRepository) Save(ctx context.Context, audio *entity.Audio) error {
+	key, err := repo.client.Put(ctx, datastore.NameKey(entity.AudioKind, audio.ID, nil), audio)
+	audio.Key = key
+
 	return err
 }
 
 // Delete saves audios
-func (repo *audioRepository) Remove(ctx context.Context, item *entity.Audio) error {
-	_, err := repo.Delete(ctx, item)
+func (repo *audioRepository) Delete(ctx context.Context, audioKey *datastore.Key) error {
+	err := repo.client.Delete(ctx, audioKey)
 	return err
 }
-
 

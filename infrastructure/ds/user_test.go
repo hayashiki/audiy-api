@@ -8,15 +8,16 @@ import (
 	"testing"
 )
 
-func TestCRUDUser(t *testing.T) {
+func TestSaveAndGetUser(t *testing.T) {
 	log.Println(os.Getenv("GCP_PROJECT"))
 	ctx := context.Background()
 	dsCli, _ := NewClient(ctx, os.Getenv("GCP_PROJECT"))
+	audioUserRepo := userRepository{dsCli}
+	audioRepo := audioRepository{dsCli}
+	playRepo := playRepository{dsCli}
 
 	var id int64 = 111111
 	user := entity.NewUser(id, "hayashiki@example.com")
-
-	audioUserRepo := userRepository{dsCli}
 	err := audioUserRepo.Save(ctx, user)
 	if err != nil {
 		t.Fatal(err)
@@ -30,15 +31,7 @@ func TestCRUDUser(t *testing.T) {
 	if !exists {
 		t.Fatal("not exists user data")
 	}
-
-	dsDataSource := Connect()
-	audioRepo := audioRepository{dsDataSource}
 	audio, _ := audioRepo.Find(ctx, "F023GTZRRU2")
-
-	playRepo := playRepository{dsCli}
-
-	log.Println(userKey)
-
 	exists, err = playRepo.Exists(ctx, user.ID, audio.ID)
 	if err != nil {
 		t.Fatal(err)

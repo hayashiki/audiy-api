@@ -72,6 +72,11 @@ type CreateCommentInput struct {
 	Body    string `json:"body"`
 }
 
+type CreatePlayPayload struct {
+	Result bool  `json:"result"`
+	Play   *Play `json:"play"`
+}
+
 type CreateUserInput struct {
 	ID    string `json:"id"`
 	Email string `json:"email"`
@@ -80,6 +85,14 @@ type CreateUserInput struct {
 type DeleteCommentResult struct {
 	Success bool   `json:"success"`
 	ID      string `json:"id"`
+}
+
+type DeleteLikeInput struct {
+	ID string `json:"id"`
+}
+
+type DeleteStarInput struct {
+	ID string `json:"id"`
 }
 
 type PageInfo struct {
@@ -92,18 +105,6 @@ type QuerySpec struct {
 	Order  []*AudioOrder `json:"order"`
 	Cursor string        `json:"cursor"`
 	Limit  *int          `json:"limit"`
-}
-
-type ToggleLikeResult struct {
-	Like    *Like  `json:"like"`
-	Action  string `json:"action"`
-	Success bool   `json:"success"`
-}
-
-type ToggleStarResult struct {
-	Star    *Star  `json:"star"`
-	Action  string `json:"action"`
-	Success bool   `json:"success"`
 }
 
 type UpdateAudioInput struct {
