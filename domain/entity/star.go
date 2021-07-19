@@ -19,7 +19,7 @@ type Star struct {
 
 func (Star) IsNode() {}
 
-func NewStar(userID int64, audioID string) *Star {
+func NewStar(userID string, audioID string) *Star {
 	audioKey := GetAudioKey(audioID)
 	userKey := GetUserKey(userID)
 	au := &Star{

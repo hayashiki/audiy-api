@@ -19,7 +19,7 @@ type Like struct {
 
 func (Like) IsNode() {}
 
-func NewLike(userID int64, audioID string) *Like {
+func NewLike(userID string, audioID string) *Like {
 	audioKey := GetAudioKey(audioID)
 	userKey := GetUserKey(userID)
 	au := &Like{

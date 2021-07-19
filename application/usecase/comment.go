@@ -2,12 +2,13 @@ package usecase
 
 import (
 	"context"
-	"github.com/hayashiki/audiy-api/domain/entity"
 	"log"
+
+	"github.com/hayashiki/audiy-api/domain/entity"
 )
 
 type CommentUsecase interface {
-	Save(ctx context.Context, userID int64, input entity.CreateCommentInput) (*entity.Comment, error)
+	Save(ctx context.Context, userID string, input entity.CreateCommentInput) (*entity.Comment, error)
 	GetConnection(ctx context.Context, cursor string, limit int, order []string) (*entity.CommentConnection, error)
 }
 
@@ -19,7 +20,7 @@ type commentUsecase struct {
 	commentRepo entity.CommentRepository
 }
 
-func (c *commentUsecase) Save(ctx context.Context, userID int64, input entity.CreateCommentInput) (*entity.Comment, error) {
+func (c *commentUsecase) Save(ctx context.Context, userID string, input entity.CreateCommentInput) (*entity.Comment, error) {
 	newComment := entity.NewComment(userID, input.AudioID, input.Body)
 	err := c.commentRepo.Save(ctx, newComment)
 	if err != nil {
@@ -38,7 +39,7 @@ func (c *commentUsecase) GetConnection(ctx context.Context, cursor string, limit
 	for i, a := range comments {
 		commentEdges[i] = &entity.CommentEdge{
 			Cursor: nextCursor,
-			Node: a,
+			Node:   a,
 		}
 	}
 	return &entity.CommentConnection{

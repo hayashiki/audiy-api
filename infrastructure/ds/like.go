@@ -13,7 +13,7 @@ type likeRepository struct {
 	client *datastore.Client
 }
 
-func (repo *likeRepository) FindByRel(ctx context.Context, userID int64, audioID string) (*entity.Like, error) {
+func (repo *likeRepository) FindByRel(ctx context.Context, userID string, audioID string) (*entity.Like, error) {
 	userKey := entity.GetUserKey(userID)
 	audioKey := entity.GetAudioKey(audioID)
 	q := datastore.NewQuery(entity.PlayKind).Filter("user_key=", userKey).Filter("audio_key=", audioKey).Limit(1)
@@ -50,7 +50,7 @@ func NewLikeRepository(client *datastore.Client) entity.LikeRepository {
 	return &likeRepository{client: client}
 }
 
-func (repo *likeRepository) Exists(ctx context.Context, userID int64, audioID string) (bool, error) {
+func (repo *likeRepository) Exists(ctx context.Context, userID string, audioID string) (bool, error) {
 	userKey := entity.GetUserKey(userID)
 	audioKey := entity.GetAudioKey(audioID)
 	q := datastore.NewQuery(entity.LikeKind).Filter("user_key=", userKey).Filter("audio_key=", audioKey).KeysOnly().Limit(1)
@@ -69,6 +69,7 @@ func (repo *likeRepository) Exists(ctx context.Context, userID int64, audioID st
 // Save saves audios
 func (repo *likeRepository) Save(ctx context.Context, item *entity.Like) error {
 	// TODO: if exists
-	_, err := repo.client.Put(ctx, datastore.IncompleteKey(entity.PlayKind, nil), item)
+	key, err := repo.client.Put(ctx, datastore.IncompleteKey(entity.PlayKind, nil), item)
+	item.ID = key.ID
 	return err
 }

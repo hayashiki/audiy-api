@@ -12,6 +12,10 @@ import (
 	"github.com/hayashiki/audiy-api/interfaces/api/graph/generated"
 )
 
+func (r *mutationResolver) CreateUser(ctx context.Context, input entity.CreateUserInput) (*entity.User, error) {
+	return r.userUsecase.Save(ctx, input)
+}
+
 func (r *mutationResolver) CreateAudio(ctx context.Context, input entity.AudiosInput) (*entity.Audio, error) {
 	panic(fmt.Errorf("not implemented"))
 }

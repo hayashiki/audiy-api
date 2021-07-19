@@ -10,7 +10,7 @@ const CommentKind = "Comment"
 
 type Comment struct {
 	Key       *datastore.Key `datastore:"__key__"`
-	ID        int64         `json:"id" datastore:"-"`
+	ID        int64          `json:"id" datastore:"-"`
 	UserKey   *datastore.Key `json:"user_key" datastore:"user_key"`
 	AudioKey  *datastore.Key `json:"audio_key" datastore:"audio_key"`
 	Body      string         `json:"body" datastore:"body"`
@@ -20,7 +20,7 @@ type Comment struct {
 
 func (Comment) IsNode() {}
 
-func NewComment(userID int64, audioID string, body string) *Comment {
+func NewComment(userID string, audioID string, body string) *Comment {
 	audioKey := GetAudioKey(audioID)
 	userKey := GetUserKey(userID)
 	au := &Comment{
