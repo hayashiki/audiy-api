@@ -3,6 +3,9 @@ VERSION := $$(make -s show-version)
 CURRENT_REVISION := $(shell git rev-parse --short HEAD)
 SERVICE := datastore-emulator
 
+dev:
+	docker compose up
+
 deploy:
 	gcloud builds submit --config=cloudbuild.yaml .
 

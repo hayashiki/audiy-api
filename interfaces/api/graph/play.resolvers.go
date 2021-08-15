@@ -5,18 +5,17 @@ package graph
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/hayashiki/audiy-api/domain/entity"
 	"github.com/hayashiki/audiy-api/interfaces/api/graph/generated"
 )
 
 func (r *playResolver) User(ctx context.Context, obj *entity.Play) (*entity.User, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.userUsecase.Get(ctx, obj.UserKey.Name)
 }
 
 func (r *playResolver) Audio(ctx context.Context, obj *entity.Play) (*entity.Audio, error) {
-	panic(fmt.Errorf("not implemented"))
+	return r.audioUsecase.Get(ctx, obj.AudioKey.Name)
 }
 
 // Play returns generated.PlayResolver implementation.

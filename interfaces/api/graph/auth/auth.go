@@ -10,9 +10,9 @@ type key struct {
 }
 
 type Auth struct {
-	ID   int64
-	Email  string
-	Name string
+	ID    string
+	Email string
+	Name  string
 }
 
 var (

@@ -1,4 +1,5 @@
 type Mutation {
+    createUser(input: CreateUserInput!): User
     createAudio(input: AudiosInput!): Audio
 
     createPlay(input: UpdateAudioInput!): Play

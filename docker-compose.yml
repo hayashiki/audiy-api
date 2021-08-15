@@ -9,7 +9,7 @@ services:
     tty: true
     volumes:
       - .:/app
-      - ./credentials:/credentials/google-app-credentials
+#      - ./credentials:/credentials/google-app-credentials
     ports:
       - "8080:8080"
     environment:

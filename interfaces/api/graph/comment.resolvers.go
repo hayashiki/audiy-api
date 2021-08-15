@@ -13,7 +13,7 @@ import (
 
 func (r *commentResolver) User(ctx context.Context, obj *entity.Comment) (*entity.User, error) {
 	log.Println(obj)
-	return r.userUsecase.Get(ctx, obj.UserKey.ID)
+	return r.userUsecase.Get(ctx, obj.UserKey.Name)
 }
 
 // Comment returns generated.CommentResolver implementation.

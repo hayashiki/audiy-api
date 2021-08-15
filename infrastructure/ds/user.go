@@ -1,9 +1,10 @@
 package ds
 
 import (
-	"cloud.google.com/go/datastore"
 	"context"
 	"fmt"
+
+	"cloud.google.com/go/datastore"
 	"github.com/hayashiki/audiy-api/domain/entity"
 )
 
@@ -31,17 +32,18 @@ func (repo *userRepository) Exists(ctx context.Context, userKey *datastore.Key) 
 }
 
 // Get user
-func (repo *userRepository) Get(ctx context.Context, userID int64) (*entity.User, error) {
+func (repo *userRepository) Get(ctx context.Context, userID string) (*entity.User, error) {
 	var user entity.User
-	err := repo.client.Get(ctx, datastore.IDKey(entity.UserKind, userID, nil), &user)
-	user.ID = user.Key.ID
+	err := repo.client.Get(ctx, datastore.NameKey(entity.UserKind, userID, nil), &user)
+	user.ID = user.Key.Name
 	return &user, err
 }
 
 // Save saves user
 func (repo *userRepository) Save(ctx context.Context, user *entity.User) error {
 	// TODO: if exists
-	key, err := repo.client.Put(ctx, datastore.IDKey(entity.UserKind, user.ID, nil), user)
+	newKey := datastore.NameKey(entity.UserKind, user.ID, nil)
+	key, err := repo.client.Put(ctx, newKey, user)
 	user.Key = key
 	return err
 }

@@ -16,4 +16,4 @@ COPY --from=go-builder /app/bin/gqlserver /app/gqlserver
 #COPY --from=go-builder /app/credentials /app/credentials
 
 # Run the web service on container startup.
-CMD ["gqlserver"]
+CMD ["./gqlserver"]

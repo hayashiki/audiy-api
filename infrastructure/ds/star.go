@@ -1,9 +1,10 @@
 package ds
 
 import (
-	"cloud.google.com/go/datastore"
 	"context"
 	"fmt"
+
+	"cloud.google.com/go/datastore"
 	"github.com/hayashiki/audiy-api/domain/entity"
 )
 
@@ -15,7 +16,7 @@ type starRepository struct {
 // Find finds star by id
 func (repo *starRepository) Find(ctx context.Context, id int64) (*entity.Star, error) {
 	var dst *entity.Star
-	key := datastore.IDKey(entity.StarKind, id,nil)
+	key := datastore.IDKey(entity.StarKind, id, nil)
 	err := repo.client.Get(ctx, key, &dst)
 
 	dst.ID = key.ID
@@ -23,7 +24,7 @@ func (repo *starRepository) Find(ctx context.Context, id int64) (*entity.Star, e
 }
 
 // FindByRel finds star given userID and audioID
-func (repo *starRepository) FindByRel(ctx context.Context, userID int64, audioID string) (*entity.Star, error) {
+func (repo *starRepository) FindByRel(ctx context.Context, userID string, audioID string) (*entity.Star, error) {
 	userKey := entity.GetUserKey(userID)
 	audioKey := entity.GetAudioKey(audioID)
 	q := datastore.NewQuery(entity.StarKind).Filter("user_key=", userKey).Filter("audio_key=", audioKey).KeysOnly().Limit(1)
@@ -41,7 +42,7 @@ func NewStarRepository(client *datastore.Client) entity.StarRepository {
 	return &starRepository{client: client}
 }
 
-func (repo *starRepository) Exists(ctx context.Context, userID int64, audioID string) (bool, error) {
+func (repo *starRepository) Exists(ctx context.Context, userID string, audioID string) (bool, error) {
 	userKey := entity.GetUserKey(userID)
 	audioKey := entity.GetAudioKey(audioID)
 	q := datastore.NewQuery(entity.StarKind).Filter("user_key=", userKey).Filter("audio_key=", audioKey).KeysOnly().Limit(1)
@@ -67,6 +68,6 @@ func (repo *starRepository) Save(ctx context.Context, item *entity.Star) error {
 
 // Delete star
 func (repo *starRepository) Delete(ctx context.Context, id int64) error {
-	err := repo.client.Delete(ctx, datastore.IDKey(entity.StarKind, id,nil))
+	err := repo.client.Delete(ctx, datastore.IDKey(entity.StarKind, id, nil))
 	return err
 }

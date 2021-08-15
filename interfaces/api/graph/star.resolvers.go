@@ -28,7 +28,7 @@ func (r *mutationResolver) DeleteStar(ctx context.Context, input entity.UpdateAu
 }
 
 func (r *starResolver) User(ctx context.Context, obj *entity.Star) (*entity.User, error) {
-	return r.userUsecase.Get(ctx, obj.UserKey.ID)
+	return r.userUsecase.Get(ctx, obj.UserKey.Name)
 }
 
 func (r *starResolver) Audio(ctx context.Context, obj *entity.Star) (*entity.Audio, error) {

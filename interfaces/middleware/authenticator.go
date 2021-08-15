@@ -2,11 +2,12 @@ package middleware
 
 import (
 	"context"
-	"github.com/hayashiki/audiy-api/interfaces/api/graph/auth"
-	"google.golang.org/api/idtoken"
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/hayashiki/audiy-api/interfaces/api/graph/auth"
+	"google.golang.org/api/idtoken"
 )
 
 type Authenticator interface {
@@ -27,22 +28,24 @@ func (a *authenticator) AuthMiddleware(h http.Handler) http.Handler {
 		bearer := r.Header.Get("Authorization")
 		if bearer == "Bearer dummy" {
 			ctx = auth.SetAuth(ctx, &auth.Auth{
-				ID:   111111,
-				Name: "hayashiki",
+				ID:    "111111",
+				Name:  "hayashiki",
 				Email: "hayashiki@example.com",
 			})
 			r = r.WithContext(ctx)
 		} else if bearer != "" {
 			idToken := strings.Replace(bearer, "Bearer ", "", 1)
 			idTokenMap, err := idtoken.Validate(context.Background(), idToken, "185245971175-sctlo6t5hkgr2mu1qnkgp3s54hju8bi2.apps.googleusercontent.com")
-			log.Printf("idTokenMap %+v, %+v", idTokenMap, err)
-			id := int64(idTokenMap.Claims["id"].(float64))
+			if err != nil {
+				// TODO: error handle
+				log.Print(err)
+			}
 			email := idTokenMap.Claims["email"].(string)
-			name := idTokenMap.Claims["fullname"].(string)
+			name := idTokenMap.Claims["name"].(string)
 			ctx = context.WithValue(r.Context(), auth.KeyAuth, &auth.Auth{
-				ID:   id,
+				ID:    idTokenMap.Subject,
 				Email: email,
-				Name: name,
+				Name:  name,
 			})
 			r = r.WithContext(ctx)
 		}

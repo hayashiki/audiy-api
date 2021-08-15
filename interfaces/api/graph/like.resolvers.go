@@ -12,7 +12,7 @@ import (
 )
 
 func (r *likeResolver) User(ctx context.Context, obj *entity.Like) (*entity.User, error) {
-	return r.userUsecase.Get(ctx, obj.UserKey.ID)
+	return r.userUsecase.Get(ctx, obj.UserKey.Name)
 }
 
 func (r *likeResolver) Audio(ctx context.Context, obj *entity.Like) (*entity.Audio, error) {
