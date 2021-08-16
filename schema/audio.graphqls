@@ -29,15 +29,18 @@ input AudiosInput {
     name: String!
 }
 
-enum AudioOrderField {
-    ID
-    NAME
-    PUBLISHED_AT
-    CREATED_AT
-    UPDATED_AT
+enum AudioOrder {
+    PUBLISHED_AT_ASC
+    PUBLISHED_AT_DESC
 }
 
-input AudioOrder {
-    field: AudioOrderField
-    direction: SortDirection
+enum State {
+    Played
+    Unplayed
+}
+
+input AudioFilter {
+    played: Boolean
+    stared: Boolean
+    liked: Boolean
 }

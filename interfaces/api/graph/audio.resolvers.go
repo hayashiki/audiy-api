@@ -5,6 +5,10 @@ package graph
 
 import (
 	"context"
+	"log"
+	"os"
+
+	"github.com/hayashiki/audiy-api/infrastructure/gcs"
 
 	"github.com/hayashiki/audiy-api/domain/entity"
 	auth2 "github.com/hayashiki/audiy-api/interfaces/api/graph/auth"
@@ -25,6 +29,13 @@ func (r *audioResolver) PlayCount(ctx context.Context, obj *entity.Audio) (int, 
 	return 0, nil
 }
 
+func (r *audioResolver) URL(ctx context.Context, obj *entity.Audio) (string, error) {
+	filePath := gcs.StorageObjectFilePath(obj.ID, "m4a")
+	// TODO: read from config
+	bucketName := os.Getenv("GCS_INPUT_AUDIO_BUCKET")
+	return gcs.GetGCSSignedURL(context.Background(), bucketName, filePath, "GET", "")
+}
+
 func (r *audioResolver) Played(ctx context.Context, obj *entity.Audio) (bool, error) {
 	auth, err := auth2.ForContext(ctx)
 	if err != nil {
@@ -38,7 +49,9 @@ func (r *audioResolver) Liked(ctx context.Context, obj *entity.Audio) (bool, err
 	if err != nil {
 		return false, err
 	}
-	return r.likeUsecase.Exists(ctx, auth.ID, obj.ID)
+	exists, err := r.likeUsecase.Exists(ctx, auth.ID, obj.ID)
+	log.Printf("exists %v %v %v", exists, auth.ID, obj.ID)
+	return exists, err
 }
 
 func (r *audioResolver) Stared(ctx context.Context, obj *entity.Audio) (bool, error) {

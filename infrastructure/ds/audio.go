@@ -1,12 +1,13 @@
 package ds
 
 import (
-	"cloud.google.com/go/datastore"
 	"context"
 	"errors"
+	"log"
+
+	"cloud.google.com/go/datastore"
 	"github.com/hayashiki/audiy-api/domain/entity"
 	"google.golang.org/api/iterator"
-	"log"
 )
 
 // AudioRepository operates Audio entity
@@ -26,7 +27,7 @@ func (repo *audioRepository) Exists(ctx context.Context, id string) bool {
 }
 
 // FindAll finds all radios
-func (repo *audioRepository) FindAll(ctx context.Context, cursor string, limit int, sort ...string) ([]*entity.Audio, string, error) {
+func (repo *audioRepository) FindAll(ctx context.Context, filters map[string]interface{}, cursor string, limit int, sort ...string) ([]*entity.Audio, string, error) {
 	query := datastore.NewQuery(entity.AudioKind)
 	if cursor != "" {
 		dsCursor, err := datastore.DecodeCursor(cursor)
@@ -39,12 +40,16 @@ func (repo *audioRepository) FindAll(ctx context.Context, cursor string, limit i
 	if limit > 0 {
 		query = query.Limit(limit)
 	}
-	//for _, filter := range opts.Filters {
-	//	query = query.Filter(filter.key, filter.value)
-	//}
+	for key, val := range filters {
+		log.Println(key, val)
+		query = query.Filter(key+"=", val)
+	}
+	//query = query.Filter("mimetype=", "audio/mp4")
+
 	for _, order := range sort {
 		query = query.Order(order)
 	}
+	log.Printf("query %+v", query)
 	it := repo.client.Run(ctx, query)
 	entities := make([]*entity.Audio, 0)
 	for {
@@ -53,10 +58,6 @@ func (repo *audioRepository) FindAll(ctx context.Context, cursor string, limit i
 		_, err := it.Next(entity)
 		if errors.Is(err, iterator.Done) {
 			break
-		}
-		if _, ok := err.(*datastore.ErrFieldMismatch); ok {
-			entities = append(entities, entity)
-			continue
 		}
 		if err != nil {
 			return entities, "", err
@@ -94,4 +95,3 @@ func (repo *audioRepository) Delete(ctx context.Context, audioKey *datastore.Key
 	err := repo.client.Delete(ctx, audioKey)
 	return err
 }
-

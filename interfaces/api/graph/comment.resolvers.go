@@ -16,6 +16,10 @@ func (r *commentResolver) User(ctx context.Context, obj *entity.Comment) (*entit
 	return r.userUsecase.Get(ctx, obj.UserKey.Name)
 }
 
+func (r *commentResolver) Audio(ctx context.Context, obj *entity.Comment) (*entity.Audio, error) {
+	return r.audioUsecase.Get(ctx, obj.AudioKey.Name)
+}
+
 // Comment returns generated.CommentResolver implementation.
 func (r *Resolver) Comment() generated.CommentResolver { return &commentResolver{r} }
 

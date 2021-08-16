@@ -2,10 +2,11 @@ package ds
 
 import (
 	"context"
-	"github.com/hayashiki/audiy-api/domain/entity"
 	"log"
 	"os"
 	"testing"
+
+	"github.com/hayashiki/audiy-api/domain/entity"
 )
 
 func TestCommentSave(t *testing.T) {
@@ -13,7 +14,7 @@ func TestCommentSave(t *testing.T) {
 	ctx := context.Background()
 	dsCli, _ := NewClient(ctx, os.Getenv("GCP_PROJECT"))
 
-	var id int64 = 111111
+	var id string = "111111"
 	userRepo := userRepository{dsCli}
 	user, err := userRepo.Get(ctx, id)
 	if err != nil {

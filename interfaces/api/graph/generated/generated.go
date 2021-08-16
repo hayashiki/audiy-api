@@ -77,6 +77,7 @@ type ComplexityRoot struct {
 	}
 
 	Comment struct {
+		Audio     func(childComplexity int) int
 		Body      func(childComplexity int) int
 		CreatedAt func(childComplexity int) int
 		ID        func(childComplexity int) int
@@ -141,8 +142,8 @@ type ComplexityRoot struct {
 
 	Query struct {
 		Audio    func(childComplexity int, id string) int
-		Audios   func(childComplexity int, cursor *string, limit *int, order []string) int
-		Comments func(childComplexity int, cursor *string, limit *int, order []string) int
+		Audios   func(childComplexity int, cursor *string, filter *entity.AudioFilter, limit *int, order *entity.AudioOrder) int
+		Comments func(childComplexity int, audioID string, cursor *string, limit *int, order []string) int
 		Version  func(childComplexity int) int
 	}
 
@@ -155,8 +156,10 @@ type ComplexityRoot struct {
 	}
 
 	User struct {
-		Email func(childComplexity int) int
-		ID    func(childComplexity int) int
+		Email    func(childComplexity int) int
+		ID       func(childComplexity int) int
+		Name     func(childComplexity int) int
+		PhotoURL func(childComplexity int) int
 	}
 
 	Version struct {
@@ -168,6 +171,7 @@ type ComplexityRoot struct {
 type AudioResolver interface {
 	LikeCount(ctx context.Context, obj *entity.Audio) (int, error)
 	PlayCount(ctx context.Context, obj *entity.Audio) (int, error)
+	URL(ctx context.Context, obj *entity.Audio) (string, error)
 
 	Played(ctx context.Context, obj *entity.Audio) (bool, error)
 	Liked(ctx context.Context, obj *entity.Audio) (bool, error)
@@ -175,6 +179,8 @@ type AudioResolver interface {
 }
 type CommentResolver interface {
 	User(ctx context.Context, obj *entity.Comment) (*entity.User, error)
+
+	Audio(ctx context.Context, obj *entity.Comment) (*entity.Audio, error)
 }
 type LikeResolver interface {
 	User(ctx context.Context, obj *entity.Like) (*entity.User, error)
@@ -198,9 +204,9 @@ type PlayResolver interface {
 }
 type QueryResolver interface {
 	Audio(ctx context.Context, id string) (*entity.Audio, error)
-	Audios(ctx context.Context, cursor *string, limit *int, order []string) (*entity.AudioConnection, error)
+	Audios(ctx context.Context, cursor *string, filter *entity.AudioFilter, limit *int, order *entity.AudioOrder) (*entity.AudioConnection, error)
 	Version(ctx context.Context) (*entity.Version, error)
-	Comments(ctx context.Context, cursor *string, limit *int, order []string) (*entity.AudioConnection, error)
+	Comments(ctx context.Context, audioID string, cursor *string, limit *int, order []string) (*entity.CommentConnection, error)
 }
 type StarResolver interface {
 	User(ctx context.Context, obj *entity.Star) (*entity.User, error)
@@ -340,6 +346,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.AudioEdge.Node(childComplexity), true
+
+	case "Comment.audio":
+		if e.complexity.Comment.Audio == nil {
+			break
+		}
+
+		return e.complexity.Comment.Audio(childComplexity), true
 
 	case "Comment.body":
 		if e.complexity.Comment.Body == nil {
@@ -665,7 +678,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Audios(childComplexity, args["cursor"].(*string), args["limit"].(*int), args["order"].([]string)), true
+		return e.complexity.Query.Audios(childComplexity, args["cursor"].(*string), args["filter"].(*entity.AudioFilter), args["limit"].(*int), args["order"].(*entity.AudioOrder)), true
 
 	case "Query.comments":
 		if e.complexity.Query.Comments == nil {
@@ -677,7 +690,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Comments(childComplexity, args["cursor"].(*string), args["limit"].(*int), args["order"].([]string)), true
+		return e.complexity.Query.Comments(childComplexity, args["audioID"].(string), args["cursor"].(*string), args["limit"].(*int), args["order"].([]string)), true
 
 	case "Query.version":
 		if e.complexity.Query.Version == nil {
@@ -734,6 +747,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.User.ID(childComplexity), true
+
+	case "User.name":
+		if e.complexity.User.Name == nil {
+			break
+		}
+
+		return e.complexity.User.Name(childComplexity), true
+
+	case "User.photoURL":
+		if e.complexity.User.PhotoURL == nil {
+			break
+		}
+
+		return e.complexity.User.PhotoURL(childComplexity), true
 
 	case "Version.hash":
 		if e.complexity.Version.Hash == nil {
@@ -844,17 +871,20 @@ input AudiosInput {
     name: String!
 }
 
-enum AudioOrderField {
-    ID
-    NAME
-    PUBLISHED_AT
-    CREATED_AT
-    UPDATED_AT
+enum AudioOrder {
+    PUBLISHED_AT_ASC
+    PUBLISHED_AT_DESC
 }
 
-input AudioOrder {
-    field: AudioOrderField
-    direction: SortDirection
+enum State {
+    Played
+    Unplayed
+}
+
+input AudioFilter {
+    played: Boolean
+    stared: Boolean
+    liked: Boolean
 }
 `, BuiltIn: false},
 	{Name: "schema/comment.graphqls", Input: `### Comment ###
@@ -862,6 +892,7 @@ type Comment implements Node {
     id: ID!
     user: User!
     body: String!
+    audio: Audio!
     createdAt: Time!
     updatedAt: Time!
 }
@@ -874,10 +905,6 @@ type CommentEdge implements Edge {
 type CommentConnection implements Connection {
     pageInfo: PageInfo!
     edges: [CommentEdge]!
-}
-
-input CommentFilter {
-    role: String
 }
 
 input CreateCommentInput {
@@ -994,15 +1021,17 @@ type CreatePlayPayload {
     audio(id: ID!): Audio
     audios(
         cursor: Cursor
-        limit: Int
-        order: [String!]
+        filter: AudioFilter
+        limit: Int = 10
+        order: AudioOrder = PUBLISHED_AT_DESC
     ): AudioConnection!
     version: Version!
     comments(
+        audioID: ID!
         cursor: Cursor
         limit: Int
         order: [String!]
-    ): AudioConnection!
+    ): CommentConnection!
 }
 `, BuiltIn: false},
 	{Name: "schema/star.graphqls", Input: `type Star implements Node {
@@ -1025,11 +1054,14 @@ extend type Mutation {
 	{Name: "schema/user.graphqls", Input: `type User implements Node {
     id: ID!
     email: String!
+    name: String!
+    photoURL: String!
 }
 
 input CreateUserInput {
     id: ID!
     email: String!
+    name: String!
 }
 `, BuiltIn: false},
 	{Name: "schema/version.graphqls", Input: `type Version {
@@ -1236,57 +1268,75 @@ func (ec *executionContext) field_Query_audios_args(ctx context.Context, rawArgs
 		}
 	}
 	args["cursor"] = arg0
-	var arg1 *int
+	var arg1 *entity.AudioFilter
+	if tmp, ok := rawArgs["filter"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
+		arg1, err = ec.unmarshalOAudioFilter2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioFilter(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["filter"] = arg1
+	var arg2 *int
 	if tmp, ok := rawArgs["limit"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
-		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		arg2, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["limit"] = arg1
-	var arg2 []string
+	args["limit"] = arg2
+	var arg3 *entity.AudioOrder
 	if tmp, ok := rawArgs["order"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("order"))
-		arg2, err = ec.unmarshalOString2ᚕstringᚄ(ctx, tmp)
+		arg3, err = ec.unmarshalOAudioOrder2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioOrder(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["order"] = arg2
+	args["order"] = arg3
 	return args, nil
 }
 
 func (ec *executionContext) field_Query_comments_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *string
+	var arg0 string
+	if tmp, ok := rawArgs["audioID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("audioID"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["audioID"] = arg0
+	var arg1 *string
 	if tmp, ok := rawArgs["cursor"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cursor"))
-		arg0, err = ec.unmarshalOCursor2ᚖstring(ctx, tmp)
+		arg1, err = ec.unmarshalOCursor2ᚖstring(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["cursor"] = arg0
-	var arg1 *int
+	args["cursor"] = arg1
+	var arg2 *int
 	if tmp, ok := rawArgs["limit"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
-		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		arg2, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["limit"] = arg1
-	var arg2 []string
+	args["limit"] = arg2
+	var arg3 []string
 	if tmp, ok := rawArgs["order"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("order"))
-		arg2, err = ec.unmarshalOString2ᚕstringᚄ(ctx, tmp)
+		arg3, err = ec.unmarshalOString2ᚕstringᚄ(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["order"] = arg2
+	args["order"] = arg3
 	return args, nil
 }
 
@@ -1514,14 +1564,14 @@ func (ec *executionContext) _Audio_url(ctx context.Context, field graphql.Collec
 		Object:     "Audio",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.URL, nil
+		return ec.resolvers.Audio().URL(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2026,6 +2076,41 @@ func (ec *executionContext) _Comment_body(ctx context.Context, field graphql.Col
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Comment_audio(ctx context.Context, field graphql.CollectedField, obj *entity.Comment) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Comment",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Comment().Audio(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*entity.Audio)
+	fc.Result = res
+	return ec.marshalNAudio2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudio(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Comment_createdAt(ctx context.Context, field graphql.CollectedField, obj *entity.Comment) (ret graphql.Marshaler) {
@@ -3296,7 +3381,7 @@ func (ec *executionContext) _Query_audios(ctx context.Context, field graphql.Col
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Audios(rctx, args["cursor"].(*string), args["limit"].(*int), args["order"].([]string))
+		return ec.resolvers.Query().Audios(rctx, args["cursor"].(*string), args["filter"].(*entity.AudioFilter), args["limit"].(*int), args["order"].(*entity.AudioOrder))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3373,7 +3458,7 @@ func (ec *executionContext) _Query_comments(ctx context.Context, field graphql.C
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Comments(rctx, args["cursor"].(*string), args["limit"].(*int), args["order"].([]string))
+		return ec.resolvers.Query().Comments(rctx, args["audioID"].(string), args["cursor"].(*string), args["limit"].(*int), args["order"].([]string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3385,9 +3470,9 @@ func (ec *executionContext) _Query_comments(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*entity.AudioConnection)
+	res := resTmp.(*entity.CommentConnection)
 	fc.Result = res
-	return ec.marshalNAudioConnection2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioConnection(ctx, field.Selections, res)
+	return ec.marshalNCommentConnection2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCommentConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3690,6 +3775,76 @@ func (ec *executionContext) _User_email(ctx context.Context, field graphql.Colle
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Email, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _User_name(ctx context.Context, field graphql.CollectedField, obj *entity.User) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _User_photoURL(ctx context.Context, field graphql.CollectedField, obj *entity.User) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PhotoURL, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4863,25 +5018,33 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
-func (ec *executionContext) unmarshalInputAudioOrder(ctx context.Context, obj interface{}) (entity.AudioOrder, error) {
-	var it entity.AudioOrder
+func (ec *executionContext) unmarshalInputAudioFilter(ctx context.Context, obj interface{}) (entity.AudioFilter, error) {
+	var it entity.AudioFilter
 	var asMap = obj.(map[string]interface{})
 
 	for k, v := range asMap {
 		switch k {
-		case "field":
+		case "played":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("field"))
-			it.Field, err = ec.unmarshalOAudioOrderField2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioOrderField(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("played"))
+			it.Played, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
 				return it, err
 			}
-		case "direction":
+		case "stared":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("direction"))
-			it.Direction, err = ec.unmarshalOSortDirection2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐSortDirection(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("stared"))
+			it.Stared, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "liked":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("liked"))
+			it.Liked, err = ec.unmarshalOBoolean2ᚖbool(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -4910,26 +5073,6 @@ func (ec *executionContext) unmarshalInputAudiosInput(ctx context.Context, obj i
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
 			it.Name, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputCommentFilter(ctx context.Context, obj interface{}) (entity.CommentFilter, error) {
-	var it entity.CommentFilter
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
-		case "role":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("role"))
-			it.Role, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5017,6 +5160,14 @@ func (ec *executionContext) unmarshalInputCreateUserInput(ctx context.Context, o
 			if err != nil {
 				return it, err
 			}
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -5080,7 +5231,7 @@ func (ec *executionContext) unmarshalInputQuerySpec(ctx context.Context, obj int
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("order"))
-			it.Order, err = ec.unmarshalOAudioOrder2ᚕᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioOrderᚄ(ctx, v)
+			it.Order, err = ec.unmarshalOAudioOrder2ᚕgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioOrderᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5306,10 +5457,19 @@ func (ec *executionContext) _Audio(ctx context.Context, sel ast.SelectionSet, ob
 				return res
 			})
 		case "url":
-			out.Values[i] = ec._Audio_url(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Audio_url(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "mimetype":
 			out.Values[i] = ec._Audio_mimetype(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -5482,6 +5642,20 @@ func (ec *executionContext) _Comment(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "audio":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Comment_audio(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "createdAt":
 			out.Values[i] = ec._Comment_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -6022,6 +6196,16 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "name":
+			out.Values[i] = ec._User_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "photoURL":
+			out.Values[i] = ec._User_photoURL(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -6375,9 +6559,14 @@ func (ec *executionContext) marshalNAudioEdge2ᚕᚖgithubᚗcomᚋhayashikiᚋa
 	return ret
 }
 
-func (ec *executionContext) unmarshalNAudioOrder2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioOrder(ctx context.Context, v interface{}) (*entity.AudioOrder, error) {
-	res, err := ec.unmarshalInputAudioOrder(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
+func (ec *executionContext) unmarshalNAudioOrder2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioOrder(ctx context.Context, v interface{}) (entity.AudioOrder, error) {
+	var res entity.AudioOrder
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNAudioOrder2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioOrder(ctx context.Context, sel ast.SelectionSet, v entity.AudioOrder) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) unmarshalNAudiosInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudiosInput(ctx context.Context, v interface{}) (entity.AudiosInput, error) {
@@ -6412,6 +6601,20 @@ func (ec *executionContext) marshalNComment2ᚖgithubᚗcomᚋhayashikiᚋaudiy�
 		return graphql.Null
 	}
 	return ec._Comment(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNCommentConnection2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCommentConnection(ctx context.Context, sel ast.SelectionSet, v entity.CommentConnection) graphql.Marshaler {
+	return ec._CommentConnection(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCommentConnection2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCommentConnection(ctx context.Context, sel ast.SelectionSet, v *entity.CommentConnection) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._CommentConnection(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNCommentEdge2ᚕᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCommentEdge(ctx context.Context, sel ast.SelectionSet, v []*entity.CommentEdge) graphql.Marshaler {
@@ -6866,7 +7069,15 @@ func (ec *executionContext) marshalOAudioEdge2ᚖgithubᚗcomᚋhayashikiᚋaudi
 	return ec._AudioEdge(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOAudioOrder2ᚕᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioOrderᚄ(ctx context.Context, v interface{}) ([]*entity.AudioOrder, error) {
+func (ec *executionContext) unmarshalOAudioFilter2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioFilter(ctx context.Context, v interface{}) (*entity.AudioFilter, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputAudioFilter(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOAudioOrder2ᚕgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioOrderᚄ(ctx context.Context, v interface{}) ([]entity.AudioOrder, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -6879,10 +7090,10 @@ func (ec *executionContext) unmarshalOAudioOrder2ᚕᚖgithubᚗcomᚋhayashiki�
 		}
 	}
 	var err error
-	res := make([]*entity.AudioOrder, len(vSlice))
+	res := make([]entity.AudioOrder, len(vSlice))
 	for i := range vSlice {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNAudioOrder2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioOrder(ctx, vSlice[i])
+		res[i], err = ec.unmarshalNAudioOrder2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioOrder(ctx, vSlice[i])
 		if err != nil {
 			return nil, err
 		}
@@ -6890,16 +7101,56 @@ func (ec *executionContext) unmarshalOAudioOrder2ᚕᚖgithubᚗcomᚋhayashiki�
 	return res, nil
 }
 
-func (ec *executionContext) unmarshalOAudioOrderField2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioOrderField(ctx context.Context, v interface{}) (*entity.AudioOrderField, error) {
+func (ec *executionContext) marshalOAudioOrder2ᚕgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioOrderᚄ(ctx context.Context, sel ast.SelectionSet, v []entity.AudioOrder) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNAudioOrder2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioOrder(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) unmarshalOAudioOrder2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioOrder(ctx context.Context, v interface{}) (*entity.AudioOrder, error) {
 	if v == nil {
 		return nil, nil
 	}
-	var res = new(entity.AudioOrderField)
+	var res = new(entity.AudioOrder)
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOAudioOrderField2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioOrderField(ctx context.Context, sel ast.SelectionSet, v *entity.AudioOrderField) graphql.Marshaler {
+func (ec *executionContext) marshalOAudioOrder2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioOrder(ctx context.Context, sel ast.SelectionSet, v *entity.AudioOrder) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}

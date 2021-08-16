@@ -69,7 +69,7 @@ func (repo *likeRepository) Exists(ctx context.Context, userID string, audioID s
 // Save saves audios
 func (repo *likeRepository) Save(ctx context.Context, item *entity.Like) error {
 	// TODO: if exists
-	key, err := repo.client.Put(ctx, datastore.IncompleteKey(entity.PlayKind, nil), item)
+	key, err := repo.client.Put(ctx, datastore.IncompleteKey(entity.LikeKind, nil), item)
 	item.ID = key.ID
 	return err
 }
