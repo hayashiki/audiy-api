@@ -12,6 +12,8 @@ type User struct {
 	Key       *datastore.Key `datastore:"__key__"`
 	ID        string         `json:"id" datastore:"-"`
 	Email     string         `json:"email" datastore:"email"`
+	Name      string         `json:"name" datastore:"name"`
+	PhotoURL  string         `json:"photoURL" datastore:"photoURL"`
 	CreatedAt time.Time      `json:"created_at" datastore:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at" datastore:"updated_at"`
 }

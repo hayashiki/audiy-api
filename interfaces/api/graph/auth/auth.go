@@ -32,3 +32,11 @@ func ForContext(ctx context.Context) (*Auth, error) {
 	}
 	return auth, nil
 }
+
+// ErrExpiredToken is the error returned if the token has expired
+type ErrExpiredToken struct{}
+
+// Error returns the error message for ErrExpiredToken
+func (r *ErrExpiredToken) Error() string {
+	return "idtoken: token expired"
+}

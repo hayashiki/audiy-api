@@ -35,10 +35,31 @@ func (a *authenticator) AuthMiddleware(h http.Handler) http.Handler {
 			r = r.WithContext(ctx)
 		} else if bearer != "" {
 			idToken := strings.Replace(bearer, "Bearer ", "", 1)
+			log.Println("idToken is", idToken)
 			idTokenMap, err := idtoken.Validate(context.Background(), idToken, "185245971175-sctlo6t5hkgr2mu1qnkgp3s54hju8bi2.apps.googleusercontent.com")
 			if err != nil {
-				// TODO: error handle
-				log.Print(err)
+				log.Printf("idtokenidtokenidtoken", err.Error())
+				if err.Error() == "idtoken: token expired" {
+					// TODO: error handle
+					log.Printf("tooruka? %v", err.Error())
+
+					w.WriteHeader(http.StatusUnauthorized)
+					w.Write([]byte(`{
+	"data": {},
+	"errors": [
+	{
+		"extensions": {
+			"code": "UNAUTHENTICATED"
+		}
+	}
+	]
+				}`))
+					return
+				}
+
+				log.Printf("kokotooruka", err)
+				w.WriteHeader(http.StatusBadRequest)
+				return
 			}
 			email := idTokenMap.Claims["email"].(string)
 			name := idTokenMap.Claims["name"].(string)

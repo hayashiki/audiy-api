@@ -20,6 +20,6 @@ type Filter struct {
 
 // CommentRepository interface
 type CommentRepository interface {
-	GetAll(ctx context.Context, cursor string, limit int, sort ...string) ([]*Comment, string, error)
+	GetAll(ctx context.Context, userID string, audioID string, cursor string, limit int, sort ...string) ([]*Comment, string, error)
 	Save(ctx context.Context, comment *Comment) error
 }

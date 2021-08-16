@@ -1,12 +1,13 @@
 package ds
 
 import (
-	"cloud.google.com/go/datastore"
 	"context"
 	"errors"
+	"log"
+
+	"cloud.google.com/go/datastore"
 	"github.com/hayashiki/audiy-api/domain/entity"
 	"google.golang.org/api/iterator"
-	"log"
 )
 
 type commentRepository struct {
@@ -18,8 +19,11 @@ func NewCommentRepository(client *datastore.Client) entity.CommentRepository {
 }
 
 // GetAll user
-func (repo *commentRepository) GetAll(ctx context.Context, cursor string, limit int, sort ...string) ([]*entity.Comment, string, error) {
-	query := datastore.NewQuery(entity.CommentKind)
+func (repo *commentRepository) GetAll(ctx context.Context, userID string, audioID string, cursor string, limit int, sort ...string) ([]*entity.Comment, string, error) {
+	//userKey := entity.GetUserKey(userID)
+	audioKey := entity.GetAudioKey(audioID)
+	query := datastore.NewQuery(entity.CommentKind).Filter("audio_key=", audioKey)
+
 	if cursor != "" {
 		dsCursor, err := datastore.DecodeCursor(cursor)
 		if err != nil {
@@ -34,9 +38,9 @@ func (repo *commentRepository) GetAll(ctx context.Context, cursor string, limit 
 	//for _, filter := range opts.Filters {
 	//	query = query.Filter(filter.key, filter.value)
 	//}
-	//for _, order := range sort {
-	//	query = query.Order(order)
-	//}
+	for _, order := range sort {
+		query = query.Order(order)
+	}
 	it := repo.client.Run(ctx, query)
 	entities := make([]*entity.Comment, 0)
 	for {
@@ -46,13 +50,11 @@ func (repo *commentRepository) GetAll(ctx context.Context, cursor string, limit 
 		if errors.Is(err, iterator.Done) {
 			break
 		}
-		if _, ok := err.(*datastore.ErrFieldMismatch); ok {
-			entities = append(entities, entity)
-			continue
-		}
 		if err != nil {
+			log.Fatalln(err)
 			return entities, "", err
 		}
+		entity.ID = entity.Key.ID
 		entities = append(entities, entity)
 	}
 

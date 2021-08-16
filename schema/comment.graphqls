@@ -3,6 +3,7 @@ type Comment implements Node {
     id: ID!
     user: User!
     body: String!
+    audio: Audio!
     createdAt: Time!
     updatedAt: Time!
 }
@@ -15,10 +16,6 @@ type CommentEdge implements Edge {
 type CommentConnection implements Connection {
     pageInfo: PageInfo!
     edges: [CommentEdge]!
-}
-
-input CommentFilter {
-    role: String
 }
 
 input CreateCommentInput {

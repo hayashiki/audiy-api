@@ -2,29 +2,30 @@ package ds
 
 import (
 	"context"
-	"github.com/hayashiki/audiy-api/domain/entity"
 	"log"
 	"os"
 	"testing"
+
+	"github.com/hayashiki/audiy-api/domain/entity"
 )
 
 func TestSaveAndGetUser(t *testing.T) {
 	log.Println(os.Getenv("GCP_PROJECT"))
 	ctx := context.Background()
 	dsCli, _ := NewClient(ctx, os.Getenv("GCP_PROJECT"))
-	audioUserRepo := userRepository{dsCli}
+	userRepo := userRepository{dsCli}
 	audioRepo := audioRepository{dsCli}
 	playRepo := playRepository{dsCli}
 
-	var id int64 = 111111
+	var id string = "111111"
 	user := entity.NewUser(id, "hayashiki@example.com")
-	err := audioUserRepo.Save(ctx, user)
+	err := userRepo.Save(ctx, user)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	userKey := entity.GetUserKey(id)
-	exists, err := audioUserRepo.Exists(ctx, userKey)
+	exists, err := userRepo.Exists(ctx, userKey)
 	if err != nil {
 		t.Fatal(err)
 	}

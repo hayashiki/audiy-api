@@ -2,13 +2,15 @@ type Query {
     audio(id: ID!): Audio
     audios(
         cursor: Cursor
-        limit: Int
-        order: [String!]
+        filter: AudioFilter
+        limit: Int = 10
+        order: AudioOrder = PUBLISHED_AT_DESC
     ): AudioConnection!
     version: Version!
     comments(
+        audioID: ID!
         cursor: Cursor
         limit: Int
         order: [String!]
-    ): AudioConnection!
+    ): CommentConnection!
 }

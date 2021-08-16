@@ -34,9 +34,10 @@ type AudioEdge struct {
 
 func (AudioEdge) IsEdge() {}
 
-type AudioOrder struct {
-	Field     *AudioOrderField `json:"field"`
-	Direction *SortDirection   `json:"direction"`
+type AudioFilter struct {
+	Played *bool `json:"played"`
+	Stared *bool `json:"stared"`
+	Liked  *bool `json:"liked"`
 }
 
 type AudiosInput struct {
@@ -58,10 +59,6 @@ type CommentEdge struct {
 
 func (CommentEdge) IsEdge() {}
 
-type CommentFilter struct {
-	Role *string `json:"role"`
-}
-
 type CommentOrder struct {
 	Field     *CommentOrderField `json:"field"`
 	Direction *SortDirection     `json:"direction"`
@@ -80,6 +77,7 @@ type CreatePlayPayload struct {
 type CreateUserInput struct {
 	ID    string `json:"id"`
 	Email string `json:"email"`
+	Name  string `json:"name"`
 }
 
 type DeleteCommentResult struct {
@@ -102,9 +100,9 @@ type PageInfo struct {
 }
 
 type QuerySpec struct {
-	Order  []*AudioOrder `json:"order"`
-	Cursor string        `json:"cursor"`
-	Limit  *int          `json:"limit"`
+	Order  []AudioOrder `json:"order"`
+	Cursor string       `json:"cursor"`
+	Limit  *int         `json:"limit"`
 }
 
 type UpdateAudioInput struct {
@@ -120,50 +118,44 @@ type Version struct {
 	Version string `json:"version"`
 }
 
-type AudioOrderField string
+type AudioOrder string
 
 const (
-	AudioOrderFieldID          AudioOrderField = "ID"
-	AudioOrderFieldName        AudioOrderField = "NAME"
-	AudioOrderFieldPublishedAt AudioOrderField = "PUBLISHED_AT"
-	AudioOrderFieldCreatedAt   AudioOrderField = "CREATED_AT"
-	AudioOrderFieldUpdatedAt   AudioOrderField = "UPDATED_AT"
+	AudioOrderPublishedAtAsc  AudioOrder = "PUBLISHED_AT_ASC"
+	AudioOrderPublishedAtDesc AudioOrder = "PUBLISHED_AT_DESC"
 )
 
-var AllAudioOrderField = []AudioOrderField{
-	AudioOrderFieldID,
-	AudioOrderFieldName,
-	AudioOrderFieldPublishedAt,
-	AudioOrderFieldCreatedAt,
-	AudioOrderFieldUpdatedAt,
+var AllAudioOrder = []AudioOrder{
+	AudioOrderPublishedAtAsc,
+	AudioOrderPublishedAtDesc,
 }
 
-func (e AudioOrderField) IsValid() bool {
+func (e AudioOrder) IsValid() bool {
 	switch e {
-	case AudioOrderFieldID, AudioOrderFieldName, AudioOrderFieldPublishedAt, AudioOrderFieldCreatedAt, AudioOrderFieldUpdatedAt:
+	case AudioOrderPublishedAtAsc, AudioOrderPublishedAtDesc:
 		return true
 	}
 	return false
 }
 
-func (e AudioOrderField) String() string {
+func (e AudioOrder) String() string {
 	return string(e)
 }
 
-func (e *AudioOrderField) UnmarshalGQL(v interface{}) error {
+func (e *AudioOrder) UnmarshalGQL(v interface{}) error {
 	str, ok := v.(string)
 	if !ok {
 		return fmt.Errorf("enums must be strings")
 	}
 
-	*e = AudioOrderField(str)
+	*e = AudioOrder(str)
 	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid AudioOrderField", str)
+		return fmt.Errorf("%s is not a valid AudioOrder", str)
 	}
 	return nil
 }
 
-func (e AudioOrderField) MarshalGQL(w io.Writer) {
+func (e AudioOrder) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
@@ -244,5 +236,46 @@ func (e *SortDirection) UnmarshalGQL(v interface{}) error {
 }
 
 func (e SortDirection) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type State string
+
+const (
+	StatePlayed   State = "Played"
+	StateUnplayed State = "Unplayed"
+)
+
+var AllState = []State{
+	StatePlayed,
+	StateUnplayed,
+}
+
+func (e State) IsValid() bool {
+	switch e {
+	case StatePlayed, StateUnplayed:
+		return true
+	}
+	return false
+}
+
+func (e State) String() string {
+	return string(e)
+}
+
+func (e *State) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = State(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid State", str)
+	}
+	return nil
+}
+
+func (e State) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }

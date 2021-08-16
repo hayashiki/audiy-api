@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+
 	"github.com/hayashiki/audiy-api/domain/entity"
 )
 
@@ -15,11 +16,11 @@ func NewAudioUsecase(audioRepo entity.AudioRepository) AudioUsecase {
 }
 
 type audioUsecase struct {
-	audioRepo    entity.AudioRepository
+	audioRepo entity.AudioRepository
 }
 
 func (u *audioUsecase) GetConnection(ctx context.Context, cursor string, limit int, order []string) (*entity.AudioConnection, error) {
-	audios, nextCursor, err := u.audioRepo.FindAll(ctx, cursor, limit, order...)
+	audios, nextCursor, err := u.audioRepo.FindAll(ctx, nil, cursor, limit, order...)
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +28,7 @@ func (u *audioUsecase) GetConnection(ctx context.Context, cursor string, limit i
 	for i, a := range audios {
 		audioEdges[i] = &entity.AudioEdge{
 			Cursor: nextCursor,
-			Node: a,
+			Node:   a,
 		}
 	}
 	return &entity.AudioConnection{

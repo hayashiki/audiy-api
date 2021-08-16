@@ -9,7 +9,7 @@ import (
 
 type CommentUsecase interface {
 	Save(ctx context.Context, userID string, input entity.CreateCommentInput) (*entity.Comment, error)
-	GetConnection(ctx context.Context, cursor string, limit int, order []string) (*entity.CommentConnection, error)
+	GetConnection(ctx context.Context, userID string, audioID string, cursor string, limit int, order []string) (*entity.CommentConnection, error)
 }
 
 func NewCommentUsecase(commentRepo entity.CommentRepository) CommentUsecase {
@@ -30,8 +30,8 @@ func (c *commentUsecase) Save(ctx context.Context, userID string, input entity.C
 	return newComment, nil
 }
 
-func (c *commentUsecase) GetConnection(ctx context.Context, cursor string, limit int, order []string) (*entity.CommentConnection, error) {
-	comments, nextCursor, err := c.commentRepo.GetAll(ctx, cursor, limit, order...)
+func (c *commentUsecase) GetConnection(ctx context.Context, userID string, audioID string, cursor string, limit int, order []string) (*entity.CommentConnection, error) {
+	comments, nextCursor, err := c.commentRepo.GetAll(ctx, userID, audioID, cursor, limit, order...)
 	if err != nil {
 		return nil, err
 	}

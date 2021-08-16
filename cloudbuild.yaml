@@ -26,13 +26,12 @@ steps:
       - --platform
       - managed
       - --allow-unauthenticated
-      - --update-env-vars
-      - GCP_PROJECT=$PROJECT_ID
-      - --update-env-vars
-      - GCS_INPUT_AUDIO_BUCKET=$_GCS_INPUT_AUDIO_BUCKET
+#      - --update-env-vars
+#      - GCP_PROJECT=$PROJECT_ID
+#      - --update-env-vars
+#      - GCS_INPUT_AUDIO_BUCKET=$_GCS_INPUT_AUDIO_BUCKET
 substitutions:
-  _REGION:
-  _SERVICE_NAME:
-  _GCS_INPUT_AUDIO_BUCKET:
+  _REGION: us-central1
+  _SERVICE_NAME: audiy-api
 images:
   - gcr.io/$PROJECT_ID/${_SERVICE_NAME}:latest
