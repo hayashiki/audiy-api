@@ -136,9 +136,15 @@ func (h *APIHandler) Handler() http.HandlerFunc {
 			Mimetype:           e.Mimetype,
 		}
 
+		if err := input.Validate(); err != nil {
+			log.Printf("err %v", err)
+			return
+		}
+
 		auc := usecase.NewAudio(h.slackSvc, h.audioRepo, h.gcsSvc)
 		if err := auc.Do(context.Background(), input); err != nil {
-			log.Fatal(err)
+			log.Print(err)
+			return
 		}
 	}
 }

@@ -45,6 +45,13 @@ type AudioInput struct {
 	Mimetype           string `json:"mimetype"`
 }
 
+func (i AudioInput) Validate() error {
+	if i.URLPrivateDownload == "" {
+		return errors.New("empty download url")
+	}
+	return nil
+}
+
 func NewAudio(
 	slackSvc slack.Slack,
 	radioRepo entity.AudioRepository,
