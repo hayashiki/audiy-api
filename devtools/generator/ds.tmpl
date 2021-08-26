@@ -1,0 +1,99 @@
+# infrastructure/ds/{entity}.go
+
+package ds
+
+import (
+	"context"
+	"errors"
+	"log"
+
+	"cloud.google.com/go/datastore"
+	"github.com/hayashiki/audiy-api/domain/entity"
+	"google.golang.org/api/iterator"
+)
+
+// {{.Entity}}Repository operates {{.Entity}} entity
+type {{.Entity}}Repository struct {
+	client *datastore.Client
+}
+
+// New{{.Entity}}Repository returns the {{.Entity}}Repository
+func New{{.Entity}}Repository(client *datastore.Client) entity.{{.Entity}}Repository {
+	return &{{.Entity}}Repository{client: client}
+}
+
+// Exists exists item
+func (repo *{{.Entity}}Repository) Exists(ctx context.Context, id string) bool {
+	_, err := repo.Find(ctx, id)
+	return err == nil
+}
+
+// FindAll finds all {{.Entity}}s
+func (repo *{{.Entity}}Repository) FindAll(ctx context.Context, filters map[string]interface{}, cursor string, limit int, sort ...string) ([]*entity.{{.Entity}}, string, error) {
+	query := datastore.NewQuery(entity.{{.Entity}}Kind)
+	if cursor != "" {
+		dsCursor, err := datastore.DecodeCursor(cursor)
+		if err != nil {
+			//TODO
+			log.Printf("failed to decode %v", err)
+		}
+		query = query.Start(dsCursor)
+	}
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	for key, val := range filters {
+		log.Println(key, val)
+		query = query.Filter(key+"=", val)
+	}
+	//query = query.Filter("mimetype=", "{{.Entity}}/mp4")
+
+	for _, order := range sort {
+		query = query.Order(order)
+	}
+	log.Printf("query %+v", query)
+	it := repo.client.Run(ctx, query)
+	entities := make([]*entity.{{.Entity}}, 0)
+	for {
+		entity := &entity.{{.Entity}}{}
+
+		_, err := it.Next(entity)
+		if errors.Is(err, iterator.Done) {
+			break
+		}
+		if err != nil {
+			return entities, "", err
+		}
+		entity.ID = entity.Key.Name
+		entities = append(entities, entity)
+	}
+
+	nextCursor, err := it.Cursor()
+	if err != nil {
+		return entities, "", err
+	}
+
+	return entities, nextCursor.String(), nil
+}
+
+// Find finds {{.Entity}} given id
+func (repo *{{.Entity}}Repository) Find(ctx context.Context, id string) (*entity.{{.Entity}}, error) {
+	var {{.Entity}} entity.{{.Entity}}
+	err := repo.client.Get(ctx, datastore.NameKey(entity.{{.Entity}}Kind, id, nil), &{{.Entity}})
+	{{.Entity}}.ID = {{.Entity}}.Key.Name
+	return &{{.Entity}}, err
+}
+
+// Save saves {{.Entity}}s
+func (repo *{{.Entity}}Repository) Save(ctx context.Context, {{.Entity}} *entity.{{.Entity}}) error {
+	key, err := repo.client.Put(ctx, datastore.NameKey(entity.{{.Entity}}Kind, {{.Entity}}.ID, nil), {{.Entity}})
+	{{.Entity}}.Key = key
+
+	return err
+}
+
+// Delete saves {{.Entity}}s
+func (repo *{{.Entity}}Repository) Delete(ctx context.Context, {{.Entity}}Key *datastore.Key) error {
+	err := repo.client.Delete(ctx, {{.Entity}}Key)
+	return err
+}

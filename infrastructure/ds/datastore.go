@@ -1,52 +1,20 @@
 package ds
 
 import (
-	"cloud.google.com/go/datastore"
 	"context"
 	"errors"
-	"google.golang.org/api/iterator"
 	"log"
-	"os"
+
+	"cloud.google.com/go/datastore"
+	"google.golang.org/api/iterator"
 )
 
 var (
 	datastoreClient *datastore.Client
 )
 
-// Init initializes the Cloud Datastore client.
-func Init() {
-	var err error
-	datastoreClient, err = datastore.NewClient(context.Background(), os.Getenv("GCP_PROJECT"))
-	if err != nil {
-		log.Fatalf("Failed to set up client: %s", err)
-	}
-}
-
-// Client returns the Cloud Datastore client.
-func Client() *datastore.Client {
-	if datastoreClient == nil {
-		return nil
-	}
-
-	return datastoreClient
-}
-
 type DataStore struct {
 	Client *datastore.Client
-}
-
-func Connect() *DataStore {
-	// Creates a client.
-	projectID := os.Getenv("GCP_PROJECT")
-	ctx := context.Background()
-
-	client, err := datastore.NewClient(ctx, projectID)
-	if err != nil {
-		log.Fatalf("Failed to create client: %v", err)
-	}
-
-
-	return &DataStore{client}
 }
 
 func (d *DataStore) Get(ctx context.Context, entity EntitySpec) error {
@@ -108,7 +76,6 @@ func (d *DataStore) GetAll(
 	return entities, cursor.String(), nil
 }
 
-
 func (d *DataStore) GetAll2(
 	ctx context.Context,
 	q Query2,
@@ -148,7 +115,6 @@ func (d *DataStore) GetAll2(
 	return entities, cursor.String(), nil
 }
 
-
 func (d *DataStore) Put(ctx context.Context, doc EntitySpec) (*datastore.Key, error) {
 	key := doc.GetKey()
 	//val := reflect.ValueOf(doc).Elem()
@@ -178,4 +144,3 @@ func (d *DataStore) Delete(ctx context.Context, doc EntitySpec) (*datastore.Key,
 
 	return key, err
 }
-

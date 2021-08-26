@@ -6,4 +6,5 @@ import "context"
 type UserRepository interface {
 	Save(context.Context, *User) error
 	Get(ctx context.Context, id string) (*User, error)
+	GetAll(ctx context.Context) ([]*User, error)
 }

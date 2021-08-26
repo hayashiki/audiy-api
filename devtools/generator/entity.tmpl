@@ -1,0 +1,12 @@
+# touch domain/entity/{{.Entity}}Repository.go
+
+// {{.Entity}}Repository interface
+type {{.Entity}}Repository interface {
+	Exists(ctx context.Context, id string) bool
+	FindAll(ctx context.Context, filters map[string]interface{}, cursor string, limit int, sort ...string) ([]*{{.Entity}}, string, error)
+	Find(ctx context.Context, id string) (*{{.Entity}}, error)
+	Save(ctx context.Context, {{.Entity}} *{{.Entity}}) error
+	Delete(ctx context.Context, {{.Entity}}Key *datastore.Key) error
+}
+
+

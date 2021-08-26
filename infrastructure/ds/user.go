@@ -2,10 +2,12 @@ package ds
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"cloud.google.com/go/datastore"
 	"github.com/hayashiki/audiy-api/domain/entity"
+	"google.golang.org/api/iterator"
 )
 
 // AudioRepository operates Audio entity
@@ -37,6 +39,27 @@ func (repo *userRepository) Get(ctx context.Context, userID string) (*entity.Use
 	err := repo.client.Get(ctx, datastore.NameKey(entity.UserKind, userID, nil), &user)
 	user.ID = user.Key.Name
 	return &user, err
+}
+
+// Get users
+func (repo *userRepository) GetAll(ctx context.Context) ([]*entity.User, error) {
+	query := datastore.NewQuery(entity.UserKind)
+	it := repo.client.Run(ctx, query)
+	entities := make([]*entity.User, 0)
+	for {
+		entity := &entity.User{}
+		_, err := it.Next(entity)
+		if errors.Is(err, iterator.Done) {
+			break
+		}
+		if err != nil {
+			return entities, err
+		}
+		entity.ID = entity.Key.Name
+		entities = append(entities, entity)
+	}
+
+	return entities, nil
 }
 
 // Save saves user

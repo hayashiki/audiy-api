@@ -11,12 +11,18 @@ type UserUsecase interface {
 	Get(ctx context.Context, id string) (*entity.User, error)
 }
 
-func NewUserUsecase(userRepo entity.UserRepository) UserUsecase {
-	return &userUsecase{userRepo: userRepo}
+func NewUserUsecase(
+	userRepo entity.UserRepository,
+	audioRepo entity.AudioRepository,
+	feedRepo entity.FeedRepository,
+) UserUsecase {
+	return &userUsecase{userRepo: userRepo, audioRepo: audioRepo, feedRepo: feedRepo}
 }
 
 type userUsecase struct {
-	userRepo entity.UserRepository
+	userRepo  entity.UserRepository
+	audioRepo entity.AudioRepository
+	feedRepo  entity.FeedRepository
 }
 
 func (c *userUsecase) Save(ctx context.Context, input entity.CreateUserInput) (*entity.User, error) {
@@ -25,6 +31,15 @@ func (c *userUsecase) Save(ctx context.Context, input entity.CreateUserInput) (*
 	if err != nil {
 		return nil, err
 	}
+
+	// Publishで非同期でもよい
+	audios, _, _ := c.audioRepo.FindAll(ctx, nil, "", 1000, "-published_at")
+	feeds := make([]*entity.Feed, len(audios))
+	for i, a := range audios {
+		newFeed := entity.NewFeed(a.Key.Name, a.PublishedAt)
+		feeds[i] = newFeed
+	}
+	err = c.feedRepo.SaveAll(ctx, []string{newUser.ID}, feeds)
 	return newUser, err
 }
 

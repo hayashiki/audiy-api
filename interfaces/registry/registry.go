@@ -58,6 +58,7 @@ func (s *registry) NewHandler() http.Handler {
 	audioRepo := ds.NewAudioRepository(dsCli)
 	likeRepo := ds.NewLikeRepository(dsCli)
 	starRepo := ds.NewStarRepository(dsCli)
+	feedRepo := ds.NewFeedRepository(dsCli)
 
 	// middleware
 	authenticator := middleware.NewAuthenticator()
@@ -66,17 +67,18 @@ func (s *registry) NewHandler() http.Handler {
 	audioUsecase := usecase.NewAudioUsecase(audioRepo)
 	playUsecase := usecase.NewPlayUsecase(playRepo)
 	commentUsecase := usecase.NewCommentUsecase(commentRepo)
-	userUsecase := usecase.NewUserUsecase(userRepo)
+	userUsecase := usecase.NewUserUsecase(userRepo, audioRepo, feedRepo)
 	likeUsecase := usecase.NewLikeUsecase(likeRepo)
 	starUsecase := usecase.NewStarUsecase(starRepo)
+	feedUsecase := usecase.NewFeedUsecase(feedRepo)
 
 	// handler
-	resolver := graph.NewResolver(userUsecase, audioUsecase, playUsecase, starUsecase, likeUsecase, commentUsecase)
+	resolver := graph.NewResolver(userUsecase, audioUsecase, playUsecase, starUsecase, likeUsecase, commentUsecase, feedUsecase)
 
 	queryHandler := handler.NewQueryHandler(resolver)
 	rootHandler := handler.NewRootHandler()
 
-	apiHandler := NewAPIHandler(slackSvc, gcsClient, audioRepo)
+	apiHandler := NewAPIHandler(slackSvc, gcsClient, audioRepo, feedRepo, userRepo)
 
 	// router
 	router := router.NewRouter(rootHandler, authenticator.AuthMiddleware(queryHandler), authenticator.AuthMiddleware(queryHandler), apiHandler)
@@ -88,6 +90,8 @@ type APIHandler struct {
 	slackSvc  slack.Slack
 	gcsSvc    gcs.Client
 	audioRepo entity.AudioRepository
+	feedRepo  entity.FeedRepository
+	userRepo  entity.UserRepository
 }
 
 type PubSubMessage struct {
@@ -102,8 +106,10 @@ func NewAPIHandler(
 	slackSvc slack.Slack,
 	gcsSvc gcs.Client,
 	audioRepo entity.AudioRepository,
+	feedRepo entity.FeedRepository,
+	userRepo entity.UserRepository,
 ) http.Handler {
-	h := APIHandler{slackSvc: slackSvc, gcsSvc: gcsSvc, audioRepo: audioRepo}
+	h := APIHandler{slackSvc: slackSvc, gcsSvc: gcsSvc, audioRepo: audioRepo, feedRepo: feedRepo, userRepo: userRepo}
 	return h.Handler()
 }
 
@@ -140,7 +146,7 @@ func (h *APIHandler) Handler() http.HandlerFunc {
 			return
 		}
 
-		auc := usecase.NewAudio(h.slackSvc, h.audioRepo, h.gcsSvc)
+		auc := usecase.NewAudio(h.slackSvc, h.gcsSvc, h.audioRepo, h.feedRepo, h.userRepo)
 		if err := auc.Do(context.Background(), input); err != nil {
 			log.Print(err)
 			return

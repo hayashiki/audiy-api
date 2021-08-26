@@ -13,6 +13,7 @@ type Resolver struct {
 	starUsecase    usecase.StarUsecase
 	likeUsecase    usecase.LikeUsecase
 	commentUsecase usecase.CommentUsecase
+	feedUseCase    usecase.FeedUsecase
 }
 
 func NewResolver(
@@ -22,6 +23,7 @@ func NewResolver(
 	starUsecase usecase.StarUsecase,
 	likeUsecase usecase.LikeUsecase,
 	commentUsecase usecase.CommentUsecase,
+	feedUseCase usecase.FeedUsecase,
 ) *Resolver {
 	return &Resolver{
 		userUsecase:    userUsecase,
@@ -30,5 +32,6 @@ func NewResolver(
 		starUsecase:    starUsecase,
 		likeUsecase:    likeUsecase,
 		commentUsecase: commentUsecase,
+		feedUseCase:    feedUseCase,
 	}
 }

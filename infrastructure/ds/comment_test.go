@@ -34,7 +34,7 @@ func TestCommentSave(t *testing.T) {
 		t.Error(err)
 	}
 
-	comments, nextCursor, err := commentRepo.GetAll(ctx, "", 2, "id")
+	comments, nextCursor, err := commentRepo.GetAll(ctx, "", "2", "id", 100)
 	log.Println(comments)
 	log.Println(nextCursor)
 	log.Println(err)

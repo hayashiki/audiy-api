@@ -29,7 +29,7 @@ func (a *authenticator) AuthMiddleware(h http.Handler) http.Handler {
 		bearer := r.Header.Get("Authorization")
 		if bearer == "Bearer dummy" {
 			ctx = auth.SetAuth(ctx, &auth.Auth{
-				ID:    "111111",
+				ID:    "103843140833205663533",
 				Name:  "hayashiki",
 				Email: "hayashiki@example.com",
 			})
@@ -40,7 +40,7 @@ func (a *authenticator) AuthMiddleware(h http.Handler) http.Handler {
 			log.Println("audience is", os.Getenv("GOOGLE_CLIENT_ID"))
 			idTokenMap, err := idtoken.Validate(context.Background(), idToken, os.Getenv("GOOGLE_CLIENT_ID"))
 			if err != nil {
-				log.Printf("idtokenidtokenidtoken", err.Error())
+				log.Printf("idToken err %s", err.Error())
 				if err.Error() == "idtoken: token expired" {
 					// TODO: error handle
 					log.Printf("tooruka? %v", err.Error())
@@ -58,8 +58,6 @@ func (a *authenticator) AuthMiddleware(h http.Handler) http.Handler {
 				}`))
 					return
 				}
-
-				log.Printf("kokotooruka", err)
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}

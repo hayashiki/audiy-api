@@ -69,6 +69,10 @@ type CreateCommentInput struct {
 	Body    string `json:"body"`
 }
 
+type CreateFeedInput struct {
+	AudioID string `json:"audioID"`
+}
+
 type CreatePlayPayload struct {
 	Result bool  `json:"result"`
 	Play   *Play `json:"play"`
@@ -85,12 +89,35 @@ type DeleteCommentResult struct {
 	ID      string `json:"id"`
 }
 
+type DeleteFeedResult struct {
+	Success bool   `json:"success"`
+	ID      string `json:"id"`
+}
+
 type DeleteLikeInput struct {
 	ID string `json:"id"`
 }
 
 type DeleteStarInput struct {
 	ID string `json:"id"`
+}
+
+type FeedConnection struct {
+	PageInfo *PageInfo   `json:"pageInfo"`
+	Edges    []*FeedEdge `json:"edges"`
+}
+
+func (FeedConnection) IsConnection() {}
+
+type FeedEdge struct {
+	Cursor string `json:"cursor"`
+	Node   *Feed  `json:"node"`
+}
+
+func (FeedEdge) IsEdge() {}
+
+type FeedFilter struct {
+	Role *string `json:"role"`
 }
 
 type PageInfo struct {
@@ -111,6 +138,11 @@ type UpdateAudioInput struct {
 
 type UpdateCommentInput struct {
 	ID string `json:"id"`
+}
+
+type UpdateFeedInput struct {
+	ID    string    `json:"id"`
+	Event FeedEvent `json:"event"`
 }
 
 type Version struct {
@@ -195,6 +227,53 @@ func (e *CommentOrderField) UnmarshalGQL(v interface{}) error {
 }
 
 func (e CommentOrderField) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type FeedEvent string
+
+const (
+	FeedEventPlayed   FeedEvent = "PLAYED"
+	FeedEventStared   FeedEvent = "STARED"
+	FeedEventUnstared FeedEvent = "UNSTARED"
+	FeedEventLiked    FeedEvent = "LIKED"
+	FeedEventUnliked  FeedEvent = "UNLIKED"
+)
+
+var AllFeedEvent = []FeedEvent{
+	FeedEventPlayed,
+	FeedEventStared,
+	FeedEventUnstared,
+	FeedEventLiked,
+	FeedEventUnliked,
+}
+
+func (e FeedEvent) IsValid() bool {
+	switch e {
+	case FeedEventPlayed, FeedEventStared, FeedEventUnstared, FeedEventLiked, FeedEventUnliked:
+		return true
+	}
+	return false
+}
+
+func (e FeedEvent) String() string {
+	return string(e)
+}
+
+func (e *FeedEvent) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = FeedEvent(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid FeedEvent", str)
+	}
+	return nil
+}
+
+func (e FeedEvent) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
