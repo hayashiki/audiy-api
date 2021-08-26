@@ -35,11 +35,13 @@ func (c *userUsecase) Save(ctx context.Context, input entity.CreateUserInput) (*
 	// Publishで非同期でもよい
 	audios, _, _ := c.audioRepo.FindAll(ctx, nil, "", 1000, "-published_at")
 	feeds := make([]*entity.Feed, len(audios))
+	userIDs := make([]string, len(audios))
 	for i, a := range audios {
 		newFeed := entity.NewFeed(a.Key.Name, a.PublishedAt)
 		feeds[i] = newFeed
+		userIDs[i] = newUser.ID
 	}
-	err = c.feedRepo.SaveAll(ctx, []string{newUser.ID}, feeds)
+	err = c.feedRepo.SaveAll(ctx, userIDs, feeds)
 	return newUser, err
 }
 
