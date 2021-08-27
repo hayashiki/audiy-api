@@ -26,7 +26,11 @@ func (r *mutationResolver) CreateFeed(ctx context.Context, input entity.CreateFe
 }
 
 func (r *mutationResolver) UpdateFeed(ctx context.Context, input entity.UpdateFeedInput) (*entity.Feed, error) {
-	panic(fmt.Errorf("not implemented"))
+	auth, err := auth2.ForContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return r.feedUseCase.Put(ctx, auth.ID, input.ID, input.Event)
 }
 
 func (r *mutationResolver) DeleteFeed(ctx context.Context, id string) (*entity.DeleteFeedResult, error) {
