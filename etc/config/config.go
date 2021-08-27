@@ -29,7 +29,7 @@ func GetProject() string {
 
 	project, err = metadata.ProjectID()
 	if err != nil {
-		if project = os.Getenv("GOOGLE_PROJECT"); project == "" {
+		if project = os.Getenv("GCP_PROJECT"); project == "" {
 			log.Fatal("project id can't be empty")
 		}
 	}

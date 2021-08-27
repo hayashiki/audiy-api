@@ -1,17 +1,12 @@
 indexes:
-- kind: Radios
-  properties:
-    - name: played_users
-    - name: published_at
-      direction: desc
-
-- kind: Radios
-  properties:
-    - name: liked_users
-    - name: created
-
-
 - kind: Comment
   properties:
     - name: audio_key
     - name: created_at
+
+- kind: Feed
+  ancestor: yes
+  properties:
+    - name: published_at
+      direction: desc
+

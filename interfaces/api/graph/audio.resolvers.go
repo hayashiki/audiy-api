@@ -8,9 +8,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/hayashiki/audiy-api/infrastructure/gcs"
-
 	"github.com/hayashiki/audiy-api/domain/entity"
+	"github.com/hayashiki/audiy-api/infrastructure/gcs"
 	auth2 "github.com/hayashiki/audiy-api/interfaces/api/graph/auth"
 	"github.com/hayashiki/audiy-api/interfaces/api/graph/generated"
 )
@@ -60,6 +59,45 @@ func (r *audioResolver) Stared(ctx context.Context, obj *entity.Audio) (bool, er
 		return false, err
 	}
 	return r.starUsecase.Exists(ctx, auth.ID, obj.ID)
+}
+
+func (r *queryResolver) Audio(ctx context.Context, id string) (*entity.Audio, error) {
+	return r.audioUsecase.Get(ctx, id)
+}
+
+func (r *queryResolver) Audios(ctx context.Context, cursor *string, filter *entity.AudioFilter, limit *int, order *entity.AudioOrder) (*entity.AudioConnection, error) {
+	_, err := auth2.ForContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if *cursor == "" {
+		*cursor = ""
+	}
+	var orderStr []string
+	log.Println("order", order)
+	if order == nil {
+		orderStr = []string{"-published_at"}
+	} else if order.String() == entity.AudioOrderPublishedAtAsc.String() {
+		orderStr = []string{"published_at"}
+	} else if order.String() == entity.AudioOrderPublishedAtDesc.String() {
+		orderStr = []string{"-published_at"}
+	}
+	//if *filter.Played {
+	//	*filter.Played = false
+	//}
+	//if *filter.Liked {
+	//	*filter.Liked = false
+	//}
+	//if *filter.Stared {
+	//	*filter.Stared = false
+	//}
+
+	//log.Printf("filter.Liked %v", filter.Liked)
+	//log.Printf("filter.Played %v", *filter.Played)
+	//log.Printf("filter.Stared %v", *filter.Stared)
+
+	return r.audioUsecase.GetConnection(ctx, *cursor, *limit, orderStr)
 }
 
 // Audio returns generated.AudioResolver implementation.

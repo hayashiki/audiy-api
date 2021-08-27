@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"time"
 
@@ -71,36 +70,6 @@ func init() {
 		log.Printf("failed to initialize the IAM.")
 		return
 	}
-}
-
-func (c *client) GenerateV4GetObjectSignedURL(bucketName, obj string) (string, error) {
-	// [START storage_generate_signed_url_v4]
-	jsonKey, err := ioutil.ReadFile("./credentials/admin-service-account.json")
-	if err != nil {
-		return "", fmt.Errorf("cannot read the JSON key file, err: %v", err)
-	}
-
-	conf, err := google.JWTConfigFromJSON(jsonKey)
-	if err != nil {
-		return "", fmt.Errorf("google.JWTConfigFromJSON: %v", err)
-	}
-
-	// 有効期間の最大値は 604,800 秒（7 日間）
-	opts := &storage.SignedURLOptions{
-		Scheme:         storage.SigningSchemeV4,
-		Method:         "GET",
-		GoogleAccessID: conf.Email,
-		PrivateKey:     conf.PrivateKey,
-		Expires:        time.Now().Add(604800 * time.Second),
-	}
-
-	url, err := storage.SignedURL(bucketName, obj, opts)
-	if err != nil {
-		return "", fmt.Errorf("Unable to generate a signed URL: %v", err)
-	}
-
-	// [END storage_generate_signed_url_v4]
-	return url, nil
 }
 
 // ServiceAccountName returns email address format of google service account.

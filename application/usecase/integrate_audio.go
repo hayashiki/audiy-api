@@ -21,8 +21,10 @@ type IntegrateAudioUsecase interface {
 
 type integrateAudioUsecase struct {
 	slackSvc  slack.Slack
-	radioRepo entity.AudioRepository
 	gcsSvc    gcs.Client
+	audioRepo entity.AudioRepository
+	feedRepo  entity.FeedRepository
+	userRepo  entity.UserRepository
 }
 
 type MockAudioUsecase struct {
@@ -45,15 +47,26 @@ type AudioInput struct {
 	Mimetype           string `json:"mimetype"`
 }
 
+func (i AudioInput) Validate() error {
+	if i.URLPrivateDownload == "" {
+		return errors.New("empty download url")
+	}
+	return nil
+}
+
 func NewAudio(
 	slackSvc slack.Slack,
-	radioRepo entity.AudioRepository,
 	gcsSvc gcs.Client,
+	audioRepo entity.AudioRepository,
+	feedRepo entity.FeedRepository,
+	userRepo entity.UserRepository,
 ) IntegrateAudioUsecase {
 	return &integrateAudioUsecase{
 		slackSvc:  slackSvc,
-		radioRepo: radioRepo,
 		gcsSvc:    gcsSvc,
+		audioRepo: audioRepo,
+		feedRepo:  feedRepo,
+		userRepo:  userRepo,
 	}
 }
 
@@ -91,15 +104,27 @@ func (au *integrateAudioUsecase) Do(ctx context.Context, input *AudioInput) erro
 	//}
 	// file check extension only m4a
 
-	//size := getSize(data)
 	getFilePath := getFilePath(au.gcsSvc.Bucket(), fmt.Sprintf("%s%s", input.ID, ext))
 	ut := time.Unix(input.Created, 0)
-	newRadio := entity.NewAudio(input.ID, input.Name, int(100), getFilePath, input.Mimetype, ut)
-	err = au.radioRepo.Save(ctx, newRadio)
-	log.Printf("newRadio %+v", newRadio.GetKey())
+	newAudio := entity.NewAudio(input.ID, input.Name, int(100), getFilePath, input.Mimetype, ut)
+	err = au.audioRepo.Save(ctx, newAudio)
+	log.Printf("newAudio %+v", newAudio.GetKey())
 	if err != nil {
 		return fmt.Errorf("fail to create radios record err: %w", err)
 	}
+
+	users, _ := au.userRepo.GetAll(ctx)
+	feeds := make([]*entity.Feed, len(users))
+	userIDs := make([]string, len(users))
+	newFeed := entity.NewFeed(newAudio.Key.Name, newAudio.PublishedAt)
+	newFeed.PublishedAt = newAudio.PublishedAt
+
+	for i, u := range users {
+		userIDs[i] = u.ID
+		feeds[i] = newFeed
+	}
+	au.feedRepo.SaveAll(ctx, userIDs, feeds)
+
 	return nil
 }
 

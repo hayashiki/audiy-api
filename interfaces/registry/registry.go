@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/hayashiki/audiy-api/domain/entity"
 
@@ -44,7 +43,7 @@ func (s *registry) NewHandler() http.Handler {
 	}
 
 	// infrastructure
-	dsCli, _ := ds.NewClient(context.Background(), os.Getenv("GCP_PROJECT"))
+	dsCli, _ := ds.NewClient(context.Background(), config.GetProject())
 	// inject
 	gcsClient, err := gcs.NewGCSClient(context.Background(), conf.GCSInputAudioBucket)
 	if err != nil {
@@ -59,6 +58,7 @@ func (s *registry) NewHandler() http.Handler {
 	audioRepo := ds.NewAudioRepository(dsCli)
 	likeRepo := ds.NewLikeRepository(dsCli)
 	starRepo := ds.NewStarRepository(dsCli)
+	feedRepo := ds.NewFeedRepository(dsCli)
 
 	// middleware
 	authenticator := middleware.NewAuthenticator()
@@ -67,17 +67,18 @@ func (s *registry) NewHandler() http.Handler {
 	audioUsecase := usecase.NewAudioUsecase(audioRepo)
 	playUsecase := usecase.NewPlayUsecase(playRepo)
 	commentUsecase := usecase.NewCommentUsecase(commentRepo)
-	userUsecase := usecase.NewUserUsecase(userRepo)
+	userUsecase := usecase.NewUserUsecase(userRepo, audioRepo, feedRepo)
 	likeUsecase := usecase.NewLikeUsecase(likeRepo)
 	starUsecase := usecase.NewStarUsecase(starRepo)
+	feedUsecase := usecase.NewFeedUsecase(feedRepo)
 
 	// handler
-	resolver := graph.NewResolver(userUsecase, audioUsecase, playUsecase, starUsecase, likeUsecase, commentUsecase)
+	resolver := graph.NewResolver(userUsecase, audioUsecase, playUsecase, starUsecase, likeUsecase, commentUsecase, feedUsecase)
 
 	queryHandler := handler.NewQueryHandler(resolver)
 	rootHandler := handler.NewRootHandler()
 
-	apiHandler := NewAPIHandler(slackSvc, gcsClient, audioRepo)
+	apiHandler := NewAPIHandler(slackSvc, gcsClient, audioRepo, feedRepo, userRepo)
 
 	// router
 	router := router.NewRouter(rootHandler, authenticator.AuthMiddleware(queryHandler), authenticator.AuthMiddleware(queryHandler), apiHandler)
@@ -89,6 +90,8 @@ type APIHandler struct {
 	slackSvc  slack.Slack
 	gcsSvc    gcs.Client
 	audioRepo entity.AudioRepository
+	feedRepo  entity.FeedRepository
+	userRepo  entity.UserRepository
 }
 
 type PubSubMessage struct {
@@ -103,8 +106,10 @@ func NewAPIHandler(
 	slackSvc slack.Slack,
 	gcsSvc gcs.Client,
 	audioRepo entity.AudioRepository,
+	feedRepo entity.FeedRepository,
+	userRepo entity.UserRepository,
 ) http.Handler {
-	h := APIHandler{slackSvc: slackSvc, gcsSvc: gcsSvc, audioRepo: audioRepo}
+	h := APIHandler{slackSvc: slackSvc, gcsSvc: gcsSvc, audioRepo: audioRepo, feedRepo: feedRepo, userRepo: userRepo}
 	return h.Handler()
 }
 
@@ -136,42 +141,15 @@ func (h *APIHandler) Handler() http.HandlerFunc {
 			Mimetype:           e.Mimetype,
 		}
 
-		auc := usecase.NewAudio(h.slackSvc, h.audioRepo, h.gcsSvc)
-		if err := auc.Do(context.Background(), input); err != nil {
-			log.Fatal(err)
+		if err := input.Validate(); err != nil {
+			log.Printf("err %v", err)
+			return
 		}
-	}
-}
 
-func (h *APIHandler) Audio(w http.ResponseWriter, r *http.Request) {
-	log.Printf("audio called")
-
-	var m PubSubMessage
-	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
-		log.Fatalf("fail to parse HTTP body: %v", err)
-		http.Error(w, "fail to parse HTTP body", http.StatusBadRequest)
-	}
-	var e importer.AudioEnqueueMessage
-	if err := json.Unmarshal(m.Message.Data, &e); err != nil {
-		log.Fatalf("json.Unmarshal: %v", err)
-		http.Error(w, "fail to unmarshal data", http.StatusBadRequest)
-		return
-	}
-	log.Printf("e is %+v", e)
-
-	//http.Error(w, "hoge", http.StatusInternalServerError)
-
-	input := &usecase.AudioInput{
-		ID:                 e.ID,
-		Name:               e.Name,
-		Title:              e.Title,
-		URLPrivateDownload: e.URLPrivateDownload,
-		Created:            e.Created,
-		Mimetype:           e.Mimetype,
-	}
-
-	auc := usecase.NewAudio(h.slackSvc, h.audioRepo, h.gcsSvc)
-	if err := auc.Do(context.Background(), input); err != nil {
-		log.Fatal(err)
+		auc := usecase.NewAudio(h.slackSvc, h.gcsSvc, h.audioRepo, h.feedRepo, h.userRepo)
+		if err := auc.Do(context.Background(), input); err != nil {
+			log.Print(err)
+			return
+		}
 	}
 }

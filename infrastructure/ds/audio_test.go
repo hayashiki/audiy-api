@@ -30,13 +30,11 @@ func TestSaveAndGetAudio(t *testing.T) {
 		t.Fatal("not exists user data")
 	}
 	newTestAudio1 := entity.NewAudio("dummy1", "dummy1", 100, "url", "audio/mp4", time.Now())
-	newTestAudio1.PlayedUsers = []string{user.Key.Name}
 	err = audioRepo.Save(ctx, newTestAudio1)
 	if err != nil {
 		t.Fatal(err)
 	}
 	newTestAudio2 := entity.NewAudio("dummy2", "dummy2", 100, "url", "audio/mp4", time.Now())
-	newTestAudio2.PlayedUsers = []string{user.Key.Name}
 	err = audioRepo.Save(ctx, newTestAudio2)
 	if err != nil {
 		t.Fatal(err)

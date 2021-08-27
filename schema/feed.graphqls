@@ -1,0 +1,64 @@
+### Feed ###
+type Feed implements Node {
+    id: ID!
+    audio: Audio!
+    user: User!
+    publishedAt: Time!
+    played: Boolean!
+    liked: Boolean!
+    stared: Boolean!
+    startTime: Float
+    createdAt: Time!
+    updatedAt: Time!
+}
+
+type FeedEdge implements Edge {
+    cursor: Cursor!
+    node: Feed!
+}
+
+type FeedConnection implements Connection {
+    pageInfo: PageInfo!
+    edges: [FeedEdge]!
+}
+
+input FeedFilter {
+    role: String
+}
+
+input CreateFeedInput {
+    audioID: ID!
+}
+
+input UpdateFeedInput {
+    id: ID!
+    event: FeedEvent!
+}
+
+enum FeedEvent {
+    PLAYED
+    STARED
+    UNSTARED
+    LIKED
+    UNLIKED
+}
+
+type DeleteFeedResult {
+  success: Boolean!
+  id: ID!
+}
+
+extend type Query {
+  feeds(
+    cursor: Cursor
+    filter: AudioFilter
+    limit: Int = 10
+    order: AudioOrder = PUBLISHED_AT_DESC
+  ): FeedConnection!
+}
+
+extend type Mutation {
+  createFeed(input: CreateFeedInput!): Feed!
+  updateFeed(input: UpdateFeedInput!): Feed!
+  deleteFeed(id: ID!): DeleteFeedResult!
+}
