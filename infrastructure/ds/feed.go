@@ -3,6 +3,7 @@ package ds
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 
 	"cloud.google.com/go/datastore"
@@ -97,8 +98,35 @@ func (repo *feedRepository) Find(ctx context.Context, id int64, userID string) (
 	return &feed, err
 }
 
+func (repo *feedRepository) FindByAudio(ctx context.Context, userID string, audioID string) (*entity.Feed, error) {
+	userKey := entity.GetUserKey(userID)
+	audioKey := entity.GetAudioKey(audioID)
+	q := datastore.NewQuery(entity.FeedKind).Ancestor(userKey).KeysOnly().Filter("audio_key =", audioKey).Limit(1)
+
+	keys, err := repo.client.GetAll(context.Background(), q, nil)
+
+	if err != nil {
+		return nil, fmt.Errorf("not found feed keys %w", err)
+	}
+
+	var feed entity.Feed
+
+	if err := repo.client.Get(ctx, keys[0], &feed); err != nil {
+		return nil, fmt.Errorf("not found feed %w", err)
+	}
+
+	feed.ID = keys[0].ID
+
+	return &feed, nil
+}
+
 // Save saves Feeds
 func (repo *feedRepository) Save(ctx context.Context, userID string, feed *entity.Feed) error {
+	if feed.Key != nil {
+		_, err := repo.client.Put(ctx, feed.Key, feed)
+		return err
+	}
+
 	key, err := repo.client.Put(ctx, repo.key(userID), feed)
 	feed.Key = key
 
