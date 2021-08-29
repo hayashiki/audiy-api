@@ -46,6 +46,7 @@ func (r *queryResolver) Feeds(ctx context.Context, cursor *string, filter *entit
 	if *cursor == "" {
 		*cursor = ""
 	}
+
 	var orderStr []string
 	if order == nil {
 		orderStr = []string{"-published_at"}

@@ -67,6 +67,7 @@ func (repo *audioRepository) FindAll(ctx context.Context, filters map[string]int
 	}
 
 	nextCursor, err := it.Cursor()
+	log.Println(nextCursor, err)
 	if err != nil {
 		return entities, "", err
 	}

@@ -9,7 +9,7 @@ import (
 // FeedRepository interface
 type FeedRepository interface {
 	Exists(ctx context.Context, id int64, userID string) bool
-	FindAll(ctx context.Context, userID string, filters map[string]interface{}, cursor string, limit int, sort ...string) ([]*Feed, string, error)
+	FindAll(ctx context.Context, userID string, filters map[string]interface{}, cursor string, limit int, sort ...string) ([]*Feed, string, bool, error)
 	Find(ctx context.Context, id int64, userID string) (*Feed, error)
 	FindByAudio(ctx context.Context, userID string, audioID string) (*Feed, error)
 	Save(ctx context.Context, userID string, feed *Feed) error

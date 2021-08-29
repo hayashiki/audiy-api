@@ -22,7 +22,7 @@ type feedUsecase struct {
 }
 
 func (u *feedUsecase) GetConnection(ctx context.Context, userID string, cursor string, limit int, order []string) (*entity.FeedConnection, error) {
-	feeds, nextCursor, err := u.feedRepo.FindAll(ctx, userID, nil, cursor, limit, order...)
+	feeds, nextCursor, HasMore, err := u.feedRepo.FindAll(ctx, userID, nil, cursor, limit, order...)
 	if err != nil {
 		return nil, err
 	}
@@ -33,10 +33,11 @@ func (u *feedUsecase) GetConnection(ctx context.Context, userID string, cursor s
 			Node:   a,
 		}
 	}
+	log.Printf("GetConnection")
 	return &entity.FeedConnection{
 		PageInfo: &entity.PageInfo{
 			Cursor:  nextCursor,
-			HasMore: len(feeds) != 0,
+			HasMore: HasMore,
 		},
 		Edges: feedEdges,
 	}, nil
