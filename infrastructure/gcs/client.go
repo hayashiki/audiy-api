@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/hayashiki/audiy-api/etc/config"
@@ -27,6 +29,7 @@ type client struct {
 type Client interface {
 	Bucket() string
 	Put(ctx context.Context, objName string, data []byte) error
+	Get(ctx context.Context, objName string) ([]byte, error)
 }
 
 func NewGCSClient(ctx context.Context, bucket string) (Client, error) {
@@ -40,6 +43,42 @@ func NewGCSClient(ctx context.Context, bucket string) (Client, error) {
 		gcsClient: gcsClient,
 		bucket:    bucket,
 	}, nil
+}
+
+// Get Get request to google cloud storage.
+func (c *client) Get(ctx context.Context, objName string) ([]byte, error) {
+	r, err := c.gcsClient.Bucket(c.bucket).Object(objName).NewReader(ctx)
+	defer func() {
+		err := r.Close()
+		if err != nil {
+			fmt.Printf("fail to close: err: %v", err)
+		}
+	}()
+
+	string, err := getFileContentType(r)
+	log.Printf("string %s", string)
+	log.Printf("err %v", err)
+
+	b, err := io.ReadAll(r)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	return b, nil
+}
+
+//GetFileContentType retrieves the content type of files
+func getFileContentType(out io.Reader) (string, error) {
+	buffer := make([]byte, 512)
+
+	_, err := out.Read(buffer)
+	if err != nil {
+		return "", err
+	}
+
+	contentType := http.DetectContentType(buffer)
+
+	return contentType, nil
 }
 
 func (c *client) Put(ctx context.Context, objName string, data []byte) error {
