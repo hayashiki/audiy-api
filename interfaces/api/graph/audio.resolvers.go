@@ -15,11 +15,11 @@ import (
 )
 
 func (r *audioResolver) LikeCount(ctx context.Context, obj *entity.Audio) (int, error) {
-	auth, err := auth2.ForContext(ctx)
-	if err != nil {
-		return 0, err
-	}
-	r.playUsecase.Exists(ctx, auth.ID, obj.ID)
+	//auth, err := auth2.ForContext(ctx)
+	//if err != nil {
+	//	return 0, err
+	//}
+	//r.playUsecase.Exists(ctx, auth.ID, obj.ID)
 
 	return 0, nil
 }

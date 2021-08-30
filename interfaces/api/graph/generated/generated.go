@@ -1195,7 +1195,7 @@ extend type Query {
   feeds(
     cursor: Cursor
     filter: AudioFilter
-    limit: Int = 10
+    limit: Int = 20
     order: AudioOrder = PUBLISHED_AT_DESC
   ): FeedConnection!
 }

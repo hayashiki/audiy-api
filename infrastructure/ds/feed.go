@@ -40,7 +40,7 @@ func (repo *feedRepository) Exists(ctx context.Context, id int64, userID string)
 }
 
 // FindAll finds all Feeds
-func (repo *feedRepository) FindAll(ctx context.Context, userID string, filters map[string]interface{}, cursor string, limit int, sort ...string) ([]*entity.Feed, string, error) {
+func (repo *feedRepository) FindAll(ctx context.Context, userID string, filters map[string]interface{}, cursor string, limit int, sort ...string) ([]*entity.Feed, string, bool, error) {
 	userKey := entity.GetUserKey(userID)
 	query := datastore.NewQuery(entity.FeedKind).Ancestor(userKey)
 	if cursor != "" {
@@ -52,42 +52,50 @@ func (repo *feedRepository) FindAll(ctx context.Context, userID string, filters 
 		query = query.Start(dsCursor)
 	}
 	if limit > 0 {
-		query = query.Limit(limit)
+		query = query.Limit(limit + 1)
 	}
 	for key, val := range filters {
 		log.Println(key, val)
 		query = query.Filter(key+"=", val)
 	}
-	//query = query.Filter("mimetype=", "Feed/mp4")
 
 	for _, order := range sort {
 		query = query.Order(order)
 	}
 	log.Printf("query %+v", query)
 	it := repo.client.Run(ctx, query)
-	entities := make([]*entity.Feed, 0)
+	entities := make([]*entity.Feed, 0, limit)
+	count := 0
+	hasMore := false
+	var nextCursor datastore.Cursor
 	for {
 		entity := &entity.Feed{}
 
 		_, err := it.Next(entity)
-		log.Printf("entity %+v", entity)
 		if errors.Is(err, iterator.Done) {
 			break
 		}
 		if err != nil {
-			return entities, "", err
+			return entities, "", hasMore, err
 		}
+		count++
+		if limit < count {
+			hasMore = true
+			break
+		}
+
 		entity.ID = entity.Key.ID
 		entities = append(entities, entity)
-	}
-	log.Printf("entities %+v", entities)
 
-	nextCursor, err := it.Cursor()
-	if err != nil {
-		return entities, "", err
+		if limit == count {
+			nextCursor, err = it.Cursor()
+			if err != nil {
+				return entities, "", hasMore, err
+			}
+		}
 	}
-
-	return entities, nextCursor.String(), nil
+	log.Printf("entities %+v", len(entities))
+	return entities, nextCursor.String(), hasMore, nil
 }
 
 // Find finds Feed given id
