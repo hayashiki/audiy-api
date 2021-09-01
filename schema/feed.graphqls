@@ -22,10 +22,6 @@ type FeedConnection implements Connection {
     edges: [FeedEdge]!
 }
 
-input FeedFilter {
-    role: String
-}
-
 input CreateFeedInput {
     audioID: ID!
 }
@@ -37,6 +33,7 @@ input UpdateFeedInput {
 
 enum FeedEvent {
     PLAYED
+    UNPLAYED
     STARED
     UNSTARED
     LIKED
@@ -48,10 +45,14 @@ type DeleteFeedResult {
   id: ID!
 }
 
+input FeedFilter {
+    state: FeedEvent
+}
+
 extend type Query {
   feeds(
     cursor: Cursor
-    filter: AudioFilter
+    filter: FeedEvent
     limit: Int = 20
     order: AudioOrder = PUBLISHED_AT_DESC
   ): FeedConnection!

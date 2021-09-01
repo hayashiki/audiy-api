@@ -16,11 +16,13 @@ type Audio struct {
 	Name   string         `json:"name" datastore:"name"`
 	Length int            `json:"length" datastore:"length"`
 	//URL         string         `json:"url" datastore:"url"`
-	Mimetype    string    `json:"mimetype" datastore:"mimetype"`
-	PublishedAt time.Time `json:"published_at" datastore:"published_at"`
-	CreatedAt   time.Time `json:"created_at" datastore:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at" datastore:"updated_at"`
-	PlayedUsers []string  `json:"played_users" datastore:"played_users"`
+	Mimetype     string    `json:"mimetype" datastore:"mimetype"`
+	PublishedAt  time.Time `json:"published_at" datastore:"published_at"`
+	CreatedAt    time.Time `json:"created_at" datastore:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at" datastore:"updated_at"`
+	LikeCount    int       `json:"like_count" datastore:"like_count"`
+	PlayCount    int       `json:"play_count" datastore:"play_count"`
+	CommentCount int       `json:"comment_count" datastore:"comment_count"`
 }
 
 func (r *Audio) GetKey() *datastore.Key {

@@ -76,6 +76,7 @@ func (repo *feedRepository) FindAll(ctx context.Context, userID string, filters 
 			break
 		}
 		if err != nil {
+			log.Printf("err %+v", err)
 			return entities, "", hasMore, err
 		}
 		count++

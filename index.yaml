@@ -8,5 +8,43 @@ indexes:
   ancestor: yes
   properties:
     - name: published_at
+
+- kind: Feed
+  ancestor: yes
+  properties:
+    - name: published_at
       direction: desc
 
+- kind: Feed
+  properties:
+    - name: played
+    - name: published_at
+      direction: desc
+
+- kind: Feed
+  ancestor: yes
+  properties:
+    - name: played
+    - name: published_at
+
+- kind: Feed
+  properties:
+    - name: liked
+    - name: published_at
+      direction: desc
+
+- kind: Feed
+  properties:
+    - name: liked
+    - name: published_at
+
+- kind: Feed
+  properties:
+    - name: stared
+    - name: published_at
+      direction: desc
+
+- kind: Feed
+  properties:
+    - name: stared
+    - name: published_at

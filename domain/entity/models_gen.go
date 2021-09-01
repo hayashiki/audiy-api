@@ -117,7 +117,7 @@ type FeedEdge struct {
 func (FeedEdge) IsEdge() {}
 
 type FeedFilter struct {
-	Role *string `json:"role"`
+	State *FeedEvent `json:"state"`
 }
 
 type PageInfo struct {
@@ -234,6 +234,7 @@ type FeedEvent string
 
 const (
 	FeedEventPlayed   FeedEvent = "PLAYED"
+	FeedEventUnplayed FeedEvent = "UNPLAYED"
 	FeedEventStared   FeedEvent = "STARED"
 	FeedEventUnstared FeedEvent = "UNSTARED"
 	FeedEventLiked    FeedEvent = "LIKED"
@@ -242,6 +243,7 @@ const (
 
 var AllFeedEvent = []FeedEvent{
 	FeedEventPlayed,
+	FeedEventUnplayed,
 	FeedEventStared,
 	FeedEventUnstared,
 	FeedEventLiked,
@@ -250,7 +252,7 @@ var AllFeedEvent = []FeedEvent{
 
 func (e FeedEvent) IsValid() bool {
 	switch e {
-	case FeedEventPlayed, FeedEventStared, FeedEventUnstared, FeedEventLiked, FeedEventUnliked:
+	case FeedEventPlayed, FeedEventUnplayed, FeedEventStared, FeedEventUnstared, FeedEventLiked, FeedEventUnliked:
 		return true
 	}
 	return false

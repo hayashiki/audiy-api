@@ -27,7 +27,12 @@ type userUsecase struct {
 
 func (c *userUsecase) Save(ctx context.Context, input entity.CreateUserInput) (*entity.User, error) {
 	newUser := entity.NewUser(input.ID, input.Email)
-	err := c.userRepo.Save(ctx, newUser)
+	// exists check
+	user, err := c.userRepo.Get(ctx, input.ID)
+	if user != nil {
+		return user, err
+	}
+	err = c.userRepo.Save(ctx, newUser)
 	if err != nil {
 		return nil, err
 	}

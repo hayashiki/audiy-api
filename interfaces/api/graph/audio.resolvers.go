@@ -15,20 +15,6 @@ import (
 	"github.com/hayashiki/audiy-api/interfaces/api/graph/generated"
 )
 
-func (r *audioResolver) LikeCount(ctx context.Context, obj *entity.Audio) (int, error) {
-	//auth, err := auth2.ForContext(ctx)
-	//if err != nil {
-	//	return 0, err
-	//}
-	//r.playUsecase.Exists(ctx, auth.ID, obj.ID)
-
-	return 0, nil
-}
-
-func (r *audioResolver) PlayCount(ctx context.Context, obj *entity.Audio) (int, error) {
-	return 0, nil
-}
-
 func (r *audioResolver) URL(ctx context.Context, obj *entity.Audio) (string, error) {
 	filePath := gcs.StorageObjectFilePath(obj.ID, "m4a")
 	// TODO: read from config
