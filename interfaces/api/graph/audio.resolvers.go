@@ -5,6 +5,7 @@ package graph
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 
@@ -32,7 +33,10 @@ func (r *audioResolver) URL(ctx context.Context, obj *entity.Audio) (string, err
 	filePath := gcs.StorageObjectFilePath(obj.ID, "m4a")
 	// TODO: read from config
 	bucketName := os.Getenv("GCS_INPUT_AUDIO_BUCKET")
-	return gcs.GetGCSSignedURL(context.Background(), bucketName, filePath, "GET", "")
+
+	return fmt.Sprintf("https://storage.cloud.google.com/%s/%s?authuser=", bucketName, filePath), nil
+	// SignedURLをやめる
+	//return gcs.GetGCSSignedURL(context.Background(), bucketName, filePath, "GET", "")
 }
 
 func (r *audioResolver) Played(ctx context.Context, obj *entity.Audio) (bool, error) {

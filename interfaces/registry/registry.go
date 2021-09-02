@@ -79,7 +79,6 @@ func (s *registry) NewHandler() http.Handler {
 	rootHandler := handler.NewRootHandler()
 
 	apiHandler := NewAPIHandler(slackSvc, gcsClient, audioRepo, feedRepo, userRepo)
-
 	// router
 	router := router.NewRouter(rootHandler, authenticator.AuthMiddleware(queryHandler), authenticator.AuthMiddleware(queryHandler), apiHandler)
 
