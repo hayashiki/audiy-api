@@ -4,6 +4,7 @@ type Audio implements Node {
     length: Int!
     likeCount: Int!
     playCount: Int!
+    commentCount: Int!
     url: String!
     mimetype: String!
     played: Boolean!

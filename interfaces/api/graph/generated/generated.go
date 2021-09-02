@@ -52,19 +52,20 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Audio struct {
-		CreatedAt   func(childComplexity int) int
-		ID          func(childComplexity int) int
-		Length      func(childComplexity int) int
-		LikeCount   func(childComplexity int) int
-		Liked       func(childComplexity int) int
-		Mimetype    func(childComplexity int) int
-		Name        func(childComplexity int) int
-		PlayCount   func(childComplexity int) int
-		Played      func(childComplexity int) int
-		PublishedAt func(childComplexity int) int
-		Stared      func(childComplexity int) int
-		URL         func(childComplexity int) int
-		UpdatedAt   func(childComplexity int) int
+		CommentCount func(childComplexity int) int
+		CreatedAt    func(childComplexity int) int
+		ID           func(childComplexity int) int
+		Length       func(childComplexity int) int
+		LikeCount    func(childComplexity int) int
+		Liked        func(childComplexity int) int
+		Mimetype     func(childComplexity int) int
+		Name         func(childComplexity int) int
+		PlayCount    func(childComplexity int) int
+		Played       func(childComplexity int) int
+		PublishedAt  func(childComplexity int) int
+		Stared       func(childComplexity int) int
+		URL          func(childComplexity int) int
+		UpdatedAt    func(childComplexity int) int
 	}
 
 	AudioConnection struct {
@@ -176,7 +177,7 @@ type ComplexityRoot struct {
 		Audio    func(childComplexity int, id string) int
 		Audios   func(childComplexity int, cursor *string, filter *entity.AudioFilter, limit *int, order *entity.AudioOrder) int
 		Comments func(childComplexity int, audioID string, cursor *string, limit *int, order []string) int
-		Feeds    func(childComplexity int, cursor *string, filter *entity.AudioFilter, limit *int, order *entity.AudioOrder) int
+		Feeds    func(childComplexity int, cursor *string, filter *entity.FeedEvent, limit *int, order *entity.AudioOrder) int
 		Version  func(childComplexity int) int
 	}
 
@@ -202,8 +203,6 @@ type ComplexityRoot struct {
 }
 
 type AudioResolver interface {
-	LikeCount(ctx context.Context, obj *entity.Audio) (int, error)
-	PlayCount(ctx context.Context, obj *entity.Audio) (int, error)
 	URL(ctx context.Context, obj *entity.Audio) (string, error)
 
 	Played(ctx context.Context, obj *entity.Audio) (bool, error)
@@ -247,7 +246,7 @@ type QueryResolver interface {
 	Comments(ctx context.Context, audioID string, cursor *string, limit *int, order []string) (*entity.CommentConnection, error)
 	Audio(ctx context.Context, id string) (*entity.Audio, error)
 	Audios(ctx context.Context, cursor *string, filter *entity.AudioFilter, limit *int, order *entity.AudioOrder) (*entity.AudioConnection, error)
-	Feeds(ctx context.Context, cursor *string, filter *entity.AudioFilter, limit *int, order *entity.AudioOrder) (*entity.FeedConnection, error)
+	Feeds(ctx context.Context, cursor *string, filter *entity.FeedEvent, limit *int, order *entity.AudioOrder) (*entity.FeedConnection, error)
 }
 type StarResolver interface {
 	User(ctx context.Context, obj *entity.Star) (*entity.User, error)
@@ -268,6 +267,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "Audio.commentCount":
+		if e.complexity.Audio.CommentCount == nil {
+			break
+		}
+
+		return e.complexity.Audio.CommentCount(childComplexity), true
 
 	case "Audio.createdAt":
 		if e.complexity.Audio.CreatedAt == nil {
@@ -891,7 +897,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Feeds(childComplexity, args["cursor"].(*string), args["filter"].(*entity.AudioFilter), args["limit"].(*int), args["order"].(*entity.AudioOrder)), true
+		return e.complexity.Query.Feeds(childComplexity, args["cursor"].(*string), args["filter"].(*entity.FeedEvent), args["limit"].(*int), args["order"].(*entity.AudioOrder)), true
 
 	case "Query.version":
 		if e.complexity.Query.Version == nil {
@@ -1047,6 +1053,7 @@ var sources = []*ast.Source{
     length: Int!
     likeCount: Int!
     playCount: Int!
+    commentCount: Int!
     url: String!
     mimetype: String!
     played: Boolean!
@@ -1165,10 +1172,6 @@ type FeedConnection implements Connection {
     edges: [FeedEdge]!
 }
 
-input FeedFilter {
-    role: String
-}
-
 input CreateFeedInput {
     audioID: ID!
 }
@@ -1180,6 +1183,7 @@ input UpdateFeedInput {
 
 enum FeedEvent {
     PLAYED
+    UNPLAYED
     STARED
     UNSTARED
     LIKED
@@ -1191,10 +1195,14 @@ type DeleteFeedResult {
   id: ID!
 }
 
+input FeedFilter {
+    state: FeedEvent
+}
+
 extend type Query {
   feeds(
     cursor: Cursor
-    filter: AudioFilter
+    filter: FeedEvent
     limit: Int = 20
     order: AudioOrder = PUBLISHED_AT_DESC
   ): FeedConnection!
@@ -1666,10 +1674,10 @@ func (ec *executionContext) field_Query_feeds_args(ctx context.Context, rawArgs 
 		}
 	}
 	args["cursor"] = arg0
-	var arg1 *entity.AudioFilter
+	var arg1 *entity.FeedEvent
 	if tmp, ok := rawArgs["filter"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
-		arg1, err = ec.unmarshalOAudioFilter2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioFilter(ctx, tmp)
+		arg1, err = ec.unmarshalOFeedEvent2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐFeedEvent(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1850,14 +1858,14 @@ func (ec *executionContext) _Audio_likeCount(ctx context.Context, field graphql.
 		Object:     "Audio",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Audio().LikeCount(rctx, obj)
+		return obj.LikeCount, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1885,14 +1893,49 @@ func (ec *executionContext) _Audio_playCount(ctx context.Context, field graphql.
 		Object:     "Audio",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Audio().PlayCount(rctx, obj)
+		return obj.PlayCount, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Audio_commentCount(ctx context.Context, field graphql.CollectedField, obj *entity.Audio) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Audio",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CommentCount, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4539,7 +4582,7 @@ func (ec *executionContext) _Query_feeds(ctx context.Context, field graphql.Coll
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Feeds(rctx, args["cursor"].(*string), args["filter"].(*entity.AudioFilter), args["limit"].(*int), args["order"].(*entity.AudioOrder))
+		return ec.resolvers.Query().Feeds(rctx, args["cursor"].(*string), args["filter"].(*entity.FeedEvent), args["limit"].(*int), args["order"].(*entity.AudioOrder))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6321,11 +6364,11 @@ func (ec *executionContext) unmarshalInputFeedFilter(ctx context.Context, obj in
 
 	for k, v := range asMap {
 		switch k {
-		case "role":
+		case "state":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("role"))
-			it.Role, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
+			it.State, err = ec.unmarshalOFeedEvent2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐFeedEvent(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -6599,33 +6642,20 @@ func (ec *executionContext) _Audio(ctx context.Context, sel ast.SelectionSet, ob
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "likeCount":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Audio_likeCount(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
+			out.Values[i] = ec._Audio_likeCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "playCount":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Audio_playCount(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
+			out.Values[i] = ec._Audio_playCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "commentCount":
+			out.Values[i] = ec._Audio_commentCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "url":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -8705,6 +8735,22 @@ func (ec *executionContext) marshalOFeedEdge2ᚖgithubᚗcomᚋhayashikiᚋaudiy
 		return graphql.Null
 	}
 	return ec._FeedEdge(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOFeedEvent2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐFeedEvent(ctx context.Context, v interface{}) (*entity.FeedEvent, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(entity.FeedEvent)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOFeedEvent2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐFeedEvent(ctx context.Context, sel ast.SelectionSet, v *entity.FeedEvent) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) unmarshalOFloat2ᚖfloat64(ctx context.Context, v interface{}) (*float64, error) {

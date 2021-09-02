@@ -37,7 +37,7 @@ func (r *mutationResolver) DeleteFeed(ctx context.Context, id string) (*entity.D
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *queryResolver) Feeds(ctx context.Context, cursor *string, filter *entity.AudioFilter, limit *int, order *entity.AudioOrder) (*entity.FeedConnection, error) {
+func (r *queryResolver) Feeds(ctx context.Context, cursor *string, filter *entity.FeedEvent, limit *int, order *entity.AudioOrder) (*entity.FeedConnection, error) {
 	auth, err := auth2.ForContext(ctx)
 	if err != nil {
 		return nil, err
@@ -55,7 +55,7 @@ func (r *queryResolver) Feeds(ctx context.Context, cursor *string, filter *entit
 	} else if order.String() == entity.AudioOrderPublishedAtDesc.String() {
 		orderStr = []string{"-published_at"}
 	}
-	return r.feedUseCase.GetConnection(ctx, auth.ID, *cursor, *limit, orderStr)
+	return r.feedUseCase.GetConnection(ctx, auth.ID, *cursor, *limit, filter, orderStr)
 }
 
 // Feed returns generated.FeedResolver implementation.

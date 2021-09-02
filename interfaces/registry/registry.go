@@ -70,7 +70,7 @@ func (s *registry) NewHandler() http.Handler {
 	userUsecase := usecase.NewUserUsecase(userRepo, audioRepo, feedRepo)
 	likeUsecase := usecase.NewLikeUsecase(likeRepo)
 	starUsecase := usecase.NewStarUsecase(starRepo)
-	feedUsecase := usecase.NewFeedUsecase(feedRepo)
+	feedUsecase := usecase.NewFeedUsecase(feedRepo, audioRepo)
 
 	// handler
 	resolver := graph.NewResolver(userUsecase, audioUsecase, playUsecase, starUsecase, likeUsecase, commentUsecase, feedUsecase)
