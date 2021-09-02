@@ -37,6 +37,9 @@ func (repo *userRepository) Exists(ctx context.Context, userKey *datastore.Key) 
 func (repo *userRepository) Get(ctx context.Context, userID string) (*entity.User, error) {
 	var user entity.User
 	err := repo.client.Get(ctx, datastore.NameKey(entity.UserKind, userID, nil), &user)
+	if err != nil {
+		return nil, err
+	}
 	user.ID = user.Key.Name
 	return &user, err
 }
