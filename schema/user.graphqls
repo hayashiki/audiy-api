@@ -9,4 +9,5 @@ input CreateUserInput {
     id: ID!
     email: String!
     name: String!
+    photoURL: String!
 }

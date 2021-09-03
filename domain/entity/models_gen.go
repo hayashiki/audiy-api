@@ -79,9 +79,10 @@ type CreatePlayPayload struct {
 }
 
 type CreateUserInput struct {
-	ID    string `json:"id"`
-	Email string `json:"email"`
-	Name  string `json:"name"`
+	ID       string `json:"id"`
+	Email    string `json:"email"`
+	Name     string `json:"name"`
+	PhotoURL string `json:"photoURL"`
 }
 
 type DeleteCommentResult struct {

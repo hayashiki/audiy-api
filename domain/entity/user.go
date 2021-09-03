@@ -20,10 +20,12 @@ type User struct {
 
 func (User) IsNode() {}
 
-func NewUser(id string, email string) *User {
+func NewUser(id string, email string, name string, photoURL string) *User {
 	return &User{
 		ID:        id,
 		Email:     email,
+		Name:      name,
+		PhotoURL:  photoURL,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
