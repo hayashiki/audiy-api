@@ -1339,6 +1339,7 @@ input CreateUserInput {
     id: ID!
     email: String!
     name: String!
+    photoURL: String!
 }
 `, BuiltIn: false},
 	{Name: "schema/version.graphqls", Input: `type Version {
@@ -6309,6 +6310,14 @@ func (ec *executionContext) unmarshalInputCreateUserInput(ctx context.Context, o
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
 			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "photoURL":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("photoURL"))
+			it.PhotoURL, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
