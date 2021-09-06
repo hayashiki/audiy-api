@@ -1188,6 +1188,7 @@ enum FeedEvent {
     UNSTARED
     LIKED
     UNLIKED
+    ALL
 }
 
 type DeleteFeedResult {

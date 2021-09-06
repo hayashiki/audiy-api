@@ -240,6 +240,7 @@ const (
 	FeedEventUnstared FeedEvent = "UNSTARED"
 	FeedEventLiked    FeedEvent = "LIKED"
 	FeedEventUnliked  FeedEvent = "UNLIKED"
+	FeedEventAll      FeedEvent = "ALL"
 )
 
 var AllFeedEvent = []FeedEvent{
@@ -249,11 +250,12 @@ var AllFeedEvent = []FeedEvent{
 	FeedEventUnstared,
 	FeedEventLiked,
 	FeedEventUnliked,
+	FeedEventAll,
 }
 
 func (e FeedEvent) IsValid() bool {
 	switch e {
-	case FeedEventPlayed, FeedEventUnplayed, FeedEventStared, FeedEventUnstared, FeedEventLiked, FeedEventUnliked:
+	case FeedEventPlayed, FeedEventUnplayed, FeedEventStared, FeedEventUnstared, FeedEventLiked, FeedEventUnliked, FeedEventAll:
 		return true
 	}
 	return false
