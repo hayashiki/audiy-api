@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"log"
 
 	"github.com/hayashiki/audiy-api/domain/entity"
 )
@@ -11,8 +12,8 @@ type CommentUsecase interface {
 	GetConnection(ctx context.Context, userID string, audioID string, cursor string, limit int, order []string) (*entity.CommentConnection, error)
 }
 
-func NewCommentUsecase(commentRepo entity.CommentRepository) CommentUsecase {
-	return &commentUsecase{commentRepo: commentRepo}
+func NewCommentUsecase(commentRepo entity.CommentRepository, audioRepo entity.AudioRepository) CommentUsecase {
+	return &commentUsecase{commentRepo: commentRepo, audioRepo: audioRepo}
 }
 
 type commentUsecase struct {
@@ -26,6 +27,9 @@ func (c *commentUsecase) Save(ctx context.Context, userID string, input entity.C
 	if err != nil {
 		return nil, err
 	}
+
+	log.Println(input.AudioID)
+	log.Println(c.audioRepo)
 
 	audio, err := c.audioRepo.Find(ctx, input.AudioID)
 	if err != nil {

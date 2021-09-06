@@ -66,7 +66,7 @@ func (s *registry) NewHandler() http.Handler {
 	// usecase
 	audioUsecase := usecase.NewAudioUsecase(audioRepo)
 	playUsecase := usecase.NewPlayUsecase(playRepo)
-	commentUsecase := usecase.NewCommentUsecase(commentRepo)
+	commentUsecase := usecase.NewCommentUsecase(commentRepo, audioRepo)
 	userUsecase := usecase.NewUserUsecase(userRepo, audioRepo, feedRepo)
 	likeUsecase := usecase.NewLikeUsecase(likeRepo)
 	starUsecase := usecase.NewStarUsecase(starRepo)
