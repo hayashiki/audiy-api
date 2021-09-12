@@ -53,6 +53,8 @@ func (u *feedUsecase) GetConnection(ctx context.Context, userID string, cursor s
 			filters = map[string]interface{}{
 				"played": false,
 			}
+		case entity.FeedEventAll:
+			filters = map[string]interface{}{}
 		default:
 			filters = map[string]interface{}{}
 		}
