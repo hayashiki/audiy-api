@@ -16,10 +16,6 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input entity.CreateUs
 	return r.userUsecase.Save(ctx, input)
 }
 
-func (r *mutationResolver) CreateAudio(ctx context.Context, input entity.AudiosInput) (*entity.Audio, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
 func (r *mutationResolver) CreatePlay(ctx context.Context, input entity.UpdateAudioInput) (*entity.Play, error) {
 	auth, err := auth2.ForContext(ctx)
 	if err != nil {

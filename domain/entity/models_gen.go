@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+
+	"github.com/99designs/gqlgen/graphql"
 )
 
 type Connection interface {
@@ -62,6 +64,11 @@ func (CommentEdge) IsEdge() {}
 type CommentOrder struct {
 	Field     *CommentOrderField `json:"field"`
 	Direction *SortDirection     `json:"direction"`
+}
+
+type CreateAudioInput struct {
+	Description *string        `json:"description"`
+	File        graphql.Upload `json:"file"`
 }
 
 type CreateCommentInput struct {
@@ -121,6 +128,12 @@ type FeedFilter struct {
 	State *FeedEvent `json:"state"`
 }
 
+type File struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	URL  string `json:"url"`
+}
+
 type PageInfo struct {
 	Cursor    string `json:"cursor"`
 	TotalPage int    `json:"totalPage"`
@@ -144,6 +157,15 @@ type UpdateCommentInput struct {
 type UpdateFeedInput struct {
 	ID    string    `json:"id"`
 	Event FeedEvent `json:"event"`
+}
+
+type UploadAudioFileInput struct {
+	File graphql.Upload `json:"file"`
+}
+
+type UploadFileInput struct {
+	ID   int            `json:"id"`
+	File graphql.Upload `json:"file"`
 }
 
 type Version struct {

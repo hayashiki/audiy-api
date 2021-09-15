@@ -51,6 +51,12 @@ func (r *audioResolver) Stared(ctx context.Context, obj *entity.Audio) (bool, er
 	return r.starUsecase.Exists(ctx, auth.ID, obj.ID)
 }
 
+func (r *mutationResolver) CreateAudio(ctx context.Context, input *entity.CreateAudioInput) (*entity.Audio, error) {
+	log.Println("CreateAudio")
+	log.Println(input)
+	return r.audioUsecase.CreateAudio(ctx, input)
+}
+
 func (r *queryResolver) Audio(ctx context.Context, id string) (*entity.Audio, error) {
 	return r.audioUsecase.Get(ctx, id)
 }

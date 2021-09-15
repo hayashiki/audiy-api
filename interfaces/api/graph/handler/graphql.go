@@ -25,6 +25,7 @@ func NewQueryHandler(
 	))
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.POST{})
+	srv.AddTransport(transport.MultipartForm{})
 	srv.SetQueryCache(lru.New(1000))
 	srv.Use(extension.Introspection{})
 	srv.Use(extension.AutomaticPersistedQuery{

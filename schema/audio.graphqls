@@ -55,3 +55,34 @@ extend type Query {
         order: AudioOrder = PUBLISHED_AT_DESC
     ): AudioConnection!
 }
+
+input CreateAudioInput {
+#    id: ID!
+#    name: String!
+#    url: String!
+#    mimetype: String!
+#    publishedAt: Time!
+    description: String
+    file: Upload!
+}
+
+input UploadAudioFileInput {
+    file: Upload!
+}
+
+extend type Mutation {
+    createAudio(input: CreateAudioInput): Audio!
+}
+
+scalar Upload
+
+type File {
+    id: String!
+    name: String!
+    url: String!
+}
+
+input UploadFileInput {
+    id: Int!
+    file: Upload!
+}

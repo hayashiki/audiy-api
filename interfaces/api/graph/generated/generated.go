@@ -135,6 +135,12 @@ type ComplexityRoot struct {
 		Node   func(childComplexity int) int
 	}
 
+	File struct {
+		ID   func(childComplexity int) int
+		Name func(childComplexity int) int
+		URL  func(childComplexity int) int
+	}
+
 	Like struct {
 		Audio     func(childComplexity int) int
 		CreatedAt func(childComplexity int) int
@@ -144,7 +150,7 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CreateAudio   func(childComplexity int, input entity.AudiosInput) int
+		CreateAudio   func(childComplexity int, input *entity.CreateAudioInput) int
 		CreateComment func(childComplexity int, input entity.CreateCommentInput) int
 		CreateFeed    func(childComplexity int, input entity.CreateFeedInput) int
 		CreateLike    func(childComplexity int, input entity.UpdateAudioInput) int
@@ -224,11 +230,11 @@ type LikeResolver interface {
 }
 type MutationResolver interface {
 	CreateUser(ctx context.Context, input entity.CreateUserInput) (*entity.User, error)
-	CreateAudio(ctx context.Context, input entity.AudiosInput) (*entity.Audio, error)
 	CreatePlay(ctx context.Context, input entity.UpdateAudioInput) (*entity.Play, error)
 	CreateComment(ctx context.Context, input entity.CreateCommentInput) (*entity.Comment, error)
 	UpdateComment(ctx context.Context, input entity.UpdateCommentInput) (*entity.Comment, error)
 	DeleteComment(ctx context.Context, id string) (*entity.DeleteCommentResult, error)
+	CreateAudio(ctx context.Context, input *entity.CreateAudioInput) (*entity.Audio, error)
 	CreateFeed(ctx context.Context, input entity.CreateFeedInput) (*entity.Feed, error)
 	UpdateFeed(ctx context.Context, input entity.UpdateFeedInput) (*entity.Feed, error)
 	DeleteFeed(ctx context.Context, id string) (*entity.DeleteFeedResult, error)
@@ -604,6 +610,27 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.FeedEdge.Node(childComplexity), true
 
+	case "File.id":
+		if e.complexity.File.ID == nil {
+			break
+		}
+
+		return e.complexity.File.ID(childComplexity), true
+
+	case "File.name":
+		if e.complexity.File.Name == nil {
+			break
+		}
+
+		return e.complexity.File.Name(childComplexity), true
+
+	case "File.url":
+		if e.complexity.File.URL == nil {
+			break
+		}
+
+		return e.complexity.File.URL(childComplexity), true
+
 	case "Like.audio":
 		if e.complexity.Like.Audio == nil {
 			break
@@ -649,7 +676,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateAudio(childComplexity, args["input"].(entity.AudiosInput)), true
+		return e.complexity.Mutation.CreateAudio(childComplexity, args["input"].(*entity.CreateAudioInput)), true
 
 	case "Mutation.createComment":
 		if e.complexity.Mutation.CreateComment == nil {
@@ -1104,6 +1131,37 @@ extend type Query {
         order: AudioOrder = PUBLISHED_AT_DESC
     ): AudioConnection!
 }
+
+input CreateAudioInput {
+#    id: ID!
+#    name: String!
+#    url: String!
+#    mimetype: String!
+#    publishedAt: Time!
+    description: String
+    file: Upload!
+}
+
+input UploadAudioFileInput {
+    file: Upload!
+}
+
+extend type Mutation {
+    createAudio(input: CreateAudioInput): Audio!
+}
+
+scalar Upload
+
+type File {
+    id: String!
+    name: String!
+    url: String!
+}
+
+input UploadFileInput {
+    id: Int!
+    file: Upload!
+}
 `, BuiltIn: false},
 	{Name: "schema/comment.graphqls", Input: `### Comment ###
 type Comment implements Node {
@@ -1237,7 +1295,6 @@ scalar Cursor
 `, BuiltIn: false},
 	{Name: "schema/mutation.graphqls", Input: `type Mutation {
     createUser(input: CreateUserInput!): User
-    createAudio(input: AudiosInput!): Audio
 
     createPlay(input: UpdateAudioInput!): Play
 
@@ -1358,10 +1415,10 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 func (ec *executionContext) field_Mutation_createAudio_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 entity.AudiosInput
+	var arg0 *entity.CreateAudioInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNAudiosInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudiosInput(ctx, tmp)
+		arg0, err = ec.unmarshalOCreateAudioInput2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCreateAudioInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3421,6 +3478,111 @@ func (ec *executionContext) _FeedEdge_node(ctx context.Context, field graphql.Co
 	return ec.marshalNFeed2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐFeed(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _File_id(ctx context.Context, field graphql.CollectedField, obj *entity.File) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "File",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _File_name(ctx context.Context, field graphql.CollectedField, obj *entity.File) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "File",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _File_url(ctx context.Context, field graphql.CollectedField, obj *entity.File) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "File",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.URL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Like_id(ctx context.Context, field graphql.CollectedField, obj *entity.Like) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3635,45 +3797,6 @@ func (ec *executionContext) _Mutation_createUser(ctx context.Context, field grap
 	return ec.marshalOUser2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐUser(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_createAudio(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_createAudio_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateAudio(rctx, args["input"].(entity.AudiosInput))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*entity.Audio)
-	fc.Result = res
-	return ec.marshalOAudio2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudio(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Mutation_createPlay(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3837,6 +3960,48 @@ func (ec *executionContext) _Mutation_deleteComment(ctx context.Context, field g
 	res := resTmp.(*entity.DeleteCommentResult)
 	fc.Result = res
 	return ec.marshalNDeleteCommentResult2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐDeleteCommentResult(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_createAudio(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_createAudio_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateAudio(rctx, args["input"].(*entity.CreateAudioInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*entity.Audio)
+	fc.Result = res
+	return ec.marshalNAudio2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudio(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createFeed(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -6236,6 +6401,34 @@ func (ec *executionContext) unmarshalInputCommentOrder(ctx context.Context, obj 
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputCreateAudioInput(ctx context.Context, obj interface{}) (entity.CreateAudioInput, error) {
+	var it entity.CreateAudioInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "description":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			it.Description, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "file":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("file"))
+			it.File, err = ec.unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputCreateCommentInput(ctx context.Context, obj interface{}) (entity.CreateCommentInput, error) {
 	var it entity.CreateCommentInput
 	var asMap = obj.(map[string]interface{})
@@ -6490,6 +6683,54 @@ func (ec *executionContext) unmarshalInputUpdateFeedInput(ctx context.Context, o
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("event"))
 			it.Event, err = ec.unmarshalNFeedEvent2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐFeedEvent(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUploadAudioFileInput(ctx context.Context, obj interface{}) (entity.UploadAudioFileInput, error) {
+	var it entity.UploadAudioFileInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "file":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("file"))
+			it.File, err = ec.unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUploadFileInput(ctx context.Context, obj interface{}) (entity.UploadFileInput, error) {
+	var it entity.UploadFileInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "id":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			it.ID, err = ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "file":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("file"))
+			it.File, err = ec.unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -7198,6 +7439,43 @@ func (ec *executionContext) _FeedEdge(ctx context.Context, sel ast.SelectionSet,
 	return out
 }
 
+var fileImplementors = []string{"File"}
+
+func (ec *executionContext) _File(ctx context.Context, sel ast.SelectionSet, obj *entity.File) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, fileImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("File")
+		case "id":
+			out.Values[i] = ec._File_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "name":
+			out.Values[i] = ec._File_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "url":
+			out.Values[i] = ec._File_url(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var likeImplementors = []string{"Like", "Node"}
 
 func (ec *executionContext) _Like(ctx context.Context, sel ast.SelectionSet, obj *entity.Like) graphql.Marshaler {
@@ -7280,8 +7558,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = graphql.MarshalString("Mutation")
 		case "createUser":
 			out.Values[i] = ec._Mutation_createUser(ctx, field)
-		case "createAudio":
-			out.Values[i] = ec._Mutation_createAudio(ctx, field)
 		case "createPlay":
 			out.Values[i] = ec._Mutation_createPlay(ctx, field)
 		case "createComment":
@@ -7296,6 +7572,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "deleteComment":
 			out.Values[i] = ec._Mutation_deleteComment(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "createAudio":
+			out.Values[i] = ec._Mutation_createAudio(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -7991,11 +8272,6 @@ func (ec *executionContext) marshalNAudioOrder2githubᚗcomᚋhayashikiᚋaudiy�
 	return v
 }
 
-func (ec *executionContext) unmarshalNAudiosInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudiosInput(ctx context.Context, v interface{}) (entity.AudiosInput, error) {
-	res, err := ec.unmarshalInputAudiosInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -8317,6 +8593,21 @@ func (ec *executionContext) unmarshalNUpdateCommentInput2githubᚗcomᚋhayashik
 func (ec *executionContext) unmarshalNUpdateFeedInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐUpdateFeedInput(ctx context.Context, v interface{}) (entity.UpdateFeedInput, error) {
 	res, err := ec.unmarshalInputUpdateFeedInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx context.Context, v interface{}) (graphql.Upload, error) {
+	res, err := graphql.UnmarshalUpload(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx context.Context, sel ast.SelectionSet, v graphql.Upload) graphql.Marshaler {
+	res := graphql.MarshalUpload(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
 }
 
 func (ec *executionContext) marshalNUser2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐUser(ctx context.Context, sel ast.SelectionSet, v entity.User) graphql.Marshaler {
@@ -8723,6 +9014,14 @@ func (ec *executionContext) marshalOCommentOrderField2ᚖgithubᚗcomᚋhayashik
 		return graphql.Null
 	}
 	return v
+}
+
+func (ec *executionContext) unmarshalOCreateAudioInput2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCreateAudioInput(ctx context.Context, v interface{}) (*entity.CreateAudioInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputCreateAudioInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalOCursor2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
