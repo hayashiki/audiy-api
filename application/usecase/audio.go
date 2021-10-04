@@ -1,7 +1,14 @@
 package usecase
 
 import (
+	"bytes"
 	"context"
+	"fmt"
+	"io"
+	"log"
+	"time"
+
+	"github.com/hayashiki/audiy-api/infrastructure/gcs"
 
 	"github.com/hayashiki/audiy-api/domain/entity"
 )
@@ -9,14 +16,64 @@ import (
 type AudioUsecase interface {
 	GetConnection(ctx context.Context, cursor string, limit int, order []string) (*entity.AudioConnection, error)
 	Get(ctx context.Context, id string) (*entity.Audio, error)
+	CreateAudio(ctx context.Context, input *entity.CreateAudioInput) (*entity.Audio, error)
 }
 
-func NewAudioUsecase(audioRepo entity.AudioRepository) AudioUsecase {
-	return &audioUsecase{audioRepo: audioRepo}
+func NewAudioUsecase(
+	gcsSvc gcs.Client,
+	audioRepo entity.AudioRepository,
+	feedRepo entity.FeedRepository,
+	userRepo entity.UserRepository,
+) AudioUsecase {
+	return &audioUsecase{
+		gcsSvc:    gcsSvc,
+		audioRepo: audioRepo,
+		feedRepo:  feedRepo,
+		userRepo:  userRepo,
+	}
 }
 
 type audioUsecase struct {
+	gcsSvc    gcs.Client
 	audioRepo entity.AudioRepository
+	feedRepo  entity.FeedRepository
+	userRepo  entity.UserRepository
+}
+
+func (u *audioUsecase) CreateAudio(ctx context.Context, input *entity.CreateAudioInput) (*entity.Audio, error) {
+	genID := "TESTID"
+	log.Println("description", input.Description)
+	b := bytes.Buffer{}
+	if _, err := io.Copy(&b, input.File.File); err != nil {
+		return nil, err
+	}
+	if err := u.gcsSvc.Put(ctx, genID, b.Bytes()); err != nil {
+		return nil, err
+	}
+
+	// 一旦テスト的にここでとめる
+	return nil, nil
+
+	newAudio := entity.NewAudio(genID, input.File.Filename, int(100), "dummy", input.File.ContentType, time.Now())
+
+	err := u.audioRepo.Save(ctx, newAudio)
+	log.Printf("newAudio %+v", newAudio.GetKey())
+	if err != nil {
+		return nil, fmt.Errorf("fail to create radios record err: %w", err)
+	}
+
+	users, _ := u.userRepo.GetAll(ctx)
+	feeds := make([]*entity.Feed, len(users))
+	userIDs := make([]string, len(users))
+	newFeed := entity.NewFeed(newAudio.Key.Name, newAudio.PublishedAt)
+	newFeed.PublishedAt = newAudio.PublishedAt
+
+	for i, u := range users {
+		userIDs[i] = u.ID
+		feeds[i] = newFeed
+	}
+	err = u.feedRepo.SaveAll(ctx, userIDs, feeds)
+	return newAudio, err
 }
 
 func (u *audioUsecase) GetConnection(ctx context.Context, cursor string, limit int, order []string) (*entity.AudioConnection, error) {

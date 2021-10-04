@@ -1,6 +1,7 @@
 package gcs
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"fmt"
@@ -85,7 +86,7 @@ func (c *client) Put(ctx context.Context, objName string, data []byte) error {
 	w := c.gcsClient.Bucket(c.bucket).Object(objName).NewWriter(ctx)
 	defer w.Close()
 
-	if _, err := w.Write(data); err != nil {
+	if _, err := io.Copy(w, bytes.NewReader(data)); err != nil {
 		return err
 	}
 

@@ -64,7 +64,7 @@ func (s *registry) NewHandler() http.Handler {
 	authenticator := middleware.NewAuthenticator()
 
 	// usecase
-	audioUsecase := usecase.NewAudioUsecase(audioRepo)
+	audioUsecase := usecase.NewAudioUsecase(gcsClient, audioRepo, feedRepo, userRepo)
 	playUsecase := usecase.NewPlayUsecase(playRepo)
 	commentUsecase := usecase.NewCommentUsecase(commentRepo, audioRepo)
 	userUsecase := usecase.NewUserUsecase(userRepo, audioRepo, feedRepo)
