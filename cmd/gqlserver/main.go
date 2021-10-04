@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/hayashiki/audiy-api/etc/config"
+
 	"contrib.go.opencensus.io/exporter/stackdriver/propagation"
 	"go.opencensus.io/plugin/ochttp"
 
@@ -29,7 +31,7 @@ func main() {
 
 	// Create and register a OpenCensus Stackdriver Trace exporter.
 	exporter, err := stackdriver.NewExporter(stackdriver.Options{
-		ProjectID: os.Getenv("GCP_PROJECT"),
+		ProjectID: config.GetProject(),
 	})
 	if err != nil {
 		log.Fatal(err)
