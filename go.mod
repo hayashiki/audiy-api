@@ -7,6 +7,7 @@ require (
 	cloud.google.com/go/datastore v1.5.0
 	cloud.google.com/go/storage v1.10.0
 	github.com/99designs/gqlgen v0.13.0
+	github.com/aereal/gqlgen-tracer-opencensus v0.0.0-20200421081317-9c381aa32808
 	github.com/gorilla/mux v1.6.1
 	github.com/hayashiki/audiy-importer v0.0.0-20210814130235-0363ec63f6a9
 	github.com/kelseyhightower/envconfig v1.4.0
