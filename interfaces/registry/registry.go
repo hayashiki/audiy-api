@@ -6,6 +6,9 @@ import (
 	"log"
 	"net/http"
 
+	"contrib.go.opencensus.io/exporter/stackdriver/propagation"
+	"go.opencensus.io/plugin/ochttp"
+
 	"github.com/hayashiki/audiy-api/domain/entity"
 
 	importer "github.com/hayashiki/audiy-importer"
@@ -76,7 +79,17 @@ func (s *registry) NewHandler() http.Handler {
 	resolver := graph.NewResolver(userUsecase, audioUsecase, playUsecase, starUsecase, likeUsecase, commentUsecase, feedUsecase)
 
 	queryHandler := handler.NewQueryHandler(resolver)
+
+	queryHandler = &ochttp.Handler{
+		Handler:     queryHandler,
+		Propagation: &propagation.HTTPFormat{},
+	}
+
 	rootHandler := handler.NewRootHandler()
+	rootHandler = &ochttp.Handler{
+		Handler:     rootHandler,
+		Propagation: &propagation.HTTPFormat{},
+	}
 
 	apiHandler := NewAPIHandler(slackSvc, gcsClient, audioRepo, feedRepo, userRepo)
 	// router
