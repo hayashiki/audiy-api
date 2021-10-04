@@ -3,6 +3,8 @@ package handler
 import (
 	"net/http"
 
+	"github.com/hayashiki/audiy-api/interfaces/trace"
+
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/lru"
@@ -10,8 +12,6 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/hayashiki/audiy-api/interfaces/api/graph"
 	"github.com/hayashiki/audiy-api/interfaces/api/graph/generated"
-
-	"github.com/99designs/gqlgen/graphql/handler/apollotracing"
 )
 
 // NewQueryHandler returns GraphQL Server.
@@ -30,7 +30,7 @@ func NewQueryHandler(
 	srv.AddTransport(transport.MultipartForm{})
 	srv.SetQueryCache(lru.New(1000))
 	srv.Use(extension.Introspection{})
-	srv.Use(apollotracing.Tracer{})
+	srv.Use(trace.Tracer{})
 	srv.Use(extension.AutomaticPersistedQuery{
 		Cache: lru.New(100),
 	})

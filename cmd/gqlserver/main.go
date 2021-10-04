@@ -7,9 +7,6 @@ import (
 
 	"github.com/hayashiki/audiy-api/etc/config"
 
-	"contrib.go.opencensus.io/exporter/stackdriver/propagation"
-	"go.opencensus.io/plugin/ochttp"
-
 	"contrib.go.opencensus.io/exporter/stackdriver"
 	"github.com/hayashiki/audiy-api/interfaces/registry"
 	"go.opencensus.io/trace"
@@ -40,12 +37,7 @@ func main() {
 	trace.AlwaysSample()
 
 	registry := registry.NewRegistry()
-
 	h := registry.NewHandler()
-	h = &ochttp.Handler{
-		Handler:     h,
-		Propagation: &propagation.HTTPFormat{},
-	}
 	http.Handle("/", h)
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
