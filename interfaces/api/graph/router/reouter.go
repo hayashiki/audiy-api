@@ -3,6 +3,8 @@ package router
 import (
 	"net/http"
 
+	httptrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/net/http"
+
 	"github.com/hayashiki/audiy-api/interfaces/middleware"
 
 	"github.com/gorilla/mux"
@@ -30,6 +32,7 @@ type router struct {
 
 func (r router) CreateHandler() http.Handler {
 	mux := mux.NewRouter()
+	httptrace.WrapHandler(r.RootHandler, "audiy-api", "/query")
 	mux.Handle("/", r.RootHandler)
 	mux.Handle("/query", middleware.Cors(r.QueryHandler))
 	mux.Handle("/health", r.HealthHandler)
