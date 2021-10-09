@@ -3,12 +3,13 @@ package handler
 import (
 	"net/http"
 
+	"github.com/hayashiki/audiy-api/interfaces/trace"
+
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/aereal/gqlgen-tracer-opencensus/tracer"
 	"github.com/hayashiki/audiy-api/interfaces/api/graph"
 	"github.com/hayashiki/audiy-api/interfaces/api/graph/generated"
 )
@@ -29,7 +30,7 @@ func NewQueryHandler(
 	srv.AddTransport(transport.MultipartForm{})
 	srv.SetQueryCache(lru.New(1000))
 	srv.Use(extension.Introspection{})
-	srv.Use(tracer.Tracer{})
+	srv.Use(trace.Tracer{})
 	srv.Use(extension.AutomaticPersistedQuery{
 		Cache: lru.New(100),
 	})

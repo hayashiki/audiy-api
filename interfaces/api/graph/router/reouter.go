@@ -30,6 +30,8 @@ type router struct {
 
 func (r router) CreateHandler() http.Handler {
 	mux := mux.NewRouter()
+	//httptrace.WrapHandler(r.RootHandler, "audiy-api", "/query")
+
 	mux.Handle("/", r.RootHandler)
 	mux.Handle("/query", middleware.Cors(r.QueryHandler))
 	mux.Handle("/health", r.HealthHandler)
