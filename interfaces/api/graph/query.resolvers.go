@@ -5,7 +5,9 @@ package graph
 
 import (
 	"context"
-	"fmt"
+
+	"github.com/hayashiki/audiy-api/etc/version"
+
 	"log"
 
 	"github.com/hayashiki/audiy-api/domain/entity"
@@ -14,7 +16,10 @@ import (
 )
 
 func (r *queryResolver) Version(ctx context.Context) (*entity.Version, error) {
-	panic(fmt.Errorf("not implemented"))
+	v := &entity.Version{
+		Version: version.Version,
+	}
+	return v, nil
 }
 
 func (r *queryResolver) Comments(ctx context.Context, audioID string, cursor *string, limit *int, order []string) (*entity.CommentConnection, error) {
