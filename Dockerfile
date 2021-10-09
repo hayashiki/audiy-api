@@ -1,5 +1,5 @@
 FROM golang:1.17-alpine3.13 as go-builder
-
+RUN apk --update --no-cache add make git
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download

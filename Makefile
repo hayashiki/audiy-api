@@ -2,11 +2,11 @@ GCP_PROJECT := $(shell gcloud config get-value project)
 VERSION := $$(make -s show-version)
 CURRENT_REVISION := $(shell git rev-parse --short HEAD)
 SERVICE := datastore-emulator
-BUILD_TAG=$(shell git describe --tags --abbrev=0 HEAD)
+BUILD_TAG=v0.0.1#$(shell git describe --tags --abbrev=0 HEAD)
 BUILD_HASH=$(shell git rev-parse --short HEAD)
 BUILD_BRANCH=$(shell git symbolic-ref HEAD |cut -d / -f 3)
 BUILD_VERSION=${BUILD_TAG}-${BUILD_HASH}
-BUILD_TIME=$(shell date --utc +%F-%H:%m:%SZ)
+BUILD_TIME=$(shell date +%F-%H:%m:%S)
 PACKAGE=github.com/hayashiki/audiy-api
 
 dev:
@@ -28,4 +28,4 @@ datastore-build:
 	DOCKER_BUILDKIT=1 docker build -t $(SERVICE) . -f deployments/docker/datastore/Dockerfile
 
 build-api:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=readonly -ldflags="-w -s ${PACKAGE}/version.Version=$BUILD_VERSION -X ${PACKAGE}/version.BuildTime=$(date --utc  +%FT%TZ)" -v -o bin/gqlserver cmd/gqlserver/main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=readonly -ldflags="-w -s -X ${PACKAGE}/etc/version.Version=${BUILD_VERSION} -X ${PACKAGE}/etc/version.BuildTime=$(BUILD_TIME)" -v -o bin/gqlserver cmd/gqlserver/main.go
