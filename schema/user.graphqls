@@ -11,3 +11,8 @@ input CreateUserInput {
     name: String!
     photoURL: String!
 }
+
+type Mutation {
+    createUser(input: CreateUserInput!): User
+}
+

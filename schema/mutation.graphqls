@@ -1,9 +1,0 @@
-type Mutation {
-    createUser(input: CreateUserInput!): User
-
-    createPlay(input: UpdateAudioInput!): Play
-
-    createComment(input: CreateCommentInput!): Comment!
-    updateComment(input: UpdateCommentInput!): Comment!
-    deleteComment(id: ID!): DeleteCommentResult!
-}

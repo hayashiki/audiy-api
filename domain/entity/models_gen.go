@@ -80,11 +80,6 @@ type CreateFeedInput struct {
 	AudioID string `json:"audioID"`
 }
 
-type CreatePlayPayload struct {
-	Result bool  `json:"result"`
-	Play   *Play `json:"play"`
-}
-
 type CreateUserInput struct {
 	ID       string `json:"id"`
 	Email    string `json:"email"`
@@ -100,14 +95,6 @@ type DeleteCommentResult struct {
 type DeleteFeedResult struct {
 	Success bool   `json:"success"`
 	ID      string `json:"id"`
-}
-
-type DeleteLikeInput struct {
-	ID string `json:"id"`
-}
-
-type DeleteStarInput struct {
-	ID string `json:"id"`
 }
 
 type FeedConnection struct {
@@ -146,10 +133,6 @@ type QuerySpec struct {
 	Limit  *int         `json:"limit"`
 }
 
-type UpdateAudioInput struct {
-	AudioID string `json:"audioID"`
-}
-
 type UpdateCommentInput struct {
 	ID string `json:"id"`
 }
@@ -169,8 +152,9 @@ type UploadFileInput struct {
 }
 
 type Version struct {
-	Hash    string `json:"hash"`
-	Version string `json:"version"`
+	Hash      string `json:"hash"`
+	Version   string `json:"version"`
+	BuildTime string `json:"buildTime"`
 }
 
 type AudioOrder string
