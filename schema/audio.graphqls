@@ -7,9 +7,6 @@ type Audio implements Node {
     commentCount: Int!
     url: String!
     mimetype: String!
-    played: Boolean!
-    liked: Boolean!
-    stared: Boolean!
     publishedAt: Time!
     createdAt: Time!
     updatedAt: Time!

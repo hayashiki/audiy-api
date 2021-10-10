@@ -1,4 +1,4 @@
-GCP_PROJECT := $(shell gcloud config get-value project)
+GCP_PROJECT = $(shell gcloud config get-value project)
 VERSION := $$(make -s show-version)
 CURRENT_REVISION := $(shell git rev-parse --short HEAD)
 SERVICE := datastore-emulator

@@ -5,12 +5,10 @@ package graph
 
 import (
 	"context"
-
-	"github.com/hayashiki/audiy-api/etc/version"
-
 	"log"
 
 	"github.com/hayashiki/audiy-api/domain/entity"
+	"github.com/hayashiki/audiy-api/etc/version"
 	auth2 "github.com/hayashiki/audiy-api/interfaces/api/graph/auth"
 	"github.com/hayashiki/audiy-api/interfaces/api/graph/generated"
 )

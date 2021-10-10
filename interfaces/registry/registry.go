@@ -55,12 +55,9 @@ func (s *registry) NewHandler() http.Handler {
 	slackSvc := slack.NewClient(conf.SlackBotToken)
 
 	// repository
-	playRepo := ds.NewPlayRepository(dsCli)
 	commentRepo := ds.NewCommentRepository(dsCli)
 	userRepo := ds.NewUserRepository(dsCli)
 	audioRepo := ds.NewAudioRepository(dsCli)
-	likeRepo := ds.NewLikeRepository(dsCli)
-	starRepo := ds.NewStarRepository(dsCli)
 	feedRepo := ds.NewFeedRepository(dsCli)
 
 	// middleware
@@ -68,15 +65,12 @@ func (s *registry) NewHandler() http.Handler {
 
 	// usecase
 	audioUsecase := usecase.NewAudioUsecase(gcsClient, audioRepo, feedRepo, userRepo)
-	playUsecase := usecase.NewPlayUsecase(playRepo)
 	commentUsecase := usecase.NewCommentUsecase(commentRepo, audioRepo)
 	userUsecase := usecase.NewUserUsecase(userRepo, audioRepo, feedRepo)
-	likeUsecase := usecase.NewLikeUsecase(likeRepo)
-	starUsecase := usecase.NewStarUsecase(starRepo)
 	feedUsecase := usecase.NewFeedUsecase(feedRepo, audioRepo)
 
 	// handler
-	resolver := graph.NewResolver(userUsecase, audioUsecase, playUsecase, starUsecase, likeUsecase, commentUsecase, feedUsecase)
+	resolver := graph.NewResolver(userUsecase, audioUsecase, commentUsecase, feedUsecase)
 
 	queryHandler := handler.NewQueryHandler(resolver)
 

@@ -9,9 +9,6 @@ import "github.com/hayashiki/audiy-api/application/usecase"
 type Resolver struct {
 	userUsecase    usecase.UserUsecase
 	audioUsecase   usecase.AudioUsecase
-	playUsecase    usecase.PlayUsecase
-	starUsecase    usecase.StarUsecase
-	likeUsecase    usecase.LikeUsecase
 	commentUsecase usecase.CommentUsecase
 	feedUseCase    usecase.FeedUsecase
 }
@@ -19,18 +16,12 @@ type Resolver struct {
 func NewResolver(
 	userUsecase usecase.UserUsecase,
 	audioUsecase usecase.AudioUsecase,
-	playUsecase usecase.PlayUsecase,
-	starUsecase usecase.StarUsecase,
-	likeUsecase usecase.LikeUsecase,
 	commentUsecase usecase.CommentUsecase,
 	feedUseCase usecase.FeedUsecase,
 ) *Resolver {
 	return &Resolver{
 		userUsecase:    userUsecase,
 		audioUsecase:   audioUsecase,
-		playUsecase:    playUsecase,
-		starUsecase:    starUsecase,
-		likeUsecase:    likeUsecase,
 		commentUsecase: commentUsecase,
 		feedUseCase:    feedUseCase,
 	}

@@ -25,32 +25,6 @@ func (r *audioResolver) URL(ctx context.Context, obj *entity.Audio) (string, err
 	//return gcs.GetGCSSignedURL(context.Background(), bucketName, filePath, "GET", "")
 }
 
-func (r *audioResolver) Played(ctx context.Context, obj *entity.Audio) (bool, error) {
-	auth, err := auth2.ForContext(ctx)
-	if err != nil {
-		return false, err
-	}
-	return r.playUsecase.Exists(ctx, auth.ID, obj.ID)
-}
-
-func (r *audioResolver) Liked(ctx context.Context, obj *entity.Audio) (bool, error) {
-	auth, err := auth2.ForContext(ctx)
-	if err != nil {
-		return false, err
-	}
-	exists, err := r.likeUsecase.Exists(ctx, auth.ID, obj.ID)
-	log.Printf("exists %v %v %v", exists, auth.ID, obj.ID)
-	return exists, err
-}
-
-func (r *audioResolver) Stared(ctx context.Context, obj *entity.Audio) (bool, error) {
-	auth, err := auth2.ForContext(ctx)
-	if err != nil {
-		return false, err
-	}
-	return r.starUsecase.Exists(ctx, auth.ID, obj.ID)
-}
-
 func (r *mutationResolver) CreateAudio(ctx context.Context, input *entity.CreateAudioInput) (*entity.Audio, error) {
 	log.Println("CreateAudio")
 	log.Println(input)

@@ -40,3 +40,9 @@ input CommentOrder {
   field: CommentOrderField
   direction: SortDirection
 }
+
+extend type Mutation {
+    createComment(input: CreateCommentInput!): Comment!
+    updateComment(input: UpdateCommentInput!): Comment!
+    deleteComment(id: ID!): DeleteCommentResult!
+}
