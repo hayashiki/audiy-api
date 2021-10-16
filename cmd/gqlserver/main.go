@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"os"
 
+	config2 "github.com/hayashiki/audiy-api/src/config"
+
 	"github.com/go-chi/chi"
 
-	"github.com/hayashiki/audiy-api/application/server"
-
-	"github.com/hayashiki/audiy-api/etc/config"
+	"github.com/hayashiki/audiy-api/src/app"
 
 	"contrib.go.opencensus.io/exporter/stackdriver"
 	"go.opencensus.io/trace"
@@ -31,7 +31,7 @@ func main() {
 
 	// Create and register a OpenCensus Stackdriver Trace exporter.
 	exporter, err := stackdriver.NewExporter(stackdriver.Options{
-		ProjectID: config.GetProject(),
+		ProjectID: config2.GetProject(),
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -39,10 +39,10 @@ func main() {
 	trace.RegisterExporter(exporter)
 	trace.AlwaysSample()
 
-	d := &server.Dependency{}
+	d := &app.Dependency{}
 	d.Inject()
 	r := chi.NewRouter()
-	server.Routing(r, d)
+	app.Routing(r, d)
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, r))
 }
