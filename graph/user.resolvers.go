@@ -6,7 +6,7 @@ package graph
 import (
 	"context"
 
-	generated2 "github.com/hayashiki/audiy-api/graph/generated"
+	"github.com/hayashiki/audiy-api/graph/generated"
 
 	"github.com/hayashiki/audiy-api/domain/entity"
 )
@@ -16,6 +16,6 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input entity.CreateUs
 }
 
 // Mutation returns generated.MutationResolver implementation.
-func (r *Resolver) Mutation() generated2.MutationResolver { return &mutationResolver{r} }
+func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
 type mutationResolver struct{ *Resolver }

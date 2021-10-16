@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	auth3 "github.com/hayashiki/audiy-api/graph/auth"
-	generated2 "github.com/hayashiki/audiy-api/graph/generated"
+	"github.com/hayashiki/audiy-api/graph/generated"
 
 	"github.com/hayashiki/audiy-api/domain/entity"
 )
@@ -60,6 +60,6 @@ func (r *queryResolver) Feeds(ctx context.Context, cursor *string, filter *entit
 }
 
 // Feed returns generated.FeedResolver implementation.
-func (r *Resolver) Feed() generated2.FeedResolver { return &feedResolver{r} }
+func (r *Resolver) Feed() generated.FeedResolver { return &feedResolver{r} }
 
 type feedResolver struct{ *Resolver }

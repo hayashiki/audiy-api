@@ -10,7 +10,7 @@ import (
 	"os"
 
 	"github.com/hayashiki/audiy-api/graph/auth"
-	generated2 "github.com/hayashiki/audiy-api/graph/generated"
+	"github.com/hayashiki/audiy-api/graph/generated"
 
 	"github.com/hayashiki/audiy-api/domain/entity"
 	"github.com/hayashiki/audiy-api/infrastructure/gcs"
@@ -72,6 +72,6 @@ func (r *queryResolver) Audios(ctx context.Context, cursor *string, filter *enti
 }
 
 // Audio returns generated.AudioResolver implementation.
-func (r *Resolver) Audio() generated2.AudioResolver { return &audioResolver{r} }
+func (r *Resolver) Audio() generated.AudioResolver { return &audioResolver{r} }
 
 type audioResolver struct{ *Resolver }

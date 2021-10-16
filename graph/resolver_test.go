@@ -10,7 +10,7 @@ import (
 	middleware2 "github.com/hayashiki/audiy-api/application/middleware"
 
 	auth2 "github.com/hayashiki/audiy-api/graph/auth"
-	generated2 "github.com/hayashiki/audiy-api/graph/generated"
+	"github.com/hayashiki/audiy-api/graph/generated"
 	"github.com/hayashiki/audiy-api/usecase"
 
 	"github.com/99designs/gqlgen/client"
@@ -84,12 +84,11 @@ func TestAudioCollection(t *testing.T) {
 	authenticator := middleware2.NewAuthenticator()
 	// usecase
 	audioUsecase := usecase.NewAudioUsecase(nil)
-	playUsecase := usecase.NewPlayUsecase(nil)
 	commentUsecase := usecase.NewCommentUsecase(commentRepo)
 	userUsecase := usecase.NewUserUsecase(userRepo)
 
-	gqlConfig := generated2.Config{Resolvers: NewResolver(userUsecase, audioUsecase, playUsecase, commentUsecase)}
-	testGqlServer := handler.NewDefaultServer(generated2.NewExecutableSchema(gqlConfig))
+	gqlConfig := generated.Config{Resolvers: NewResolver(userUsecase, audioUsecase, playUsecase, commentUsecase)}
+	testGqlServer := handler.NewDefaultServer(generated.NewExecutableSchema(gqlConfig))
 	//var resp interface{}
 	c := client.New(authenticator.AuthMiddleware(testGqlServer))
 
