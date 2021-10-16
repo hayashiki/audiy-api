@@ -1,11 +1,11 @@
-package middleware
+package server
 
 import (
 	"net/http"
 	"os"
 )
 
-func Cors(next http.Handler) http.Handler {
+func middlewareCors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//w.Header().Set("Access-Control-Allow-Origin", "*")
 		if os.Getenv("APP_ENV") == "production" {

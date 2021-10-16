@@ -8,9 +8,10 @@ import (
 	"fmt"
 	"log"
 
+	auth3 "github.com/hayashiki/audiy-api/graph/auth"
+	generated2 "github.com/hayashiki/audiy-api/graph/generated"
+
 	"github.com/hayashiki/audiy-api/domain/entity"
-	auth2 "github.com/hayashiki/audiy-api/interfaces/api/graph/auth"
-	"github.com/hayashiki/audiy-api/interfaces/api/graph/generated"
 )
 
 func (r *commentResolver) User(ctx context.Context, obj *entity.Comment) (*entity.User, error) {
@@ -23,7 +24,7 @@ func (r *commentResolver) Audio(ctx context.Context, obj *entity.Comment) (*enti
 }
 
 func (r *mutationResolver) CreateComment(ctx context.Context, input entity.CreateCommentInput) (*entity.Comment, error) {
-	auth, err := auth2.ForContext(ctx)
+	auth, err := auth3.ForContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -39,6 +40,6 @@ func (r *mutationResolver) DeleteComment(ctx context.Context, id string) (*entit
 }
 
 // Comment returns generated.CommentResolver implementation.
-func (r *Resolver) Comment() generated.CommentResolver { return &commentResolver{r} }
+func (r *Resolver) Comment() generated2.CommentResolver { return &commentResolver{r} }
 
 type commentResolver struct{ *Resolver }

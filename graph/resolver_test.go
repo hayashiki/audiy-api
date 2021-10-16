@@ -7,14 +7,16 @@ import (
 	"testing"
 	"time"
 
+	middleware2 "github.com/hayashiki/audiy-api/application/middleware"
+
+	auth2 "github.com/hayashiki/audiy-api/graph/auth"
+	generated2 "github.com/hayashiki/audiy-api/graph/generated"
+	"github.com/hayashiki/audiy-api/usecase"
+
 	"github.com/99designs/gqlgen/client"
 	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/hayashiki/audiy-api/application/usecase"
 	"github.com/hayashiki/audiy-api/domain/entity"
 	"github.com/hayashiki/audiy-api/infrastructure/ds"
-	"github.com/hayashiki/audiy-api/interfaces/api/graph/auth"
-	"github.com/hayashiki/audiy-api/interfaces/api/graph/generated"
-	"github.com/hayashiki/audiy-api/interfaces/middleware"
 )
 
 func TestMockUsecase(t *testing.T) {
@@ -43,7 +45,7 @@ func TestMockUsecase(t *testing.T) {
 		ID: testAudioID,
 	}
 	ctx := context.Background()
-	ctx = auth.SetAuth(ctx, &auth.Auth{
+	ctx = auth2.SetAuth(ctx, &auth2.Auth{
 		ID: testUserID,
 	})
 
@@ -79,15 +81,15 @@ func TestAudioCollection(t *testing.T) {
 	commentRepo := ds.NewCommentRepository(dsCli)
 	userRepo := ds.NewUserRepository(dsCli)
 
-	authenticator := middleware.NewAuthenticator()
+	authenticator := middleware2.NewAuthenticator()
 	// usecase
 	audioUsecase := usecase.NewAudioUsecase(nil)
 	playUsecase := usecase.NewPlayUsecase(nil)
 	commentUsecase := usecase.NewCommentUsecase(commentRepo)
 	userUsecase := usecase.NewUserUsecase(userRepo)
 
-	gqlConfig := generated.Config{Resolvers: NewResolver(userUsecase, audioUsecase, playUsecase, commentUsecase)}
-	testGqlServer := handler.NewDefaultServer(generated.NewExecutableSchema(gqlConfig))
+	gqlConfig := generated2.Config{Resolvers: NewResolver(userUsecase, audioUsecase, playUsecase, commentUsecase)}
+	testGqlServer := handler.NewDefaultServer(generated2.NewExecutableSchema(gqlConfig))
 	//var resp interface{}
 	c := client.New(authenticator.AuthMiddleware(testGqlServer))
 

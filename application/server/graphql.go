@@ -1,21 +1,22 @@
-package handler
+package server
 
 import (
 	"net/http"
 
-	"github.com/hayashiki/audiy-api/interfaces/trace"
+	"github.com/hayashiki/audiy-api/graph/trace"
+
+	"github.com/hayashiki/audiy-api/graph"
+	"github.com/hayashiki/audiy-api/graph/generated"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/lru"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/hayashiki/audiy-api/interfaces/api/graph"
-	"github.com/hayashiki/audiy-api/interfaces/api/graph/generated"
 )
 
-// NewQueryHandler returns GraphQL Server.
-func NewQueryHandler(
+// NewGraphQLHandler returns GraphQL Server.
+func NewGraphQLHandler(
 	resolver *graph.Resolver,
 ) http.Handler {
 	srv := handler.New(generated.NewExecutableSchema(

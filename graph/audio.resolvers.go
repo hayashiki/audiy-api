@@ -9,10 +9,11 @@ import (
 	"log"
 	"os"
 
+	"github.com/hayashiki/audiy-api/graph/auth"
+	generated2 "github.com/hayashiki/audiy-api/graph/generated"
+
 	"github.com/hayashiki/audiy-api/domain/entity"
 	"github.com/hayashiki/audiy-api/infrastructure/gcs"
-	auth2 "github.com/hayashiki/audiy-api/interfaces/api/graph/auth"
-	"github.com/hayashiki/audiy-api/interfaces/api/graph/generated"
 )
 
 func (r *audioResolver) URL(ctx context.Context, obj *entity.Audio) (string, error) {
@@ -36,7 +37,7 @@ func (r *queryResolver) Audio(ctx context.Context, id string) (*entity.Audio, er
 }
 
 func (r *queryResolver) Audios(ctx context.Context, cursor *string, filter *entity.AudioFilter, limit *int, order *entity.AudioOrder) (*entity.AudioConnection, error) {
-	_, err := auth2.ForContext(ctx)
+	_, err := auth.ForContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -71,6 +72,6 @@ func (r *queryResolver) Audios(ctx context.Context, cursor *string, filter *enti
 }
 
 // Audio returns generated.AudioResolver implementation.
-func (r *Resolver) Audio() generated.AudioResolver { return &audioResolver{r} }
+func (r *Resolver) Audio() generated2.AudioResolver { return &audioResolver{r} }
 
 type audioResolver struct{ *Resolver }

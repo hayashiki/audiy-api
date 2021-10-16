@@ -7,9 +7,10 @@ import (
 	"context"
 	"fmt"
 
+	auth3 "github.com/hayashiki/audiy-api/graph/auth"
+	generated2 "github.com/hayashiki/audiy-api/graph/generated"
+
 	"github.com/hayashiki/audiy-api/domain/entity"
-	auth2 "github.com/hayashiki/audiy-api/interfaces/api/graph/auth"
-	"github.com/hayashiki/audiy-api/interfaces/api/graph/generated"
 )
 
 func (r *feedResolver) Audio(ctx context.Context, obj *entity.Feed) (*entity.Audio, error) {
@@ -26,7 +27,7 @@ func (r *mutationResolver) CreateFeed(ctx context.Context, input entity.CreateFe
 }
 
 func (r *mutationResolver) UpdateFeed(ctx context.Context, input entity.UpdateFeedInput) (*entity.Feed, error) {
-	auth, err := auth2.ForContext(ctx)
+	auth, err := auth3.ForContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +39,7 @@ func (r *mutationResolver) DeleteFeed(ctx context.Context, id string) (*entity.D
 }
 
 func (r *queryResolver) Feeds(ctx context.Context, cursor *string, filter *entity.FeedEvent, limit *int, order *entity.AudioOrder) (*entity.FeedConnection, error) {
-	auth, err := auth2.ForContext(ctx)
+	auth, err := auth3.ForContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -59,6 +60,6 @@ func (r *queryResolver) Feeds(ctx context.Context, cursor *string, filter *entit
 }
 
 // Feed returns generated.FeedResolver implementation.
-func (r *Resolver) Feed() generated.FeedResolver { return &feedResolver{r} }
+func (r *Resolver) Feed() generated2.FeedResolver { return &feedResolver{r} }
 
 type feedResolver struct{ *Resolver }

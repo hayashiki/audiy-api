@@ -1,6 +1,8 @@
 package graph
 
-import "github.com/hayashiki/audiy-api/application/usecase"
+import (
+	"github.com/hayashiki/audiy-api/usecase"
+)
 
 // This file will not be regenerated automatically.
 //

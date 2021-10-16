@@ -7,10 +7,11 @@ import (
 	"context"
 	"log"
 
+	auth3 "github.com/hayashiki/audiy-api/graph/auth"
+	generated2 "github.com/hayashiki/audiy-api/graph/generated"
+
 	"github.com/hayashiki/audiy-api/domain/entity"
 	"github.com/hayashiki/audiy-api/etc/version"
-	auth2 "github.com/hayashiki/audiy-api/interfaces/api/graph/auth"
-	"github.com/hayashiki/audiy-api/interfaces/api/graph/generated"
 )
 
 func (r *queryResolver) Version(ctx context.Context) (*entity.Version, error) {
@@ -21,7 +22,7 @@ func (r *queryResolver) Version(ctx context.Context) (*entity.Version, error) {
 }
 
 func (r *queryResolver) Comments(ctx context.Context, audioID string, cursor *string, limit *int, order []string) (*entity.CommentConnection, error) {
-	auth, err := auth2.ForContext(ctx)
+	auth, err := auth3.ForContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -43,6 +44,6 @@ func (r *queryResolver) Comments(ctx context.Context, audioID string, cursor *st
 }
 
 // Query returns generated.QueryResolver implementation.
-func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
+func (r *Resolver) Query() generated2.QueryResolver { return &queryResolver{r} }
 
 type queryResolver struct{ *Resolver }
