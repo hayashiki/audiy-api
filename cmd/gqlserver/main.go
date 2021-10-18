@@ -56,31 +56,21 @@ func main() {
 		Handler: r,
 	}
 	go func() {
-		err := server.ListenAndServe()
-		log.Println(err)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal(err)
+		}
 	}()
 
-	quitChan := make(chan os.Signal, 1)
-	signal.Notify(quitChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
+	log.Printf("Listening on port %s", port)
 
-	sig := <-quitChan
-	log.Printf("received signal %q; shutdown gracefully in %s ...", sig, shutdownTimeout)
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP, os.Interrupt)
+	<-sigCh
 
-	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-
-	errChan := make(chan error)
-	go func() { errChan <- server.Shutdown(ctx) }()
-
-	select {
-	case sig := <-quitChan:
-		log.Printf("received 2nd signal %q; shutdown now", sig)
-		cancel()
-		server.Close()
-
-	case err := <-errChan:
-		if err != nil {
-			log.Fatalf("while shutdown: %s", err)
-		}
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatalf("graceful shutdown failure: %s", err)
 	}
+	log.Printf("graceful shutdown successfully")
 }
