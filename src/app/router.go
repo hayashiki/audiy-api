@@ -18,7 +18,7 @@ func Routing(r *chi.Mux, d *Dependency) {
 		//r.Route("query", func(r chi.Router) {
 		r.Use(middleware.RequestID)
 		r.Use(middlewareCors)
-		//r.Use(middlewareLogger(logger))
+		r.Use(middlewareLogger(d.log))
 		r.With(d.authenticator.AuthMiddleware).Handle("/", playground.Handler("GraphQL playground", "/query"))
 		r.With(d.authenticator.AuthMiddleware).Handle("/query", d.graphQLHandler)
 		//})

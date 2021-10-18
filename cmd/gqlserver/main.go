@@ -1,9 +1,14 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	config2 "github.com/hayashiki/audiy-api/src/config"
 
@@ -16,6 +21,7 @@ import (
 )
 
 const defaultPort = "8080"
+const shutdownTimeout = 30 * time.Second
 
 func main() {
 	port := os.Getenv("PORT")
@@ -44,5 +50,37 @@ func main() {
 	r := chi.NewRouter()
 	app.Routing(r, d)
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
-	log.Fatal(http.ListenAndServe(":"+port, r))
+
+	server := http.Server{
+		Addr:    fmt.Sprintf(":%s", port),
+		Handler: r,
+	}
+	go func() {
+		err := server.ListenAndServe()
+		log.Println(err)
+	}()
+
+	quitChan := make(chan os.Signal, 1)
+	signal.Notify(quitChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
+
+	sig := <-quitChan
+	log.Printf("received signal %q; shutdown gracefully in %s ...", sig, shutdownTimeout)
+
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+
+	errChan := make(chan error)
+	go func() { errChan <- server.Shutdown(ctx) }()
+
+	select {
+	case sig := <-quitChan:
+		log.Printf("received 2nd signal %q; shutdown now", sig)
+		cancel()
+		server.Close()
+
+	case err := <-errChan:
+		if err != nil {
+			log.Fatalf("while shutdown: %s", err)
+		}
+	}
 }
