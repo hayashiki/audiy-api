@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"fmt"
 	"time"
 
 	"cloud.google.com/go/datastore"
@@ -25,11 +26,40 @@ type Audio struct {
 	CommentCount int       `json:"comment_count" datastore:"comment_count"`
 }
 
-func (r *Audio) GetKey() *datastore.Key {
-	if r.ID == "" {
+func (a *Audio) GetKey() *datastore.Key {
+	if a.ID == "" {
 		return nil
 	}
-	return datastore.NameKey(AudioKind, r.ID, nil)
+	return datastore.NameKey(AudioKind, a.ID, nil)
+}
+
+func (a *Audio) GetID() string {
+	return a.ID
+}
+
+func (a *Audio) GetName() string {
+	return a.Name
+}
+
+func (a *Audio) GetLength() int {
+	return a.Length
+}
+
+func (a *Audio) GetMimetype() string {
+	return a.Mimetype
+}
+
+func (a *Audio) GetCreatedAt() time.Time {
+	return a.CreatedAt
+}
+
+func (a *Audio) GetUpdatedAt() time.Time {
+	return a.UpdatedAt
+}
+
+// TODO
+func (a *Audio) IsPublished() bool {
+	return true
 }
 
 func GetAudioKey(id string) *datastore.Key {
@@ -50,8 +80,22 @@ func NewAudio(id, name string, length int, url, mimetype string, created time.Ti
 	}
 }
 
-func (r *Audio) SetID(key *datastore.Key) {
-	r.ID = key.Name
+func (a *Audio) SetID(key *datastore.Key) {
+	a.ID = key.Name
 }
 
 func (Audio) IsNode() {}
+
+func (a *Audio) String() string {
+	return fmt.Sprintf("ID: %v, Name: %s", a.ID, a.Name)
+}
+
+// TODO: Validate
+func (a *Audio) Validate() error {
+	return nil
+}
+
+// TODO Validation helper to check mimetype
+func validMimetype(value interface{}) error {
+	return nil
+}

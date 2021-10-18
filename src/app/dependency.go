@@ -5,69 +5,74 @@ import (
 	"log"
 	"net/http"
 
-	config2 "github.com/hayashiki/audiy-api/src/config"
-
-	entity2 "github.com/hayashiki/audiy-api/src/domain/entity"
-	graph2 "github.com/hayashiki/audiy-api/src/graph"
-	ds2 "github.com/hayashiki/audiy-api/src/infrastructure/ds"
-	gcs2 "github.com/hayashiki/audiy-api/src/infrastructure/gcs"
-	slack2 "github.com/hayashiki/audiy-api/src/infrastructure/slack"
-	usecase2 "github.com/hayashiki/audiy-api/src/usecase"
-
 	"contrib.go.opencensus.io/exporter/stackdriver/propagation"
+	"github.com/hayashiki/audiy-api/src/config"
+	"github.com/hayashiki/audiy-api/src/domain/entity"
+	"github.com/hayashiki/audiy-api/src/graph"
 	"github.com/hayashiki/audiy-api/src/handler"
+	"github.com/hayashiki/audiy-api/src/infrastructure/ds"
+	"github.com/hayashiki/audiy-api/src/infrastructure/gcs"
+	"github.com/hayashiki/audiy-api/src/infrastructure/slack"
+	"github.com/hayashiki/audiy-api/src/logging"
 	middleware2 "github.com/hayashiki/audiy-api/src/middleware"
+	"github.com/hayashiki/audiy-api/src/usecase"
 	"go.opencensus.io/plugin/ochttp"
+	"go.uber.org/zap"
 )
 
 type Dependency struct {
-	audioUsecase   usecase2.AudioUsecase
-	userUsecase    usecase2.UserUsecase
-	feedUsecase    usecase2.FeedUsecase
-	commentUsecase usecase2.CommentUsecase
-	gcsSvc         gcs2.Client
-	slackSvc       slack2.Slack
-	commentRepo    entity2.CommentRepository
-	audioRepo      entity2.AudioRepository
-	userRepo       entity2.UserRepository
-	feedRepo       entity2.FeedRepository
-	resolver       *graph2.Resolver
+	log            *zap.SugaredLogger
+	audioUsecase   usecase.AudioUsecase
+	userUsecase    usecase.UserUsecase
+	feedUsecase    usecase.FeedUsecase
+	commentUsecase usecase.CommentUsecase
+	gcsSvc         gcs.Client
+	slackSvc       slack.Slack
+	commentRepo    entity.CommentRepository
+	audioRepo      entity.AudioRepository
+	userRepo       entity.UserRepository
+	feedRepo       entity.FeedRepository
+	resolver       *graph.Resolver
 	authenticator  middleware2.Authenticator
+	// TODO: handler struct
 	apiHandler     http.Handler
 	graphQLHandler http.Handler
 }
 
 func (d *Dependency) Inject() {
 	// TODO: confを外にだす
-	conf, err := config2.NewConf()
+	conf, err := config.NewConfig()
 	if err != nil {
 		log.Fatalf("failed to read gcs client")
 	}
 
 	// infrastructure
-	dsCli, _ := ds2.NewClient(context.Background(), config2.GetProject())
+	dsCli, _ := ds.NewClient(context.Background(), config.GetProject())
 	// inject
-	gcsClient, err := gcs2.NewGCSClient(context.Background(), conf.GCSInputAudioBucket)
+	gcsClient, err := gcs.NewGCSClient(context.Background(), conf.GCSInputAudioBucket)
 	if err != nil {
 		log.Fatalf("failed to read gcs client")
 	}
-	slackSvc := slack2.NewClient(conf.SlackBotToken)
+	slackSvc := slack.NewClient(conf.SlackBotToken)
 
 	// repository
-	commentRepo := ds2.NewCommentRepository(dsCli)
-	userRepo := ds2.NewUserRepository(dsCli)
-	audioRepo := ds2.NewAudioRepository(dsCli)
-	feedRepo := ds2.NewFeedRepository(dsCli)
+	commentRepo := ds.NewCommentRepository(dsCli)
+	userRepo := ds.NewUserRepository(dsCli)
+	audioRepo := ds.NewAudioRepository(dsCli)
+	feedRepo := ds.NewFeedRepository(dsCli)
 
 	// middleware
 	authenticator := middleware2.NewAuthenticator()
 
 	// usecase
-	audioUsecase := usecase2.NewAudioUsecase(gcsClient, audioRepo, feedRepo, userRepo)
-	commentUsecase := usecase2.NewCommentUsecase(commentRepo, audioRepo)
-	userUsecase := usecase2.NewUserUsecase(userRepo, audioRepo, feedRepo)
-	feedUsecase := usecase2.NewFeedUsecase(feedRepo, audioRepo)
+	audioUsecase := usecase.NewAudioUsecase(gcsClient, audioRepo, feedRepo, userRepo)
+	commentUsecase := usecase.NewCommentUsecase(commentRepo, audioRepo)
+	userUsecase := usecase.NewUserUsecase(userRepo, audioRepo, feedRepo)
+	feedUsecase := usecase.NewFeedUsecase(feedRepo, audioRepo)
 
+	logger := logging.NewLogger(conf.IsDev)
+
+	d.log = logger
 	d.audioUsecase = audioUsecase
 	d.userUsecase = userUsecase
 	d.feedUsecase = feedUsecase
@@ -80,7 +85,7 @@ func (d *Dependency) Inject() {
 	d.feedRepo = feedRepo
 	d.authenticator = authenticator
 
-	resolver := graph2.NewResolver(userUsecase, audioUsecase, commentUsecase, feedUsecase)
+	resolver := graph.NewResolver(userUsecase, audioUsecase, commentUsecase, feedUsecase)
 	d.resolver = resolver
 	graphHandler := NewGraphQLHandler(d.resolver)
 	d.graphQLHandler = graphHandler

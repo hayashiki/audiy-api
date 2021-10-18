@@ -16,9 +16,9 @@ require (
 	github.com/mitchellh/mapstructure v1.2.2 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/slack-go/slack v0.9.4
-	github.com/stretchr/testify v1.7.0 // indirect
 	github.com/vektah/gqlparser/v2 v2.1.0
 	go.opencensus.io v0.23.0
+	go.uber.org/zap v1.19.1
 	golang.org/x/oauth2 v0.0.0-20210628180205-a41e5a781914
 	google.golang.org/api v0.52.0
 )

@@ -9,13 +9,14 @@ import (
 	"cloud.google.com/go/compute/metadata"
 )
 
-type SlackConf struct {
+type Config struct {
 	GCSInputAudioBucket string `envconfig:"GCS_INPUT_AUDIO_BUCKET" required:"true"`
 	SlackBotToken       string `envconfig:"SLACK_BOT_TOKEN" required:"true"`
+	IsDev               bool   `envconfig:"IS_DEV" default:"true"`
 }
 
-func NewConf() (SlackConf, error) {
-	env := SlackConf{}
+func NewConfig() (Config, error) {
+	env := Config{}
 	err := envconfig.Process("", &env)
 	return env, err
 }

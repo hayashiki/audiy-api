@@ -1,9 +1,14 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	config2 "github.com/hayashiki/audiy-api/src/config"
 
@@ -16,6 +21,7 @@ import (
 )
 
 const defaultPort = "8080"
+const shutdownTimeout = 30 * time.Second
 
 func main() {
 	port := os.Getenv("PORT")
@@ -44,5 +50,27 @@ func main() {
 	r := chi.NewRouter()
 	app.Routing(r, d)
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
-	log.Fatal(http.ListenAndServe(":"+port, r))
+
+	server := http.Server{
+		Addr:    fmt.Sprintf(":%s", port),
+		Handler: r,
+	}
+	go func() {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal(err)
+		}
+	}()
+
+	log.Printf("Listening on port %s", port)
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP, os.Interrupt)
+	<-sigCh
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatalf("graceful shutdown failure: %s", err)
+	}
+	log.Printf("graceful shutdown successfully")
 }
