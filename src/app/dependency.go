@@ -39,13 +39,7 @@ type Dependency struct {
 	graphQLHandler http.Handler
 }
 
-func (d *Dependency) Inject() {
-	// TODO: confを外にだす
-	conf, err := config.NewConfig()
-	if err != nil {
-		log.Fatalf("failed to read gcs client")
-	}
-
+func (d *Dependency) Inject(conf config.Config) {
 	// infrastructure
 	dsCli, _ := ds.NewClient(context.Background(), config.GetProject())
 	// inject
@@ -88,6 +82,7 @@ func (d *Dependency) Inject() {
 	resolver := graph.NewResolver(userUsecase, audioUsecase, commentUsecase, feedUsecase)
 	d.resolver = resolver
 	graphHandler := NewGraphQLHandler(d.resolver)
+
 	d.graphQLHandler = graphHandler
 	graphHandler = &ochttp.Handler{
 		Handler:     graphHandler,

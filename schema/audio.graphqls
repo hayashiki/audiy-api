@@ -6,6 +6,7 @@ type Audio implements Node {
     playCount: Int!
     commentCount: Int!
     url: String!
+    """media asset mimeType e.g. `audio/mp4`"""
     mimetype: String!
     publishedAt: Time!
     createdAt: Time!
@@ -82,4 +83,17 @@ type File {
 input UploadFileInput {
     id: Int!
     file: Upload!
+}
+
+# 必要になったら・・・validationでつかいたい
+"""The MimeType of the object"""
+enum MimeTypeEnum {
+    """MimeType audio/aac"""
+    AUDIO_AAC
+    """MimeType audio/flac"""
+    AUDIO_FLAC
+    """MimeType audio/midi"""
+    AUDIO_MIDI
+    """MimeType audio/mpeg"""
+    AUDIO_MPEG
 }

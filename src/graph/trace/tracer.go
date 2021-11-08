@@ -9,6 +9,7 @@ import (
 	"go.opencensus.io/trace"
 )
 
+// TODO: 場所をみなおす
 type (
 	Tracer struct {
 		es graphql.ExecutableSchema

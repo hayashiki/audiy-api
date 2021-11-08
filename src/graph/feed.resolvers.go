@@ -6,6 +6,13 @@ package graph
 import (
 	"context"
 	"fmt"
+	"log"
+
+	"github.com/99designs/gqlgen/graphql"
+
+	"github.com/hayashiki/audiy-api/src/validator"
+
+	"github.com/hayashiki/audiy-api/cmd/errs"
 
 	"github.com/hayashiki/audiy-api/src/domain/entity"
 	"github.com/hayashiki/audiy-api/src/graph/auth"
@@ -22,6 +29,17 @@ func (r *feedResolver) User(ctx context.Context, obj *entity.Feed) (*entity.User
 }
 
 func (r *mutationResolver) CreateFeed(ctx context.Context, input entity.CreateFeedInput) (*entity.Feed, error) {
+	graphql.AddErrorf(ctx, "custom error")
+	v := entity.User{
+		Email: "hjrke",
+		Name:  "klklklklklklkl",
+	}
+
+	if err := validator.Validate(v); err != nil {
+		err = validator.ManageValidationsErrors(ctx, err)
+		return nil, err
+	}
+
 	panic(fmt.Errorf("not implemented"))
 }
 
@@ -38,6 +56,32 @@ func (r *mutationResolver) DeleteFeed(ctx context.Context, id string) (*entity.D
 }
 
 func (r *queryResolver) Feeds(ctx context.Context, cursor *string, filter *entity.FeedEvent, limit *int, order *entity.AudioOrder) (*entity.FeedConnection, error) {
+	var err error
+
+	v := entity.User{
+		Email: "hjrke",
+		Name:  "klklklklklklkl",
+	}
+
+	if err := validator.Validate(v); err != nil {
+		log.Println("before")
+		log.Println(err)
+
+		err = validator.ManageValidationsErrors(ctx, err)
+		log.Println("after")
+		log.Println(err)
+		return nil, err
+	}
+
+	//if err = validate.Struct(user); err != nil {
+	//	return nil, util.ValidationError(ctx, err.(validator.ValidationErrors))
+	//}
+
+	err = errs.BadCredencials(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	auth, err := auth.ForContext(ctx)
 	if err != nil {
 		return nil, err

@@ -1,7 +1,11 @@
 package app
 
 import (
+	"context"
 	"net/http"
+
+	"github.com/99designs/gqlgen/graphql"
+	"github.com/vektah/gqlparser/v2/gqlerror"
 
 	"github.com/hayashiki/audiy-api/src/graph"
 	"github.com/hayashiki/audiy-api/src/graph/generated"
@@ -25,6 +29,7 @@ func NewGraphQLHandler(
 			Complexity: generated.ComplexityRoot{},
 		},
 	))
+	// TODO: websocket
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.POST{})
 	srv.AddTransport(transport.MultipartForm{})
@@ -35,7 +40,24 @@ func NewGraphQLHandler(
 		Cache: lru.New(100),
 	})
 
+	srv.SetErrorPresenter(errorPresenter)
+	srv.SetRecoverFunc(func(ctx context.Context, err interface{}) error {
+		//log.From(ctx).Error("recovered", zap.Error(fmt.Errorf("%v", err)))
+
+		return &gqlerror.Error{
+			Message: "server error",
+			Extensions: map[string]interface{}{
+				"type": "Internal",
+				"code": "Unknown",
+			},
+		}
+	})
 	return srv
+}
+
+func errorPresenter(ctx context.Context, e error) *gqlerror.Error {
+	err := graphql.DefaultErrorPresenter(ctx, e)
+	return err
 }
 
 // NewRootHandler returns GraphQL Playground.

@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/hayashiki/audiy-api/src/config"
 	config2 "github.com/hayashiki/audiy-api/src/config"
 
 	"github.com/go-chi/chi"
@@ -35,6 +36,11 @@ func main() {
 	//	log.Fatal(err)
 	//}
 
+	conf, err := config.NewConfig()
+	if err != nil {
+		log.Fatalf("failed to read config")
+	}
+
 	// Create and register a OpenCensus Stackdriver Trace exporter.
 	exporter, err := stackdriver.NewExporter(stackdriver.Options{
 		ProjectID: config2.GetProject(),
@@ -46,7 +52,7 @@ func main() {
 	trace.AlwaysSample()
 
 	d := &app.Dependency{}
-	d.Inject()
+	d.Inject(conf)
 	r := chi.NewRouter()
 	app.Routing(r, d)
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
@@ -56,18 +62,17 @@ func main() {
 		Handler: r,
 	}
 	go func() {
+		log.Printf("Listening on port %s", port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatal(err)
 		}
 	}()
 
-	log.Printf("Listening on port %s", port)
-
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP, os.Interrupt)
 	<-sigCh
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {
 		log.Fatalf("graceful shutdown failure: %s", err)

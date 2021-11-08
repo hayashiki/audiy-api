@@ -23,138 +23,138 @@ type Node interface {
 }
 
 type AudioConnection struct {
-	PageInfo *PageInfo    `json:"pageInfo"`
-	Edges    []*AudioEdge `json:"edges"`
+	PageInfo *PageInfo    `json:"pageInfo" `
+	Edges    []*AudioEdge `json:"edges" `
 }
 
 func (AudioConnection) IsConnection() {}
 
 type AudioEdge struct {
-	Cursor string `json:"cursor"`
-	Node   *Audio `json:"node"`
+	Cursor string `json:"cursor" `
+	Node   *Audio `json:"node" `
 }
 
 func (AudioEdge) IsEdge() {}
 
 type AudioFilter struct {
-	Played *bool `json:"played"`
-	Stared *bool `json:"stared"`
-	Liked  *bool `json:"liked"`
+	Played *bool `json:"played" `
+	Stared *bool `json:"stared" `
+	Liked  *bool `json:"liked" `
 }
 
 type AudiosInput struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID   string `json:"id" `
+	Name string `json:"name" `
 }
 
 type CommentConnection struct {
-	PageInfo *PageInfo      `json:"pageInfo"`
-	Edges    []*CommentEdge `json:"edges"`
+	PageInfo *PageInfo      `json:"pageInfo" `
+	Edges    []*CommentEdge `json:"edges" `
 }
 
 func (CommentConnection) IsConnection() {}
 
 type CommentEdge struct {
-	Cursor string   `json:"cursor"`
-	Node   *Comment `json:"node"`
+	Cursor string   `json:"cursor" `
+	Node   *Comment `json:"node" `
 }
 
 func (CommentEdge) IsEdge() {}
 
 type CommentOrder struct {
-	Field     *CommentOrderField `json:"field"`
-	Direction *SortDirection     `json:"direction"`
+	Field     *CommentOrderField `json:"field" `
+	Direction *SortDirection     `json:"direction" `
 }
 
 type CreateAudioInput struct {
-	Description *string        `json:"description"`
-	File        graphql.Upload `json:"file"`
+	Description *string        `json:"description" `
+	File        graphql.Upload `json:"file" `
 }
 
 type CreateCommentInput struct {
-	AudioID string `json:"audioID"`
-	Body    string `json:"body"`
+	AudioID string `json:"audioID" `
+	Body    string `json:"body" `
 }
 
 type CreateFeedInput struct {
-	AudioID string `json:"audioID"`
+	AudioID string `json:"audioID" `
 }
 
 type CreateUserInput struct {
-	ID       string `json:"id"`
-	Email    string `json:"email"`
-	Name     string `json:"name"`
-	PhotoURL string `json:"photoURL"`
+	ID       string `json:"id" `
+	Email    string `json:"email" `
+	Name     string `json:"name" `
+	PhotoURL string `json:"photoURL" `
 }
 
 type DeleteCommentResult struct {
-	Success bool   `json:"success"`
-	ID      string `json:"id"`
+	Success bool   `json:"success" `
+	ID      string `json:"id" `
 }
 
 type DeleteFeedResult struct {
-	Success bool   `json:"success"`
-	ID      string `json:"id"`
+	Success bool   `json:"success" `
+	ID      string `json:"id" `
 }
 
 type FeedConnection struct {
-	PageInfo *PageInfo   `json:"pageInfo"`
-	Edges    []*FeedEdge `json:"edges"`
+	PageInfo *PageInfo   `json:"pageInfo" `
+	Edges    []*FeedEdge `json:"edges" `
 }
 
 func (FeedConnection) IsConnection() {}
 
 type FeedEdge struct {
-	Cursor string `json:"cursor"`
-	Node   *Feed  `json:"node"`
+	Cursor string `json:"cursor" `
+	Node   *Feed  `json:"node" `
 }
 
 func (FeedEdge) IsEdge() {}
 
 type FeedFilter struct {
-	State *FeedEvent `json:"state"`
+	State *FeedEvent `json:"state" `
 }
 
 type File struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	URL  string `json:"url"`
+	ID   string `json:"id" `
+	Name string `json:"name" `
+	URL  string `json:"url" `
 }
 
 type PageInfo struct {
-	Cursor    string `json:"cursor"`
-	TotalPage int    `json:"totalPage"`
-	HasMore   bool   `json:"hasMore"`
+	Cursor    string `json:"cursor" `
+	TotalPage int    `json:"totalPage" `
+	HasMore   bool   `json:"hasMore" `
 }
 
 type QuerySpec struct {
-	Order  []AudioOrder `json:"order"`
-	Cursor string       `json:"cursor"`
-	Limit  *int         `json:"limit"`
+	Order  []AudioOrder `json:"order" `
+	Cursor string       `json:"cursor" `
+	Limit  *int         `json:"limit" `
 }
 
 type UpdateCommentInput struct {
-	ID string `json:"id"`
+	ID string `json:"id" `
 }
 
 type UpdateFeedInput struct {
-	ID    string    `json:"id"`
-	Event FeedEvent `json:"event"`
+	ID    string    `json:"id" `
+	Event FeedEvent `json:"event" `
 }
 
 type UploadAudioFileInput struct {
-	File graphql.Upload `json:"file"`
+	File graphql.Upload `json:"file" `
 }
 
 type UploadFileInput struct {
-	ID   int            `json:"id"`
-	File graphql.Upload `json:"file"`
+	ID   int            `json:"id" `
+	File graphql.Upload `json:"file" `
 }
 
 type Version struct {
-	Hash      string `json:"hash"`
-	Version   string `json:"version"`
-	BuildTime string `json:"buildTime"`
+	Hash      string `json:"hash" `
+	Version   string `json:"version" `
+	BuildTime string `json:"buildTime" `
 }
 
 type AudioOrder string
@@ -285,6 +285,97 @@ func (e *FeedEvent) UnmarshalGQL(v interface{}) error {
 }
 
 func (e FeedEvent) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+// The MimeType of the object
+type MimeTypeEnum string
+
+const (
+	// MimeType audio/aac
+	MimeTypeEnumAudioAac MimeTypeEnum = "AUDIO_AAC"
+	// MimeType audio/flac
+	MimeTypeEnumAudioFlac MimeTypeEnum = "AUDIO_FLAC"
+	// MimeType audio/midi
+	MimeTypeEnumAudioMidi MimeTypeEnum = "AUDIO_MIDI"
+	// MimeType audio/mpeg
+	MimeTypeEnumAudioMpeg MimeTypeEnum = "AUDIO_MPEG"
+)
+
+var AllMimeTypeEnum = []MimeTypeEnum{
+	MimeTypeEnumAudioAac,
+	MimeTypeEnumAudioFlac,
+	MimeTypeEnumAudioMidi,
+	MimeTypeEnumAudioMpeg,
+}
+
+func (e MimeTypeEnum) IsValid() bool {
+	switch e {
+	case MimeTypeEnumAudioAac, MimeTypeEnumAudioFlac, MimeTypeEnumAudioMidi, MimeTypeEnumAudioMpeg:
+		return true
+	}
+	return false
+}
+
+func (e MimeTypeEnum) String() string {
+	return string(e)
+}
+
+func (e *MimeTypeEnum) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = MimeTypeEnum(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid MimeTypeEnum", str)
+	}
+	return nil
+}
+
+func (e MimeTypeEnum) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type Role string
+
+const (
+	RoleAdmin Role = "ADMIN"
+	RoleUser  Role = "USER"
+)
+
+var AllRole = []Role{
+	RoleAdmin,
+	RoleUser,
+}
+
+func (e Role) IsValid() bool {
+	switch e {
+	case RoleAdmin, RoleUser:
+		return true
+	}
+	return false
+}
+
+func (e Role) String() string {
+	return string(e)
+}
+
+func (e *Role) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = Role(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid Role", str)
+	}
+	return nil
+}
+
+func (e Role) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 
