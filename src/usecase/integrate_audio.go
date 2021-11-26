@@ -4,15 +4,17 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"gopkg.in/vansante/go-ffprobe.v2"
 	"log"
 	"path/filepath"
 	"time"
 
-	entity2 "github.com/hayashiki/audiy-api/src/domain/entity"
-	gcs2 "github.com/hayashiki/audiy-api/src/infrastructure/gcs"
-	slack2 "github.com/hayashiki/audiy-api/src/infrastructure/slack"
+	entity "github.com/hayashiki/audiy-api/src/domain/entity"
+	gcs "github.com/hayashiki/audiy-api/src/infrastructure/gcs"
+	slack "github.com/hayashiki/audiy-api/src/infrastructure/slack"
 )
 
 type IntegrateAudioUsecase interface {
@@ -20,11 +22,11 @@ type IntegrateAudioUsecase interface {
 }
 
 type integrateAudioUsecase struct {
-	slackSvc  slack2.Slack
-	gcsSvc    gcs2.Client
-	audioRepo entity2.AudioRepository
-	feedRepo  entity2.FeedRepository
-	userRepo  entity2.UserRepository
+	slackSvc  slack.Slack
+	gcsSvc    gcs.Client
+	audioRepo entity.AudioRepository
+	feedRepo  entity.FeedRepository
+	userRepo  entity.UserRepository
 }
 
 type MockAudioUsecase struct {
@@ -55,11 +57,11 @@ func (i AudioInput) Validate() error {
 }
 
 func NewAudio(
-	slackSvc slack2.Slack,
-	gcsSvc gcs2.Client,
-	audioRepo entity2.AudioRepository,
-	feedRepo entity2.FeedRepository,
-	userRepo entity2.UserRepository,
+	slackSvc slack.Slack,
+	gcsSvc gcs.Client,
+	audioRepo entity.AudioRepository,
+	feedRepo entity.FeedRepository,
+	userRepo entity.UserRepository,
 ) IntegrateAudioUsecase {
 	return &integrateAudioUsecase{
 		slackSvc:  slackSvc,
@@ -98,15 +100,22 @@ func (au *integrateAudioUsecase) Do(ctx context.Context, input *AudioInput) erro
 		return err
 	}
 
-	//data, err := au.gcsSvc.Get(ctx, input.Name)
-	//if err != nil || data == nil {
-	//	return fmt.Errorf("failed to read gcsSvc data %w", err)
-	//}
-	// file check extension only m4a
+	r := bytes.NewReader(b.Bytes())
 
+	// TODO: ffmpeg svcから実行する
+	log.Println("ffprobe test", r)
+	data, err := ffprobe.ProbeReader(ctx, r)
+	log.Println("ffprobe data", data)
+	buf, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		log.Panicf("Error unmarshalling: %v", err)
+	}
+	log.Print(string(buf))
+
+	// file check extension only m4a
 	getFilePath := getFilePath(au.gcsSvc.Bucket(), fmt.Sprintf("%s%s", input.ID, ext))
 	ut := time.Unix(input.Created, 0)
-	newAudio := entity2.NewAudio(input.ID, input.Name, int(100), getFilePath, input.Mimetype, ut)
+	newAudio := entity.NewAudio(input.ID, input.Name, int(100), getFilePath, input.Mimetype, ut)
 	err = au.audioRepo.Save(ctx, newAudio)
 	log.Printf("newAudio %+v", newAudio.GetKey())
 	if err != nil {
@@ -114,9 +123,9 @@ func (au *integrateAudioUsecase) Do(ctx context.Context, input *AudioInput) erro
 	}
 
 	users, _ := au.userRepo.GetAll(ctx)
-	feeds := make([]*entity2.Feed, len(users))
+	feeds := make([]*entity.Feed, len(users))
 	userIDs := make([]string, len(users))
-	newFeed := entity2.NewFeed(newAudio.Key.Name, newAudio.PublishedAt)
+	newFeed := entity.NewFeed(newAudio.Key.Name, newAudio.PublishedAt)
 	newFeed.PublishedAt = newAudio.PublishedAt
 
 	for i, u := range users {

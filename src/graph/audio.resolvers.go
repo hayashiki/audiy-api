@@ -31,6 +31,10 @@ func (r *mutationResolver) CreateAudio(ctx context.Context, input *entity.Create
 	return r.audioUsecase.CreateAudio(ctx, input)
 }
 
+func (r *mutationResolver) UploadAudio(ctx context.Context, input *entity.UploadAudioInput) (*entity.Audio, error) {
+	return r.audioUsecase.UploadAudio(ctx, input)
+}
+
 func (r *queryResolver) Audio(ctx context.Context, id string) (*entity.Audio, error) {
 	return r.audioUsecase.Get(ctx, id)
 }

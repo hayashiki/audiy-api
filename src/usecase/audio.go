@@ -8,21 +8,22 @@ import (
 	"log"
 	"time"
 
-	entity2 "github.com/hayashiki/audiy-api/src/domain/entity"
-	gcs2 "github.com/hayashiki/audiy-api/src/infrastructure/gcs"
+	"github.com/hayashiki/audiy-api/src/domain/entity"
+	"github.com/hayashiki/audiy-api/src/infrastructure/gcs"
 )
 
 type AudioUsecase interface {
-	GetConnection(ctx context.Context, cursor string, limit int, order []string) (*entity2.AudioConnection, error)
-	Get(ctx context.Context, id string) (*entity2.Audio, error)
-	CreateAudio(ctx context.Context, input *entity2.CreateAudioInput) (*entity2.Audio, error)
+	GetConnection(ctx context.Context, cursor string, limit int, order []string) (*entity.AudioConnection, error)
+	Get(ctx context.Context, id string) (*entity.Audio, error)
+	CreateAudio(ctx context.Context, input *entity.CreateAudioInput) (*entity.Audio, error)
+	UploadAudio(ctx context.Context, input *entity.UploadAudioInput) (*entity.Audio, error)
 }
 
 func NewAudioUsecase(
-	gcsSvc gcs2.Client,
-	audioRepo entity2.AudioRepository,
-	feedRepo entity2.FeedRepository,
-	userRepo entity2.UserRepository,
+	gcsSvc gcs.Client,
+	audioRepo entity.AudioRepository,
+	feedRepo entity.FeedRepository,
+	userRepo entity.UserRepository,
 ) AudioUsecase {
 	return &audioUsecase{
 		gcsSvc:    gcsSvc,
@@ -33,13 +34,24 @@ func NewAudioUsecase(
 }
 
 type audioUsecase struct {
-	gcsSvc    gcs2.Client
-	audioRepo entity2.AudioRepository
-	feedRepo  entity2.FeedRepository
-	userRepo  entity2.UserRepository
+	gcsSvc    gcs.Client
+	audioRepo entity.AudioRepository
+	feedRepo  entity.FeedRepository
+	userRepo  entity.UserRepository
 }
 
-func (u *audioUsecase) CreateAudio(ctx context.Context, input *entity2.CreateAudioInput) (*entity2.Audio, error) {
+func (u *audioUsecase) CreateAudio(ctx context.Context, input *entity.CreateAudioInput) (*entity.Audio, error) {
+	newAudio :=  entity.NewAudio(input.ID, input.Name, input.Length, input.URL, input.Mimetype, time.Now())
+
+	err := u.audioRepo.Save(ctx, newAudio)
+	log.Printf("newAudio %+v", newAudio.GetKey())
+	if err != nil {
+		return nil, fmt.Errorf("fail to create radios record err: %w", err)
+	}
+	return newAudio, err
+}
+
+func (u *audioUsecase) UploadAudio(ctx context.Context, input *entity.UploadAudioInput) (*entity.Audio, error) {
 	genID := "TESTID"
 	log.Println("description", input.Description)
 	b := bytes.Buffer{}
@@ -53,7 +65,7 @@ func (u *audioUsecase) CreateAudio(ctx context.Context, input *entity2.CreateAud
 	// 一旦テスト的にここでとめる
 	return nil, nil
 
-	newAudio := entity2.NewAudio(genID, input.File.Filename, int(100), "dummy", input.File.ContentType, time.Now())
+	newAudio := entity.NewAudio(genID, input.File.Filename, int(100), "dummy", input.File.ContentType, time.Now())
 
 	err := u.audioRepo.Save(ctx, newAudio)
 	log.Printf("newAudio %+v", newAudio.GetKey())
@@ -62,9 +74,9 @@ func (u *audioUsecase) CreateAudio(ctx context.Context, input *entity2.CreateAud
 	}
 
 	users, _ := u.userRepo.GetAll(ctx)
-	feeds := make([]*entity2.Feed, len(users))
+	feeds := make([]*entity.Feed, len(users))
 	userIDs := make([]string, len(users))
-	newFeed := entity2.NewFeed(newAudio.Key.Name, newAudio.PublishedAt)
+	newFeed := entity.NewFeed(newAudio.Key.Name, newAudio.PublishedAt)
 	newFeed.PublishedAt = newAudio.PublishedAt
 
 	for i, u := range users {
@@ -75,20 +87,20 @@ func (u *audioUsecase) CreateAudio(ctx context.Context, input *entity2.CreateAud
 	return newAudio, err
 }
 
-func (u *audioUsecase) GetConnection(ctx context.Context, cursor string, limit int, order []string) (*entity2.AudioConnection, error) {
+func (u *audioUsecase) GetConnection(ctx context.Context, cursor string, limit int, order []string) (*entity.AudioConnection, error) {
 	audios, nextCursor, err := u.audioRepo.FindAll(ctx, nil, cursor, limit, order...)
 	if err != nil {
 		return nil, err
 	}
-	audioEdges := make([]*entity2.AudioEdge, len(audios))
+	audioEdges := make([]*entity.AudioEdge, len(audios))
 	for i, a := range audios {
-		audioEdges[i] = &entity2.AudioEdge{
+		audioEdges[i] = &entity.AudioEdge{
 			Cursor: nextCursor,
 			Node:   a,
 		}
 	}
-	return &entity2.AudioConnection{
-		PageInfo: &entity2.PageInfo{
+	return &entity.AudioConnection{
+		PageInfo: &entity.PageInfo{
 			Cursor:  nextCursor,
 			HasMore: len(audios) != 0,
 		},
@@ -96,6 +108,6 @@ func (u *audioUsecase) GetConnection(ctx context.Context, cursor string, limit i
 	}, nil
 }
 
-func (u *audioUsecase) Get(ctx context.Context, id string) (*entity2.Audio, error) {
+func (u *audioUsecase) Get(ctx context.Context, id string) (*entity.Audio, error) {
 	return u.audioRepo.Find(ctx, id)
 }

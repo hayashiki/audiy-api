@@ -39,15 +39,12 @@ type Dependency struct {
 	graphQLHandler http.Handler
 }
 
-func (d *Dependency) Inject() {
-	// TODO: confを外にだす
-	conf, err := config.NewConfig()
-	if err != nil {
-		log.Fatalf("failed to read gcs client")
-	}
-
+func (d *Dependency) Inject(conf config.Config) {
 	// infrastructure
-	dsCli, _ := ds.NewClient(context.Background(), config.GetProject())
+	dsCli, err := ds.NewClient(context.Background(), config.GetProject())
+	if err != nil {
+		log.Fatalf("failed to read datastore client")
+	}
 	// inject
 	gcsClient, err := gcs.NewGCSClient(context.Background(), conf.GCSInputAudioBucket)
 	if err != nil {

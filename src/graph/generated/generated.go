@@ -12,10 +12,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	entity2 "github.com/hayashiki/audiy-api/src/domain/entity"
-
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
+	"github.com/hayashiki/audiy-api/src/domain/entity"
 	gqlparser "github.com/vektah/gqlparser/v2"
 	"github.com/vektah/gqlparser/v2/ast"
 )
@@ -132,14 +131,15 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CreateAudio   func(childComplexity int, input *entity2.CreateAudioInput) int
-		CreateComment func(childComplexity int, input entity2.CreateCommentInput) int
-		CreateFeed    func(childComplexity int, input entity2.CreateFeedInput) int
-		CreateUser    func(childComplexity int, input entity2.CreateUserInput) int
+		CreateAudio   func(childComplexity int, input *entity.CreateAudioInput) int
+		CreateComment func(childComplexity int, input entity.CreateCommentInput) int
+		CreateFeed    func(childComplexity int, input entity.CreateFeedInput) int
+		CreateUser    func(childComplexity int, input entity.CreateUserInput) int
 		DeleteComment func(childComplexity int, id string) int
 		DeleteFeed    func(childComplexity int, id string) int
-		UpdateComment func(childComplexity int, input entity2.UpdateCommentInput) int
-		UpdateFeed    func(childComplexity int, input entity2.UpdateFeedInput) int
+		UpdateComment func(childComplexity int, input entity.UpdateCommentInput) int
+		UpdateFeed    func(childComplexity int, input entity.UpdateFeedInput) int
+		UploadAudio   func(childComplexity int, input *entity.UploadAudioInput) int
 	}
 
 	PageInfo struct {
@@ -150,9 +150,9 @@ type ComplexityRoot struct {
 
 	Query struct {
 		Audio    func(childComplexity int, id string) int
-		Audios   func(childComplexity int, cursor *string, filter *entity2.AudioFilter, limit *int, order *entity2.AudioOrder) int
+		Audios   func(childComplexity int, cursor *string, filter *entity.AudioFilter, limit *int, order *entity.AudioOrder) int
 		Comments func(childComplexity int, audioID string, cursor *string, limit *int, order []string) int
-		Feeds    func(childComplexity int, cursor *string, filter *entity2.FeedEvent, limit *int, order *entity2.AudioOrder) int
+		Feeds    func(childComplexity int, cursor *string, filter *entity.FeedEvent, limit *int, order *entity.AudioOrder) int
 		Version  func(childComplexity int) int
 	}
 
@@ -171,33 +171,34 @@ type ComplexityRoot struct {
 }
 
 type AudioResolver interface {
-	URL(ctx context.Context, obj *entity2.Audio) (string, error)
+	URL(ctx context.Context, obj *entity.Audio) (string, error)
 }
 type CommentResolver interface {
-	User(ctx context.Context, obj *entity2.Comment) (*entity2.User, error)
+	User(ctx context.Context, obj *entity.Comment) (*entity.User, error)
 
-	Audio(ctx context.Context, obj *entity2.Comment) (*entity2.Audio, error)
+	Audio(ctx context.Context, obj *entity.Comment) (*entity.Audio, error)
 }
 type FeedResolver interface {
-	Audio(ctx context.Context, obj *entity2.Feed) (*entity2.Audio, error)
-	User(ctx context.Context, obj *entity2.Feed) (*entity2.User, error)
+	Audio(ctx context.Context, obj *entity.Feed) (*entity.Audio, error)
+	User(ctx context.Context, obj *entity.Feed) (*entity.User, error)
 }
 type MutationResolver interface {
-	CreateUser(ctx context.Context, input entity2.CreateUserInput) (*entity2.User, error)
-	CreateAudio(ctx context.Context, input *entity2.CreateAudioInput) (*entity2.Audio, error)
-	CreateComment(ctx context.Context, input entity2.CreateCommentInput) (*entity2.Comment, error)
-	UpdateComment(ctx context.Context, input entity2.UpdateCommentInput) (*entity2.Comment, error)
-	DeleteComment(ctx context.Context, id string) (*entity2.DeleteCommentResult, error)
-	CreateFeed(ctx context.Context, input entity2.CreateFeedInput) (*entity2.Feed, error)
-	UpdateFeed(ctx context.Context, input entity2.UpdateFeedInput) (*entity2.Feed, error)
-	DeleteFeed(ctx context.Context, id string) (*entity2.DeleteFeedResult, error)
+	CreateUser(ctx context.Context, input entity.CreateUserInput) (*entity.User, error)
+	CreateAudio(ctx context.Context, input *entity.CreateAudioInput) (*entity.Audio, error)
+	UploadAudio(ctx context.Context, input *entity.UploadAudioInput) (*entity.Audio, error)
+	CreateComment(ctx context.Context, input entity.CreateCommentInput) (*entity.Comment, error)
+	UpdateComment(ctx context.Context, input entity.UpdateCommentInput) (*entity.Comment, error)
+	DeleteComment(ctx context.Context, id string) (*entity.DeleteCommentResult, error)
+	CreateFeed(ctx context.Context, input entity.CreateFeedInput) (*entity.Feed, error)
+	UpdateFeed(ctx context.Context, input entity.UpdateFeedInput) (*entity.Feed, error)
+	DeleteFeed(ctx context.Context, id string) (*entity.DeleteFeedResult, error)
 }
 type QueryResolver interface {
-	Version(ctx context.Context) (*entity2.Version, error)
-	Comments(ctx context.Context, audioID string, cursor *string, limit *int, order []string) (*entity2.CommentConnection, error)
-	Audio(ctx context.Context, id string) (*entity2.Audio, error)
-	Audios(ctx context.Context, cursor *string, filter *entity2.AudioFilter, limit *int, order *entity2.AudioOrder) (*entity2.AudioConnection, error)
-	Feeds(ctx context.Context, cursor *string, filter *entity2.FeedEvent, limit *int, order *entity2.AudioOrder) (*entity2.FeedConnection, error)
+	Version(ctx context.Context) (*entity.Version, error)
+	Comments(ctx context.Context, audioID string, cursor *string, limit *int, order []string) (*entity.CommentConnection, error)
+	Audio(ctx context.Context, id string) (*entity.Audio, error)
+	Audios(ctx context.Context, cursor *string, filter *entity.AudioFilter, limit *int, order *entity.AudioOrder) (*entity.AudioConnection, error)
+	Feeds(ctx context.Context, cursor *string, filter *entity.FeedEvent, limit *int, order *entity.AudioOrder) (*entity.FeedConnection, error)
 }
 
 type executableSchema struct {
@@ -547,7 +548,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateAudio(childComplexity, args["input"].(*entity2.CreateAudioInput)), true
+		return e.complexity.Mutation.CreateAudio(childComplexity, args["input"].(*entity.CreateAudioInput)), true
 
 	case "Mutation.createComment":
 		if e.complexity.Mutation.CreateComment == nil {
@@ -559,7 +560,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateComment(childComplexity, args["input"].(entity2.CreateCommentInput)), true
+		return e.complexity.Mutation.CreateComment(childComplexity, args["input"].(entity.CreateCommentInput)), true
 
 	case "Mutation.createFeed":
 		if e.complexity.Mutation.CreateFeed == nil {
@@ -571,7 +572,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateFeed(childComplexity, args["input"].(entity2.CreateFeedInput)), true
+		return e.complexity.Mutation.CreateFeed(childComplexity, args["input"].(entity.CreateFeedInput)), true
 
 	case "Mutation.createUser":
 		if e.complexity.Mutation.CreateUser == nil {
@@ -583,7 +584,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateUser(childComplexity, args["input"].(entity2.CreateUserInput)), true
+		return e.complexity.Mutation.CreateUser(childComplexity, args["input"].(entity.CreateUserInput)), true
 
 	case "Mutation.deleteComment":
 		if e.complexity.Mutation.DeleteComment == nil {
@@ -619,7 +620,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateComment(childComplexity, args["input"].(entity2.UpdateCommentInput)), true
+		return e.complexity.Mutation.UpdateComment(childComplexity, args["input"].(entity.UpdateCommentInput)), true
 
 	case "Mutation.updateFeed":
 		if e.complexity.Mutation.UpdateFeed == nil {
@@ -631,7 +632,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateFeed(childComplexity, args["input"].(entity2.UpdateFeedInput)), true
+		return e.complexity.Mutation.UpdateFeed(childComplexity, args["input"].(entity.UpdateFeedInput)), true
+
+	case "Mutation.uploadAudio":
+		if e.complexity.Mutation.UploadAudio == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_uploadAudio_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UploadAudio(childComplexity, args["input"].(*entity.UploadAudioInput)), true
 
 	case "PageInfo.cursor":
 		if e.complexity.PageInfo.Cursor == nil {
@@ -676,7 +689,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Audios(childComplexity, args["cursor"].(*string), args["filter"].(*entity2.AudioFilter), args["limit"].(*int), args["order"].(*entity2.AudioOrder)), true
+		return e.complexity.Query.Audios(childComplexity, args["cursor"].(*string), args["filter"].(*entity.AudioFilter), args["limit"].(*int), args["order"].(*entity.AudioOrder)), true
 
 	case "Query.comments":
 		if e.complexity.Query.Comments == nil {
@@ -700,7 +713,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Feeds(childComplexity, args["cursor"].(*string), args["filter"].(*entity2.FeedEvent), args["limit"].(*int), args["order"].(*entity2.AudioOrder)), true
+		return e.complexity.Query.Feeds(childComplexity, args["cursor"].(*string), args["filter"].(*entity.FeedEvent), args["limit"].(*int), args["order"].(*entity.AudioOrder)), true
 
 	case "Query.version":
 		if e.complexity.Query.Version == nil {
@@ -857,8 +870,8 @@ enum AudioOrder {
 }
 
 enum State {
-    Played
-    Unplayed
+    PLAYED
+    UNPLAYED
 }
 
 input AudioFilter {
@@ -877,7 +890,7 @@ extend type Query {
     ): AudioConnection!
 }
 
-input CreateAudioInput {
+input UploadAudioInput {
 #    id: ID!
 #    name: String!
 #    url: String!
@@ -893,6 +906,7 @@ input UploadAudioFileInput {
 
 extend type Mutation {
     createAudio(input: CreateAudioInput): Audio!
+    uploadAudio(input: UploadAudioInput): Audio!
 }
 
 scalar Upload
@@ -906,6 +920,15 @@ type File {
 input UploadFileInput {
     id: Int!
     file: Upload!
+}
+
+input CreateAudioInput {
+#    必須入力からはずしたい
+    id: ID!
+    name: String!
+    url: String!
+    mimetype: String!
+    length: Int!
 }
 `, BuiltIn: false},
 	{Name: "schema/comment.graphqls", Input: `### Comment ###
@@ -1075,6 +1098,7 @@ input QuerySpec {
 `, BuiltIn: false},
 	{Name: "schema/scalar.graphqls", Input: `scalar Time
 scalar Cursor
+scalar DateTime
 `, BuiltIn: false},
 	{Name: "schema/user.graphqls", Input: `type User implements Node {
     id: ID!
@@ -1111,10 +1135,10 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 func (ec *executionContext) field_Mutation_createAudio_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *entity2.CreateAudioInput
+	var arg0 *entity.CreateAudioInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalOCreateAudioInput2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCreateAudioInput(ctx, tmp)
+		arg0, err = ec.unmarshalOCreateAudioInput2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐCreateAudioInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1126,10 +1150,10 @@ func (ec *executionContext) field_Mutation_createAudio_args(ctx context.Context,
 func (ec *executionContext) field_Mutation_createComment_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 entity2.CreateCommentInput
+	var arg0 entity.CreateCommentInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNCreateCommentInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCreateCommentInput(ctx, tmp)
+		arg0, err = ec.unmarshalNCreateCommentInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐCreateCommentInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1141,10 +1165,10 @@ func (ec *executionContext) field_Mutation_createComment_args(ctx context.Contex
 func (ec *executionContext) field_Mutation_createFeed_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 entity2.CreateFeedInput
+	var arg0 entity.CreateFeedInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNCreateFeedInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCreateFeedInput(ctx, tmp)
+		arg0, err = ec.unmarshalNCreateFeedInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐCreateFeedInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1156,10 +1180,10 @@ func (ec *executionContext) field_Mutation_createFeed_args(ctx context.Context, 
 func (ec *executionContext) field_Mutation_createUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 entity2.CreateUserInput
+	var arg0 entity.CreateUserInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNCreateUserInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCreateUserInput(ctx, tmp)
+		arg0, err = ec.unmarshalNCreateUserInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐCreateUserInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1201,10 +1225,10 @@ func (ec *executionContext) field_Mutation_deleteFeed_args(ctx context.Context, 
 func (ec *executionContext) field_Mutation_updateComment_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 entity2.UpdateCommentInput
+	var arg0 entity.UpdateCommentInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNUpdateCommentInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐUpdateCommentInput(ctx, tmp)
+		arg0, err = ec.unmarshalNUpdateCommentInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐUpdateCommentInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1216,10 +1240,25 @@ func (ec *executionContext) field_Mutation_updateComment_args(ctx context.Contex
 func (ec *executionContext) field_Mutation_updateFeed_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 entity2.UpdateFeedInput
+	var arg0 entity.UpdateFeedInput
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg0, err = ec.unmarshalNUpdateFeedInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐUpdateFeedInput(ctx, tmp)
+		arg0, err = ec.unmarshalNUpdateFeedInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐUpdateFeedInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_uploadAudio_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *entity.UploadAudioInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalOUploadAudioInput2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐUploadAudioInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1270,10 +1309,10 @@ func (ec *executionContext) field_Query_audios_args(ctx context.Context, rawArgs
 		}
 	}
 	args["cursor"] = arg0
-	var arg1 *entity2.AudioFilter
+	var arg1 *entity.AudioFilter
 	if tmp, ok := rawArgs["filter"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
-		arg1, err = ec.unmarshalOAudioFilter2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioFilter(ctx, tmp)
+		arg1, err = ec.unmarshalOAudioFilter2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudioFilter(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1288,10 +1327,10 @@ func (ec *executionContext) field_Query_audios_args(ctx context.Context, rawArgs
 		}
 	}
 	args["limit"] = arg2
-	var arg3 *entity2.AudioOrder
+	var arg3 *entity.AudioOrder
 	if tmp, ok := rawArgs["order"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("order"))
-		arg3, err = ec.unmarshalOAudioOrder2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioOrder(ctx, tmp)
+		arg3, err = ec.unmarshalOAudioOrder2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudioOrder(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1354,10 +1393,10 @@ func (ec *executionContext) field_Query_feeds_args(ctx context.Context, rawArgs 
 		}
 	}
 	args["cursor"] = arg0
-	var arg1 *entity2.FeedEvent
+	var arg1 *entity.FeedEvent
 	if tmp, ok := rawArgs["filter"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("filter"))
-		arg1, err = ec.unmarshalOFeedEvent2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐFeedEvent(ctx, tmp)
+		arg1, err = ec.unmarshalOFeedEvent2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐFeedEvent(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1372,10 +1411,10 @@ func (ec *executionContext) field_Query_feeds_args(ctx context.Context, rawArgs 
 		}
 	}
 	args["limit"] = arg2
-	var arg3 *entity2.AudioOrder
+	var arg3 *entity.AudioOrder
 	if tmp, ok := rawArgs["order"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("order"))
-		arg3, err = ec.unmarshalOAudioOrder2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioOrder(ctx, tmp)
+		arg3, err = ec.unmarshalOAudioOrder2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudioOrder(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1422,7 +1461,7 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 
 // region    **************************** field.gotpl *****************************
 
-func (ec *executionContext) _Audio_id(ctx context.Context, field graphql.CollectedField, obj *entity2.Audio) (ret graphql.Marshaler) {
+func (ec *executionContext) _Audio_id(ctx context.Context, field graphql.CollectedField, obj *entity.Audio) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1457,7 +1496,7 @@ func (ec *executionContext) _Audio_id(ctx context.Context, field graphql.Collect
 	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Audio_name(ctx context.Context, field graphql.CollectedField, obj *entity2.Audio) (ret graphql.Marshaler) {
+func (ec *executionContext) _Audio_name(ctx context.Context, field graphql.CollectedField, obj *entity.Audio) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1492,7 +1531,7 @@ func (ec *executionContext) _Audio_name(ctx context.Context, field graphql.Colle
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Audio_length(ctx context.Context, field graphql.CollectedField, obj *entity2.Audio) (ret graphql.Marshaler) {
+func (ec *executionContext) _Audio_length(ctx context.Context, field graphql.CollectedField, obj *entity.Audio) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1527,7 +1566,7 @@ func (ec *executionContext) _Audio_length(ctx context.Context, field graphql.Col
 	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Audio_likeCount(ctx context.Context, field graphql.CollectedField, obj *entity2.Audio) (ret graphql.Marshaler) {
+func (ec *executionContext) _Audio_likeCount(ctx context.Context, field graphql.CollectedField, obj *entity.Audio) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1562,7 +1601,7 @@ func (ec *executionContext) _Audio_likeCount(ctx context.Context, field graphql.
 	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Audio_playCount(ctx context.Context, field graphql.CollectedField, obj *entity2.Audio) (ret graphql.Marshaler) {
+func (ec *executionContext) _Audio_playCount(ctx context.Context, field graphql.CollectedField, obj *entity.Audio) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1597,7 +1636,7 @@ func (ec *executionContext) _Audio_playCount(ctx context.Context, field graphql.
 	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Audio_commentCount(ctx context.Context, field graphql.CollectedField, obj *entity2.Audio) (ret graphql.Marshaler) {
+func (ec *executionContext) _Audio_commentCount(ctx context.Context, field graphql.CollectedField, obj *entity.Audio) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1632,7 +1671,7 @@ func (ec *executionContext) _Audio_commentCount(ctx context.Context, field graph
 	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Audio_url(ctx context.Context, field graphql.CollectedField, obj *entity2.Audio) (ret graphql.Marshaler) {
+func (ec *executionContext) _Audio_url(ctx context.Context, field graphql.CollectedField, obj *entity.Audio) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1667,7 +1706,7 @@ func (ec *executionContext) _Audio_url(ctx context.Context, field graphql.Collec
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Audio_mimetype(ctx context.Context, field graphql.CollectedField, obj *entity2.Audio) (ret graphql.Marshaler) {
+func (ec *executionContext) _Audio_mimetype(ctx context.Context, field graphql.CollectedField, obj *entity.Audio) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1702,7 +1741,7 @@ func (ec *executionContext) _Audio_mimetype(ctx context.Context, field graphql.C
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Audio_publishedAt(ctx context.Context, field graphql.CollectedField, obj *entity2.Audio) (ret graphql.Marshaler) {
+func (ec *executionContext) _Audio_publishedAt(ctx context.Context, field graphql.CollectedField, obj *entity.Audio) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1737,7 +1776,7 @@ func (ec *executionContext) _Audio_publishedAt(ctx context.Context, field graphq
 	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Audio_createdAt(ctx context.Context, field graphql.CollectedField, obj *entity2.Audio) (ret graphql.Marshaler) {
+func (ec *executionContext) _Audio_createdAt(ctx context.Context, field graphql.CollectedField, obj *entity.Audio) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1772,7 +1811,7 @@ func (ec *executionContext) _Audio_createdAt(ctx context.Context, field graphql.
 	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Audio_updatedAt(ctx context.Context, field graphql.CollectedField, obj *entity2.Audio) (ret graphql.Marshaler) {
+func (ec *executionContext) _Audio_updatedAt(ctx context.Context, field graphql.CollectedField, obj *entity.Audio) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1807,7 +1846,7 @@ func (ec *executionContext) _Audio_updatedAt(ctx context.Context, field graphql.
 	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _AudioConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *entity2.AudioConnection) (ret graphql.Marshaler) {
+func (ec *executionContext) _AudioConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *entity.AudioConnection) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1837,12 +1876,12 @@ func (ec *executionContext) _AudioConnection_pageInfo(ctx context.Context, field
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*entity2.PageInfo)
+	res := resTmp.(*entity.PageInfo)
 	fc.Result = res
-	return ec.marshalNPageInfo2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐPageInfo(ctx, field.Selections, res)
+	return ec.marshalNPageInfo2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐPageInfo(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _AudioConnection_edges(ctx context.Context, field graphql.CollectedField, obj *entity2.AudioConnection) (ret graphql.Marshaler) {
+func (ec *executionContext) _AudioConnection_edges(ctx context.Context, field graphql.CollectedField, obj *entity.AudioConnection) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1872,12 +1911,12 @@ func (ec *executionContext) _AudioConnection_edges(ctx context.Context, field gr
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*entity2.AudioEdge)
+	res := resTmp.([]*entity.AudioEdge)
 	fc.Result = res
-	return ec.marshalNAudioEdge2ᚕᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioEdge(ctx, field.Selections, res)
+	return ec.marshalNAudioEdge2ᚕᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudioEdge(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _AudioEdge_cursor(ctx context.Context, field graphql.CollectedField, obj *entity2.AudioEdge) (ret graphql.Marshaler) {
+func (ec *executionContext) _AudioEdge_cursor(ctx context.Context, field graphql.CollectedField, obj *entity.AudioEdge) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1912,7 +1951,7 @@ func (ec *executionContext) _AudioEdge_cursor(ctx context.Context, field graphql
 	return ec.marshalNCursor2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _AudioEdge_node(ctx context.Context, field graphql.CollectedField, obj *entity2.AudioEdge) (ret graphql.Marshaler) {
+func (ec *executionContext) _AudioEdge_node(ctx context.Context, field graphql.CollectedField, obj *entity.AudioEdge) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1942,12 +1981,12 @@ func (ec *executionContext) _AudioEdge_node(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*entity2.Audio)
+	res := resTmp.(*entity.Audio)
 	fc.Result = res
-	return ec.marshalNAudio2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudio(ctx, field.Selections, res)
+	return ec.marshalNAudio2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudio(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Comment_id(ctx context.Context, field graphql.CollectedField, obj *entity2.Comment) (ret graphql.Marshaler) {
+func (ec *executionContext) _Comment_id(ctx context.Context, field graphql.CollectedField, obj *entity.Comment) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -1982,7 +2021,7 @@ func (ec *executionContext) _Comment_id(ctx context.Context, field graphql.Colle
 	return ec.marshalNID2int64(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Comment_user(ctx context.Context, field graphql.CollectedField, obj *entity2.Comment) (ret graphql.Marshaler) {
+func (ec *executionContext) _Comment_user(ctx context.Context, field graphql.CollectedField, obj *entity.Comment) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2012,12 +2051,12 @@ func (ec *executionContext) _Comment_user(ctx context.Context, field graphql.Col
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*entity2.User)
+	res := resTmp.(*entity.User)
 	fc.Result = res
-	return ec.marshalNUser2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐUser(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐUser(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Comment_body(ctx context.Context, field graphql.CollectedField, obj *entity2.Comment) (ret graphql.Marshaler) {
+func (ec *executionContext) _Comment_body(ctx context.Context, field graphql.CollectedField, obj *entity.Comment) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2052,7 +2091,7 @@ func (ec *executionContext) _Comment_body(ctx context.Context, field graphql.Col
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Comment_audio(ctx context.Context, field graphql.CollectedField, obj *entity2.Comment) (ret graphql.Marshaler) {
+func (ec *executionContext) _Comment_audio(ctx context.Context, field graphql.CollectedField, obj *entity.Comment) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2082,12 +2121,12 @@ func (ec *executionContext) _Comment_audio(ctx context.Context, field graphql.Co
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*entity2.Audio)
+	res := resTmp.(*entity.Audio)
 	fc.Result = res
-	return ec.marshalNAudio2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudio(ctx, field.Selections, res)
+	return ec.marshalNAudio2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudio(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Comment_createdAt(ctx context.Context, field graphql.CollectedField, obj *entity2.Comment) (ret graphql.Marshaler) {
+func (ec *executionContext) _Comment_createdAt(ctx context.Context, field graphql.CollectedField, obj *entity.Comment) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2122,7 +2161,7 @@ func (ec *executionContext) _Comment_createdAt(ctx context.Context, field graphq
 	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Comment_updatedAt(ctx context.Context, field graphql.CollectedField, obj *entity2.Comment) (ret graphql.Marshaler) {
+func (ec *executionContext) _Comment_updatedAt(ctx context.Context, field graphql.CollectedField, obj *entity.Comment) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2157,7 +2196,7 @@ func (ec *executionContext) _Comment_updatedAt(ctx context.Context, field graphq
 	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _CommentConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *entity2.CommentConnection) (ret graphql.Marshaler) {
+func (ec *executionContext) _CommentConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *entity.CommentConnection) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2187,12 +2226,12 @@ func (ec *executionContext) _CommentConnection_pageInfo(ctx context.Context, fie
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*entity2.PageInfo)
+	res := resTmp.(*entity.PageInfo)
 	fc.Result = res
-	return ec.marshalNPageInfo2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐPageInfo(ctx, field.Selections, res)
+	return ec.marshalNPageInfo2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐPageInfo(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _CommentConnection_edges(ctx context.Context, field graphql.CollectedField, obj *entity2.CommentConnection) (ret graphql.Marshaler) {
+func (ec *executionContext) _CommentConnection_edges(ctx context.Context, field graphql.CollectedField, obj *entity.CommentConnection) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2222,12 +2261,12 @@ func (ec *executionContext) _CommentConnection_edges(ctx context.Context, field 
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*entity2.CommentEdge)
+	res := resTmp.([]*entity.CommentEdge)
 	fc.Result = res
-	return ec.marshalNCommentEdge2ᚕᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCommentEdge(ctx, field.Selections, res)
+	return ec.marshalNCommentEdge2ᚕᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐCommentEdge(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _CommentEdge_cursor(ctx context.Context, field graphql.CollectedField, obj *entity2.CommentEdge) (ret graphql.Marshaler) {
+func (ec *executionContext) _CommentEdge_cursor(ctx context.Context, field graphql.CollectedField, obj *entity.CommentEdge) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2262,7 +2301,7 @@ func (ec *executionContext) _CommentEdge_cursor(ctx context.Context, field graph
 	return ec.marshalNCursor2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _CommentEdge_node(ctx context.Context, field graphql.CollectedField, obj *entity2.CommentEdge) (ret graphql.Marshaler) {
+func (ec *executionContext) _CommentEdge_node(ctx context.Context, field graphql.CollectedField, obj *entity.CommentEdge) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2292,12 +2331,12 @@ func (ec *executionContext) _CommentEdge_node(ctx context.Context, field graphql
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*entity2.Comment)
+	res := resTmp.(*entity.Comment)
 	fc.Result = res
-	return ec.marshalNComment2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐComment(ctx, field.Selections, res)
+	return ec.marshalNComment2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐComment(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _DeleteCommentResult_success(ctx context.Context, field graphql.CollectedField, obj *entity2.DeleteCommentResult) (ret graphql.Marshaler) {
+func (ec *executionContext) _DeleteCommentResult_success(ctx context.Context, field graphql.CollectedField, obj *entity.DeleteCommentResult) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2332,7 +2371,7 @@ func (ec *executionContext) _DeleteCommentResult_success(ctx context.Context, fi
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _DeleteCommentResult_id(ctx context.Context, field graphql.CollectedField, obj *entity2.DeleteCommentResult) (ret graphql.Marshaler) {
+func (ec *executionContext) _DeleteCommentResult_id(ctx context.Context, field graphql.CollectedField, obj *entity.DeleteCommentResult) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2367,7 +2406,7 @@ func (ec *executionContext) _DeleteCommentResult_id(ctx context.Context, field g
 	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _DeleteFeedResult_success(ctx context.Context, field graphql.CollectedField, obj *entity2.DeleteFeedResult) (ret graphql.Marshaler) {
+func (ec *executionContext) _DeleteFeedResult_success(ctx context.Context, field graphql.CollectedField, obj *entity.DeleteFeedResult) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2402,7 +2441,7 @@ func (ec *executionContext) _DeleteFeedResult_success(ctx context.Context, field
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _DeleteFeedResult_id(ctx context.Context, field graphql.CollectedField, obj *entity2.DeleteFeedResult) (ret graphql.Marshaler) {
+func (ec *executionContext) _DeleteFeedResult_id(ctx context.Context, field graphql.CollectedField, obj *entity.DeleteFeedResult) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2437,7 +2476,7 @@ func (ec *executionContext) _DeleteFeedResult_id(ctx context.Context, field grap
 	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Feed_id(ctx context.Context, field graphql.CollectedField, obj *entity2.Feed) (ret graphql.Marshaler) {
+func (ec *executionContext) _Feed_id(ctx context.Context, field graphql.CollectedField, obj *entity.Feed) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2472,7 +2511,7 @@ func (ec *executionContext) _Feed_id(ctx context.Context, field graphql.Collecte
 	return ec.marshalNID2int64(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Feed_audio(ctx context.Context, field graphql.CollectedField, obj *entity2.Feed) (ret graphql.Marshaler) {
+func (ec *executionContext) _Feed_audio(ctx context.Context, field graphql.CollectedField, obj *entity.Feed) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2502,12 +2541,12 @@ func (ec *executionContext) _Feed_audio(ctx context.Context, field graphql.Colle
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*entity2.Audio)
+	res := resTmp.(*entity.Audio)
 	fc.Result = res
-	return ec.marshalNAudio2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudio(ctx, field.Selections, res)
+	return ec.marshalNAudio2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudio(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Feed_user(ctx context.Context, field graphql.CollectedField, obj *entity2.Feed) (ret graphql.Marshaler) {
+func (ec *executionContext) _Feed_user(ctx context.Context, field graphql.CollectedField, obj *entity.Feed) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2537,12 +2576,12 @@ func (ec *executionContext) _Feed_user(ctx context.Context, field graphql.Collec
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*entity2.User)
+	res := resTmp.(*entity.User)
 	fc.Result = res
-	return ec.marshalNUser2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐUser(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐUser(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Feed_publishedAt(ctx context.Context, field graphql.CollectedField, obj *entity2.Feed) (ret graphql.Marshaler) {
+func (ec *executionContext) _Feed_publishedAt(ctx context.Context, field graphql.CollectedField, obj *entity.Feed) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2577,7 +2616,7 @@ func (ec *executionContext) _Feed_publishedAt(ctx context.Context, field graphql
 	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Feed_played(ctx context.Context, field graphql.CollectedField, obj *entity2.Feed) (ret graphql.Marshaler) {
+func (ec *executionContext) _Feed_played(ctx context.Context, field graphql.CollectedField, obj *entity.Feed) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2612,7 +2651,7 @@ func (ec *executionContext) _Feed_played(ctx context.Context, field graphql.Coll
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Feed_liked(ctx context.Context, field graphql.CollectedField, obj *entity2.Feed) (ret graphql.Marshaler) {
+func (ec *executionContext) _Feed_liked(ctx context.Context, field graphql.CollectedField, obj *entity.Feed) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2647,7 +2686,7 @@ func (ec *executionContext) _Feed_liked(ctx context.Context, field graphql.Colle
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Feed_stared(ctx context.Context, field graphql.CollectedField, obj *entity2.Feed) (ret graphql.Marshaler) {
+func (ec *executionContext) _Feed_stared(ctx context.Context, field graphql.CollectedField, obj *entity.Feed) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2682,7 +2721,7 @@ func (ec *executionContext) _Feed_stared(ctx context.Context, field graphql.Coll
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Feed_startTime(ctx context.Context, field graphql.CollectedField, obj *entity2.Feed) (ret graphql.Marshaler) {
+func (ec *executionContext) _Feed_startTime(ctx context.Context, field graphql.CollectedField, obj *entity.Feed) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2714,7 +2753,7 @@ func (ec *executionContext) _Feed_startTime(ctx context.Context, field graphql.C
 	return ec.marshalOFloat2ᚖfloat64(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Feed_createdAt(ctx context.Context, field graphql.CollectedField, obj *entity2.Feed) (ret graphql.Marshaler) {
+func (ec *executionContext) _Feed_createdAt(ctx context.Context, field graphql.CollectedField, obj *entity.Feed) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2749,7 +2788,7 @@ func (ec *executionContext) _Feed_createdAt(ctx context.Context, field graphql.C
 	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Feed_updatedAt(ctx context.Context, field graphql.CollectedField, obj *entity2.Feed) (ret graphql.Marshaler) {
+func (ec *executionContext) _Feed_updatedAt(ctx context.Context, field graphql.CollectedField, obj *entity.Feed) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2784,7 +2823,7 @@ func (ec *executionContext) _Feed_updatedAt(ctx context.Context, field graphql.C
 	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _FeedConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *entity2.FeedConnection) (ret graphql.Marshaler) {
+func (ec *executionContext) _FeedConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *entity.FeedConnection) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2814,12 +2853,12 @@ func (ec *executionContext) _FeedConnection_pageInfo(ctx context.Context, field 
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*entity2.PageInfo)
+	res := resTmp.(*entity.PageInfo)
 	fc.Result = res
-	return ec.marshalNPageInfo2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐPageInfo(ctx, field.Selections, res)
+	return ec.marshalNPageInfo2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐPageInfo(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _FeedConnection_edges(ctx context.Context, field graphql.CollectedField, obj *entity2.FeedConnection) (ret graphql.Marshaler) {
+func (ec *executionContext) _FeedConnection_edges(ctx context.Context, field graphql.CollectedField, obj *entity.FeedConnection) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2849,12 +2888,12 @@ func (ec *executionContext) _FeedConnection_edges(ctx context.Context, field gra
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*entity2.FeedEdge)
+	res := resTmp.([]*entity.FeedEdge)
 	fc.Result = res
-	return ec.marshalNFeedEdge2ᚕᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐFeedEdge(ctx, field.Selections, res)
+	return ec.marshalNFeedEdge2ᚕᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐFeedEdge(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _FeedEdge_cursor(ctx context.Context, field graphql.CollectedField, obj *entity2.FeedEdge) (ret graphql.Marshaler) {
+func (ec *executionContext) _FeedEdge_cursor(ctx context.Context, field graphql.CollectedField, obj *entity.FeedEdge) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2889,7 +2928,7 @@ func (ec *executionContext) _FeedEdge_cursor(ctx context.Context, field graphql.
 	return ec.marshalNCursor2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _FeedEdge_node(ctx context.Context, field graphql.CollectedField, obj *entity2.FeedEdge) (ret graphql.Marshaler) {
+func (ec *executionContext) _FeedEdge_node(ctx context.Context, field graphql.CollectedField, obj *entity.FeedEdge) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2919,12 +2958,12 @@ func (ec *executionContext) _FeedEdge_node(ctx context.Context, field graphql.Co
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*entity2.Feed)
+	res := resTmp.(*entity.Feed)
 	fc.Result = res
-	return ec.marshalNFeed2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐFeed(ctx, field.Selections, res)
+	return ec.marshalNFeed2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐFeed(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _File_id(ctx context.Context, field graphql.CollectedField, obj *entity2.File) (ret graphql.Marshaler) {
+func (ec *executionContext) _File_id(ctx context.Context, field graphql.CollectedField, obj *entity.File) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2959,7 +2998,7 @@ func (ec *executionContext) _File_id(ctx context.Context, field graphql.Collecte
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _File_name(ctx context.Context, field graphql.CollectedField, obj *entity2.File) (ret graphql.Marshaler) {
+func (ec *executionContext) _File_name(ctx context.Context, field graphql.CollectedField, obj *entity.File) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2994,7 +3033,7 @@ func (ec *executionContext) _File_name(ctx context.Context, field graphql.Collec
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _File_url(ctx context.Context, field graphql.CollectedField, obj *entity2.File) (ret graphql.Marshaler) {
+func (ec *executionContext) _File_url(ctx context.Context, field graphql.CollectedField, obj *entity.File) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -3054,7 +3093,7 @@ func (ec *executionContext) _Mutation_createUser(ctx context.Context, field grap
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateUser(rctx, args["input"].(entity2.CreateUserInput))
+		return ec.resolvers.Mutation().CreateUser(rctx, args["input"].(entity.CreateUserInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3063,9 +3102,9 @@ func (ec *executionContext) _Mutation_createUser(ctx context.Context, field grap
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*entity2.User)
+	res := resTmp.(*entity.User)
 	fc.Result = res
-	return ec.marshalOUser2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐUser(ctx, field.Selections, res)
+	return ec.marshalOUser2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createAudio(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3093,7 +3132,7 @@ func (ec *executionContext) _Mutation_createAudio(ctx context.Context, field gra
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateAudio(rctx, args["input"].(*entity2.CreateAudioInput))
+		return ec.resolvers.Mutation().CreateAudio(rctx, args["input"].(*entity.CreateAudioInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3105,9 +3144,51 @@ func (ec *executionContext) _Mutation_createAudio(ctx context.Context, field gra
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*entity2.Audio)
+	res := resTmp.(*entity.Audio)
 	fc.Result = res
-	return ec.marshalNAudio2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudio(ctx, field.Selections, res)
+	return ec.marshalNAudio2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudio(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_uploadAudio(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_uploadAudio_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UploadAudio(rctx, args["input"].(*entity.UploadAudioInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*entity.Audio)
+	fc.Result = res
+	return ec.marshalNAudio2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudio(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createComment(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3135,7 +3216,7 @@ func (ec *executionContext) _Mutation_createComment(ctx context.Context, field g
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateComment(rctx, args["input"].(entity2.CreateCommentInput))
+		return ec.resolvers.Mutation().CreateComment(rctx, args["input"].(entity.CreateCommentInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3147,9 +3228,9 @@ func (ec *executionContext) _Mutation_createComment(ctx context.Context, field g
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*entity2.Comment)
+	res := resTmp.(*entity.Comment)
 	fc.Result = res
-	return ec.marshalNComment2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐComment(ctx, field.Selections, res)
+	return ec.marshalNComment2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐComment(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_updateComment(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3177,7 +3258,7 @@ func (ec *executionContext) _Mutation_updateComment(ctx context.Context, field g
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateComment(rctx, args["input"].(entity2.UpdateCommentInput))
+		return ec.resolvers.Mutation().UpdateComment(rctx, args["input"].(entity.UpdateCommentInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3189,9 +3270,9 @@ func (ec *executionContext) _Mutation_updateComment(ctx context.Context, field g
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*entity2.Comment)
+	res := resTmp.(*entity.Comment)
 	fc.Result = res
-	return ec.marshalNComment2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐComment(ctx, field.Selections, res)
+	return ec.marshalNComment2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐComment(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_deleteComment(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3231,9 +3312,9 @@ func (ec *executionContext) _Mutation_deleteComment(ctx context.Context, field g
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*entity2.DeleteCommentResult)
+	res := resTmp.(*entity.DeleteCommentResult)
 	fc.Result = res
-	return ec.marshalNDeleteCommentResult2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐDeleteCommentResult(ctx, field.Selections, res)
+	return ec.marshalNDeleteCommentResult2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐDeleteCommentResult(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createFeed(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3261,7 +3342,7 @@ func (ec *executionContext) _Mutation_createFeed(ctx context.Context, field grap
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateFeed(rctx, args["input"].(entity2.CreateFeedInput))
+		return ec.resolvers.Mutation().CreateFeed(rctx, args["input"].(entity.CreateFeedInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3273,9 +3354,9 @@ func (ec *executionContext) _Mutation_createFeed(ctx context.Context, field grap
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*entity2.Feed)
+	res := resTmp.(*entity.Feed)
 	fc.Result = res
-	return ec.marshalNFeed2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐFeed(ctx, field.Selections, res)
+	return ec.marshalNFeed2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐFeed(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_updateFeed(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3303,7 +3384,7 @@ func (ec *executionContext) _Mutation_updateFeed(ctx context.Context, field grap
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateFeed(rctx, args["input"].(entity2.UpdateFeedInput))
+		return ec.resolvers.Mutation().UpdateFeed(rctx, args["input"].(entity.UpdateFeedInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3315,9 +3396,9 @@ func (ec *executionContext) _Mutation_updateFeed(ctx context.Context, field grap
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*entity2.Feed)
+	res := resTmp.(*entity.Feed)
 	fc.Result = res
-	return ec.marshalNFeed2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐFeed(ctx, field.Selections, res)
+	return ec.marshalNFeed2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐFeed(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_deleteFeed(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3357,12 +3438,12 @@ func (ec *executionContext) _Mutation_deleteFeed(ctx context.Context, field grap
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*entity2.DeleteFeedResult)
+	res := resTmp.(*entity.DeleteFeedResult)
 	fc.Result = res
-	return ec.marshalNDeleteFeedResult2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐDeleteFeedResult(ctx, field.Selections, res)
+	return ec.marshalNDeleteFeedResult2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐDeleteFeedResult(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _PageInfo_cursor(ctx context.Context, field graphql.CollectedField, obj *entity2.PageInfo) (ret graphql.Marshaler) {
+func (ec *executionContext) _PageInfo_cursor(ctx context.Context, field graphql.CollectedField, obj *entity.PageInfo) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -3397,7 +3478,7 @@ func (ec *executionContext) _PageInfo_cursor(ctx context.Context, field graphql.
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _PageInfo_totalPage(ctx context.Context, field graphql.CollectedField, obj *entity2.PageInfo) (ret graphql.Marshaler) {
+func (ec *executionContext) _PageInfo_totalPage(ctx context.Context, field graphql.CollectedField, obj *entity.PageInfo) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -3432,7 +3513,7 @@ func (ec *executionContext) _PageInfo_totalPage(ctx context.Context, field graph
 	return ec.marshalNInt2int(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _PageInfo_hasMore(ctx context.Context, field graphql.CollectedField, obj *entity2.PageInfo) (ret graphql.Marshaler) {
+func (ec *executionContext) _PageInfo_hasMore(ctx context.Context, field graphql.CollectedField, obj *entity.PageInfo) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -3497,9 +3578,9 @@ func (ec *executionContext) _Query_version(ctx context.Context, field graphql.Co
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*entity2.Version)
+	res := resTmp.(*entity.Version)
 	fc.Result = res
-	return ec.marshalNVersion2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐVersion(ctx, field.Selections, res)
+	return ec.marshalNVersion2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐVersion(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_comments(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3539,9 +3620,9 @@ func (ec *executionContext) _Query_comments(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*entity2.CommentConnection)
+	res := resTmp.(*entity.CommentConnection)
 	fc.Result = res
-	return ec.marshalNCommentConnection2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCommentConnection(ctx, field.Selections, res)
+	return ec.marshalNCommentConnection2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐCommentConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_audio(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3578,9 +3659,9 @@ func (ec *executionContext) _Query_audio(ctx context.Context, field graphql.Coll
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*entity2.Audio)
+	res := resTmp.(*entity.Audio)
 	fc.Result = res
-	return ec.marshalOAudio2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudio(ctx, field.Selections, res)
+	return ec.marshalOAudio2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudio(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_audios(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3608,7 +3689,7 @@ func (ec *executionContext) _Query_audios(ctx context.Context, field graphql.Col
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Audios(rctx, args["cursor"].(*string), args["filter"].(*entity2.AudioFilter), args["limit"].(*int), args["order"].(*entity2.AudioOrder))
+		return ec.resolvers.Query().Audios(rctx, args["cursor"].(*string), args["filter"].(*entity.AudioFilter), args["limit"].(*int), args["order"].(*entity.AudioOrder))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3620,9 +3701,9 @@ func (ec *executionContext) _Query_audios(ctx context.Context, field graphql.Col
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*entity2.AudioConnection)
+	res := resTmp.(*entity.AudioConnection)
 	fc.Result = res
-	return ec.marshalNAudioConnection2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioConnection(ctx, field.Selections, res)
+	return ec.marshalNAudioConnection2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudioConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_feeds(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3650,7 +3731,7 @@ func (ec *executionContext) _Query_feeds(ctx context.Context, field graphql.Coll
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Feeds(rctx, args["cursor"].(*string), args["filter"].(*entity2.FeedEvent), args["limit"].(*int), args["order"].(*entity2.AudioOrder))
+		return ec.resolvers.Query().Feeds(rctx, args["cursor"].(*string), args["filter"].(*entity.FeedEvent), args["limit"].(*int), args["order"].(*entity.AudioOrder))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3662,9 +3743,9 @@ func (ec *executionContext) _Query_feeds(ctx context.Context, field graphql.Coll
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*entity2.FeedConnection)
+	res := resTmp.(*entity.FeedConnection)
 	fc.Result = res
-	return ec.marshalNFeedConnection2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐFeedConnection(ctx, field.Selections, res)
+	return ec.marshalNFeedConnection2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐFeedConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3738,7 +3819,7 @@ func (ec *executionContext) _Query___schema(ctx context.Context, field graphql.C
 	return ec.marshalO__Schema2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐSchema(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *entity2.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *entity.User) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -3773,7 +3854,7 @@ func (ec *executionContext) _User_id(ctx context.Context, field graphql.Collecte
 	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _User_email(ctx context.Context, field graphql.CollectedField, obj *entity2.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_email(ctx context.Context, field graphql.CollectedField, obj *entity.User) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -3808,7 +3889,7 @@ func (ec *executionContext) _User_email(ctx context.Context, field graphql.Colle
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _User_name(ctx context.Context, field graphql.CollectedField, obj *entity2.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_name(ctx context.Context, field graphql.CollectedField, obj *entity.User) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -3843,7 +3924,7 @@ func (ec *executionContext) _User_name(ctx context.Context, field graphql.Collec
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _User_photoURL(ctx context.Context, field graphql.CollectedField, obj *entity2.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_photoURL(ctx context.Context, field graphql.CollectedField, obj *entity.User) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -3878,7 +3959,7 @@ func (ec *executionContext) _User_photoURL(ctx context.Context, field graphql.Co
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Version_hash(ctx context.Context, field graphql.CollectedField, obj *entity2.Version) (ret graphql.Marshaler) {
+func (ec *executionContext) _Version_hash(ctx context.Context, field graphql.CollectedField, obj *entity.Version) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -3913,7 +3994,7 @@ func (ec *executionContext) _Version_hash(ctx context.Context, field graphql.Col
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Version_version(ctx context.Context, field graphql.CollectedField, obj *entity2.Version) (ret graphql.Marshaler) {
+func (ec *executionContext) _Version_version(ctx context.Context, field graphql.CollectedField, obj *entity.Version) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -3948,7 +4029,7 @@ func (ec *executionContext) _Version_version(ctx context.Context, field graphql.
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Version_buildTime(ctx context.Context, field graphql.CollectedField, obj *entity2.Version) (ret graphql.Marshaler) {
+func (ec *executionContext) _Version_buildTime(ctx context.Context, field graphql.CollectedField, obj *entity.Version) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -4118,6 +4199,41 @@ func (ec *executionContext) ___Directive_args(ctx context.Context, field graphql
 	res := resTmp.([]introspection.InputValue)
 	fc.Result = res
 	return ec.marshalN__InputValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐInputValueᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) ___Directive_isRepeatable(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "__Directive",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsRepeatable, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___EnumValue_name(ctx context.Context, field graphql.CollectedField, obj *introspection.EnumValue) (ret graphql.Marshaler) {
@@ -5070,9 +5186,12 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
-func (ec *executionContext) unmarshalInputAudioFilter(ctx context.Context, obj interface{}) (entity2.AudioFilter, error) {
-	var it entity2.AudioFilter
-	var asMap = obj.(map[string]interface{})
+func (ec *executionContext) unmarshalInputAudioFilter(ctx context.Context, obj interface{}) (entity.AudioFilter, error) {
+	var it entity.AudioFilter
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -5106,9 +5225,12 @@ func (ec *executionContext) unmarshalInputAudioFilter(ctx context.Context, obj i
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputAudiosInput(ctx context.Context, obj interface{}) (entity2.AudiosInput, error) {
-	var it entity2.AudiosInput
-	var asMap = obj.(map[string]interface{})
+func (ec *executionContext) unmarshalInputAudiosInput(ctx context.Context, obj interface{}) (entity.AudiosInput, error) {
+	var it entity.AudiosInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -5134,9 +5256,12 @@ func (ec *executionContext) unmarshalInputAudiosInput(ctx context.Context, obj i
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputCommentOrder(ctx context.Context, obj interface{}) (entity2.CommentOrder, error) {
-	var it entity2.CommentOrder
-	var asMap = obj.(map[string]interface{})
+func (ec *executionContext) unmarshalInputCommentOrder(ctx context.Context, obj interface{}) (entity.CommentOrder, error) {
+	var it entity.CommentOrder
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -5144,7 +5269,7 @@ func (ec *executionContext) unmarshalInputCommentOrder(ctx context.Context, obj 
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("field"))
-			it.Field, err = ec.unmarshalOCommentOrderField2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCommentOrderField(ctx, v)
+			it.Field, err = ec.unmarshalOCommentOrderField2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐCommentOrderField(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5152,7 +5277,7 @@ func (ec *executionContext) unmarshalInputCommentOrder(ctx context.Context, obj 
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("direction"))
-			it.Direction, err = ec.unmarshalOSortDirection2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐSortDirection(ctx, v)
+			it.Direction, err = ec.unmarshalOSortDirection2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐSortDirection(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5162,25 +5287,52 @@ func (ec *executionContext) unmarshalInputCommentOrder(ctx context.Context, obj 
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputCreateAudioInput(ctx context.Context, obj interface{}) (entity2.CreateAudioInput, error) {
-	var it entity2.CreateAudioInput
-	var asMap = obj.(map[string]interface{})
+func (ec *executionContext) unmarshalInputCreateAudioInput(ctx context.Context, obj interface{}) (entity.CreateAudioInput, error) {
+	var it entity.CreateAudioInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
-		case "description":
+		case "id":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
-			it.Description, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			it.ID, err = ec.unmarshalNID2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
-		case "file":
+		case "name":
 			var err error
 
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("file"))
-			it.File, err = ec.unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx, v)
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "url":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("url"))
+			it.URL, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "mimetype":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("mimetype"))
+			it.Mimetype, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "length":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("length"))
+			it.Length, err = ec.unmarshalNInt2int(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5190,9 +5342,12 @@ func (ec *executionContext) unmarshalInputCreateAudioInput(ctx context.Context, 
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputCreateCommentInput(ctx context.Context, obj interface{}) (entity2.CreateCommentInput, error) {
-	var it entity2.CreateCommentInput
-	var asMap = obj.(map[string]interface{})
+func (ec *executionContext) unmarshalInputCreateCommentInput(ctx context.Context, obj interface{}) (entity.CreateCommentInput, error) {
+	var it entity.CreateCommentInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -5218,9 +5373,12 @@ func (ec *executionContext) unmarshalInputCreateCommentInput(ctx context.Context
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputCreateFeedInput(ctx context.Context, obj interface{}) (entity2.CreateFeedInput, error) {
-	var it entity2.CreateFeedInput
-	var asMap = obj.(map[string]interface{})
+func (ec *executionContext) unmarshalInputCreateFeedInput(ctx context.Context, obj interface{}) (entity.CreateFeedInput, error) {
+	var it entity.CreateFeedInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -5238,9 +5396,12 @@ func (ec *executionContext) unmarshalInputCreateFeedInput(ctx context.Context, o
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputCreateUserInput(ctx context.Context, obj interface{}) (entity2.CreateUserInput, error) {
-	var it entity2.CreateUserInput
-	var asMap = obj.(map[string]interface{})
+func (ec *executionContext) unmarshalInputCreateUserInput(ctx context.Context, obj interface{}) (entity.CreateUserInput, error) {
+	var it entity.CreateUserInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -5282,9 +5443,12 @@ func (ec *executionContext) unmarshalInputCreateUserInput(ctx context.Context, o
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputFeedFilter(ctx context.Context, obj interface{}) (entity2.FeedFilter, error) {
-	var it entity2.FeedFilter
-	var asMap = obj.(map[string]interface{})
+func (ec *executionContext) unmarshalInputFeedFilter(ctx context.Context, obj interface{}) (entity.FeedFilter, error) {
+	var it entity.FeedFilter
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -5292,7 +5456,7 @@ func (ec *executionContext) unmarshalInputFeedFilter(ctx context.Context, obj in
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("state"))
-			it.State, err = ec.unmarshalOFeedEvent2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐFeedEvent(ctx, v)
+			it.State, err = ec.unmarshalOFeedEvent2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐFeedEvent(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5302,9 +5466,12 @@ func (ec *executionContext) unmarshalInputFeedFilter(ctx context.Context, obj in
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputQuerySpec(ctx context.Context, obj interface{}) (entity2.QuerySpec, error) {
-	var it entity2.QuerySpec
-	var asMap = obj.(map[string]interface{})
+func (ec *executionContext) unmarshalInputQuerySpec(ctx context.Context, obj interface{}) (entity.QuerySpec, error) {
+	var it entity.QuerySpec
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	if _, present := asMap["order"]; !present {
 		asMap["order"] = []interface{}{map[string]interface{}{"direction": "ASC", "field": "ID"}}
@@ -5319,7 +5486,7 @@ func (ec *executionContext) unmarshalInputQuerySpec(ctx context.Context, obj int
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("order"))
-			it.Order, err = ec.unmarshalOAudioOrder2ᚕgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioOrderᚄ(ctx, v)
+			it.Order, err = ec.unmarshalOAudioOrder2ᚕgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudioOrderᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5345,9 +5512,12 @@ func (ec *executionContext) unmarshalInputQuerySpec(ctx context.Context, obj int
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputUpdateCommentInput(ctx context.Context, obj interface{}) (entity2.UpdateCommentInput, error) {
-	var it entity2.UpdateCommentInput
-	var asMap = obj.(map[string]interface{})
+func (ec *executionContext) unmarshalInputUpdateCommentInput(ctx context.Context, obj interface{}) (entity.UpdateCommentInput, error) {
+	var it entity.UpdateCommentInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -5365,9 +5535,12 @@ func (ec *executionContext) unmarshalInputUpdateCommentInput(ctx context.Context
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputUpdateFeedInput(ctx context.Context, obj interface{}) (entity2.UpdateFeedInput, error) {
-	var it entity2.UpdateFeedInput
-	var asMap = obj.(map[string]interface{})
+func (ec *executionContext) unmarshalInputUpdateFeedInput(ctx context.Context, obj interface{}) (entity.UpdateFeedInput, error) {
+	var it entity.UpdateFeedInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -5383,7 +5556,7 @@ func (ec *executionContext) unmarshalInputUpdateFeedInput(ctx context.Context, o
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("event"))
-			it.Event, err = ec.unmarshalNFeedEvent2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐFeedEvent(ctx, v)
+			it.Event, err = ec.unmarshalNFeedEvent2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐFeedEvent(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5393,9 +5566,12 @@ func (ec *executionContext) unmarshalInputUpdateFeedInput(ctx context.Context, o
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputUploadAudioFileInput(ctx context.Context, obj interface{}) (entity2.UploadAudioFileInput, error) {
-	var it entity2.UploadAudioFileInput
-	var asMap = obj.(map[string]interface{})
+func (ec *executionContext) unmarshalInputUploadAudioFileInput(ctx context.Context, obj interface{}) (entity.UploadAudioFileInput, error) {
+	var it entity.UploadAudioFileInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -5413,9 +5589,43 @@ func (ec *executionContext) unmarshalInputUploadAudioFileInput(ctx context.Conte
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputUploadFileInput(ctx context.Context, obj interface{}) (entity2.UploadFileInput, error) {
-	var it entity2.UploadFileInput
-	var asMap = obj.(map[string]interface{})
+func (ec *executionContext) unmarshalInputUploadAudioInput(ctx context.Context, obj interface{}) (entity.UploadAudioInput, error) {
+	var it entity.UploadAudioInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "description":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			it.Description, err = ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "file":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("file"))
+			it.File, err = ec.unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUploadFileInput(ctx context.Context, obj interface{}) (entity.UploadFileInput, error) {
+	var it entity.UploadFileInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -5445,27 +5655,27 @@ func (ec *executionContext) unmarshalInputUploadFileInput(ctx context.Context, o
 
 // region    ************************** interface.gotpl ***************************
 
-func (ec *executionContext) _Connection(ctx context.Context, sel ast.SelectionSet, obj entity2.Connection) graphql.Marshaler {
+func (ec *executionContext) _Connection(ctx context.Context, sel ast.SelectionSet, obj entity.Connection) graphql.Marshaler {
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case entity2.AudioConnection:
+	case entity.AudioConnection:
 		return ec._AudioConnection(ctx, sel, &obj)
-	case *entity2.AudioConnection:
+	case *entity.AudioConnection:
 		if obj == nil {
 			return graphql.Null
 		}
 		return ec._AudioConnection(ctx, sel, obj)
-	case entity2.CommentConnection:
+	case entity.CommentConnection:
 		return ec._CommentConnection(ctx, sel, &obj)
-	case *entity2.CommentConnection:
+	case *entity.CommentConnection:
 		if obj == nil {
 			return graphql.Null
 		}
 		return ec._CommentConnection(ctx, sel, obj)
-	case entity2.FeedConnection:
+	case entity.FeedConnection:
 		return ec._FeedConnection(ctx, sel, &obj)
-	case *entity2.FeedConnection:
+	case *entity.FeedConnection:
 		if obj == nil {
 			return graphql.Null
 		}
@@ -5475,27 +5685,27 @@ func (ec *executionContext) _Connection(ctx context.Context, sel ast.SelectionSe
 	}
 }
 
-func (ec *executionContext) _Edge(ctx context.Context, sel ast.SelectionSet, obj entity2.Edge) graphql.Marshaler {
+func (ec *executionContext) _Edge(ctx context.Context, sel ast.SelectionSet, obj entity.Edge) graphql.Marshaler {
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case entity2.AudioEdge:
+	case entity.AudioEdge:
 		return ec._AudioEdge(ctx, sel, &obj)
-	case *entity2.AudioEdge:
+	case *entity.AudioEdge:
 		if obj == nil {
 			return graphql.Null
 		}
 		return ec._AudioEdge(ctx, sel, obj)
-	case entity2.CommentEdge:
+	case entity.CommentEdge:
 		return ec._CommentEdge(ctx, sel, &obj)
-	case *entity2.CommentEdge:
+	case *entity.CommentEdge:
 		if obj == nil {
 			return graphql.Null
 		}
 		return ec._CommentEdge(ctx, sel, obj)
-	case entity2.FeedEdge:
+	case entity.FeedEdge:
 		return ec._FeedEdge(ctx, sel, &obj)
-	case *entity2.FeedEdge:
+	case *entity.FeedEdge:
 		if obj == nil {
 			return graphql.Null
 		}
@@ -5505,34 +5715,34 @@ func (ec *executionContext) _Edge(ctx context.Context, sel ast.SelectionSet, obj
 	}
 }
 
-func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj entity2.Node) graphql.Marshaler {
+func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj entity.Node) graphql.Marshaler {
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case entity2.Audio:
+	case entity.Audio:
 		return ec._Audio(ctx, sel, &obj)
-	case *entity2.Audio:
+	case *entity.Audio:
 		if obj == nil {
 			return graphql.Null
 		}
 		return ec._Audio(ctx, sel, obj)
-	case entity2.Comment:
+	case entity.Comment:
 		return ec._Comment(ctx, sel, &obj)
-	case *entity2.Comment:
+	case *entity.Comment:
 		if obj == nil {
 			return graphql.Null
 		}
 		return ec._Comment(ctx, sel, obj)
-	case entity2.Feed:
+	case entity.Feed:
 		return ec._Feed(ctx, sel, &obj)
-	case *entity2.Feed:
+	case *entity.Feed:
 		if obj == nil {
 			return graphql.Null
 		}
 		return ec._Feed(ctx, sel, obj)
-	case entity2.User:
+	case entity.User:
 		return ec._User(ctx, sel, &obj)
-	case *entity2.User:
+	case *entity.User:
 		if obj == nil {
 			return graphql.Null
 		}
@@ -5548,7 +5758,7 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 
 var audioImplementors = []string{"Audio", "Node"}
 
-func (ec *executionContext) _Audio(ctx context.Context, sel ast.SelectionSet, obj *entity2.Audio) graphql.Marshaler {
+func (ec *executionContext) _Audio(ctx context.Context, sel ast.SelectionSet, obj *entity.Audio) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, audioImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -5634,7 +5844,7 @@ func (ec *executionContext) _Audio(ctx context.Context, sel ast.SelectionSet, ob
 
 var audioConnectionImplementors = []string{"AudioConnection", "Connection"}
 
-func (ec *executionContext) _AudioConnection(ctx context.Context, sel ast.SelectionSet, obj *entity2.AudioConnection) graphql.Marshaler {
+func (ec *executionContext) _AudioConnection(ctx context.Context, sel ast.SelectionSet, obj *entity.AudioConnection) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, audioConnectionImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -5666,7 +5876,7 @@ func (ec *executionContext) _AudioConnection(ctx context.Context, sel ast.Select
 
 var audioEdgeImplementors = []string{"AudioEdge", "Edge"}
 
-func (ec *executionContext) _AudioEdge(ctx context.Context, sel ast.SelectionSet, obj *entity2.AudioEdge) graphql.Marshaler {
+func (ec *executionContext) _AudioEdge(ctx context.Context, sel ast.SelectionSet, obj *entity.AudioEdge) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, audioEdgeImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -5698,7 +5908,7 @@ func (ec *executionContext) _AudioEdge(ctx context.Context, sel ast.SelectionSet
 
 var commentImplementors = []string{"Comment", "Node"}
 
-func (ec *executionContext) _Comment(ctx context.Context, sel ast.SelectionSet, obj *entity2.Comment) graphql.Marshaler {
+func (ec *executionContext) _Comment(ctx context.Context, sel ast.SelectionSet, obj *entity.Comment) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, commentImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -5768,7 +5978,7 @@ func (ec *executionContext) _Comment(ctx context.Context, sel ast.SelectionSet, 
 
 var commentConnectionImplementors = []string{"CommentConnection", "Connection"}
 
-func (ec *executionContext) _CommentConnection(ctx context.Context, sel ast.SelectionSet, obj *entity2.CommentConnection) graphql.Marshaler {
+func (ec *executionContext) _CommentConnection(ctx context.Context, sel ast.SelectionSet, obj *entity.CommentConnection) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, commentConnectionImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -5800,7 +6010,7 @@ func (ec *executionContext) _CommentConnection(ctx context.Context, sel ast.Sele
 
 var commentEdgeImplementors = []string{"CommentEdge", "Edge"}
 
-func (ec *executionContext) _CommentEdge(ctx context.Context, sel ast.SelectionSet, obj *entity2.CommentEdge) graphql.Marshaler {
+func (ec *executionContext) _CommentEdge(ctx context.Context, sel ast.SelectionSet, obj *entity.CommentEdge) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, commentEdgeImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -5832,7 +6042,7 @@ func (ec *executionContext) _CommentEdge(ctx context.Context, sel ast.SelectionS
 
 var deleteCommentResultImplementors = []string{"DeleteCommentResult"}
 
-func (ec *executionContext) _DeleteCommentResult(ctx context.Context, sel ast.SelectionSet, obj *entity2.DeleteCommentResult) graphql.Marshaler {
+func (ec *executionContext) _DeleteCommentResult(ctx context.Context, sel ast.SelectionSet, obj *entity.DeleteCommentResult) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, deleteCommentResultImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -5864,7 +6074,7 @@ func (ec *executionContext) _DeleteCommentResult(ctx context.Context, sel ast.Se
 
 var deleteFeedResultImplementors = []string{"DeleteFeedResult"}
 
-func (ec *executionContext) _DeleteFeedResult(ctx context.Context, sel ast.SelectionSet, obj *entity2.DeleteFeedResult) graphql.Marshaler {
+func (ec *executionContext) _DeleteFeedResult(ctx context.Context, sel ast.SelectionSet, obj *entity.DeleteFeedResult) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, deleteFeedResultImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -5896,7 +6106,7 @@ func (ec *executionContext) _DeleteFeedResult(ctx context.Context, sel ast.Selec
 
 var feedImplementors = []string{"Feed", "Node"}
 
-func (ec *executionContext) _Feed(ctx context.Context, sel ast.SelectionSet, obj *entity2.Feed) graphql.Marshaler {
+func (ec *executionContext) _Feed(ctx context.Context, sel ast.SelectionSet, obj *entity.Feed) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, feedImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -5983,7 +6193,7 @@ func (ec *executionContext) _Feed(ctx context.Context, sel ast.SelectionSet, obj
 
 var feedConnectionImplementors = []string{"FeedConnection", "Connection"}
 
-func (ec *executionContext) _FeedConnection(ctx context.Context, sel ast.SelectionSet, obj *entity2.FeedConnection) graphql.Marshaler {
+func (ec *executionContext) _FeedConnection(ctx context.Context, sel ast.SelectionSet, obj *entity.FeedConnection) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, feedConnectionImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -6015,7 +6225,7 @@ func (ec *executionContext) _FeedConnection(ctx context.Context, sel ast.Selecti
 
 var feedEdgeImplementors = []string{"FeedEdge", "Edge"}
 
-func (ec *executionContext) _FeedEdge(ctx context.Context, sel ast.SelectionSet, obj *entity2.FeedEdge) graphql.Marshaler {
+func (ec *executionContext) _FeedEdge(ctx context.Context, sel ast.SelectionSet, obj *entity.FeedEdge) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, feedEdgeImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -6047,7 +6257,7 @@ func (ec *executionContext) _FeedEdge(ctx context.Context, sel ast.SelectionSet,
 
 var fileImplementors = []string{"File"}
 
-func (ec *executionContext) _File(ctx context.Context, sel ast.SelectionSet, obj *entity2.File) graphql.Marshaler {
+func (ec *executionContext) _File(ctx context.Context, sel ast.SelectionSet, obj *entity.File) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, fileImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -6104,6 +6314,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "uploadAudio":
+			out.Values[i] = ec._Mutation_uploadAudio(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "createComment":
 			out.Values[i] = ec._Mutation_createComment(ctx, field)
 			if out.Values[i] == graphql.Null {
@@ -6147,7 +6362,7 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 
 var pageInfoImplementors = []string{"PageInfo"}
 
-func (ec *executionContext) _PageInfo(ctx context.Context, sel ast.SelectionSet, obj *entity2.PageInfo) graphql.Marshaler {
+func (ec *executionContext) _PageInfo(ctx context.Context, sel ast.SelectionSet, obj *entity.PageInfo) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, pageInfoImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -6281,7 +6496,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 
 var userImplementors = []string{"User", "Node"}
 
-func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *entity2.User) graphql.Marshaler {
+func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *entity.User) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, userImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -6323,7 +6538,7 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 
 var versionImplementors = []string{"Version"}
 
-func (ec *executionContext) _Version(ctx context.Context, sel ast.SelectionSet, obj *entity2.Version) graphql.Marshaler {
+func (ec *executionContext) _Version(ctx context.Context, sel ast.SelectionSet, obj *entity.Version) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, versionImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -6383,6 +6598,11 @@ func (ec *executionContext) ___Directive(ctx context.Context, sel ast.SelectionS
 			}
 		case "args":
 			out.Values[i] = ec.___Directive_args(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "isRepeatable":
+			out.Values[i] = ec.___Directive_isRepeatable(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -6603,11 +6823,11 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
-func (ec *executionContext) marshalNAudio2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudio(ctx context.Context, sel ast.SelectionSet, v entity2.Audio) graphql.Marshaler {
+func (ec *executionContext) marshalNAudio2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudio(ctx context.Context, sel ast.SelectionSet, v entity.Audio) graphql.Marshaler {
 	return ec._Audio(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNAudio2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudio(ctx context.Context, sel ast.SelectionSet, v *entity2.Audio) graphql.Marshaler {
+func (ec *executionContext) marshalNAudio2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudio(ctx context.Context, sel ast.SelectionSet, v *entity.Audio) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -6617,11 +6837,11 @@ func (ec *executionContext) marshalNAudio2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑ
 	return ec._Audio(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNAudioConnection2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioConnection(ctx context.Context, sel ast.SelectionSet, v entity2.AudioConnection) graphql.Marshaler {
+func (ec *executionContext) marshalNAudioConnection2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudioConnection(ctx context.Context, sel ast.SelectionSet, v entity.AudioConnection) graphql.Marshaler {
 	return ec._AudioConnection(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNAudioConnection2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioConnection(ctx context.Context, sel ast.SelectionSet, v *entity2.AudioConnection) graphql.Marshaler {
+func (ec *executionContext) marshalNAudioConnection2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudioConnection(ctx context.Context, sel ast.SelectionSet, v *entity.AudioConnection) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -6631,7 +6851,7 @@ func (ec *executionContext) marshalNAudioConnection2ᚖgithubᚗcomᚋhayashiki�
 	return ec._AudioConnection(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNAudioEdge2ᚕᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioEdge(ctx context.Context, sel ast.SelectionSet, v []*entity2.AudioEdge) graphql.Marshaler {
+func (ec *executionContext) marshalNAudioEdge2ᚕᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudioEdge(ctx context.Context, sel ast.SelectionSet, v []*entity.AudioEdge) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -6655,7 +6875,7 @@ func (ec *executionContext) marshalNAudioEdge2ᚕᚖgithubᚗcomᚋhayashikiᚋa
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOAudioEdge2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioEdge(ctx, sel, v[i])
+			ret[i] = ec.marshalOAudioEdge2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudioEdge(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -6665,16 +6885,17 @@ func (ec *executionContext) marshalNAudioEdge2ᚕᚖgithubᚗcomᚋhayashikiᚋa
 
 	}
 	wg.Wait()
+
 	return ret
 }
 
-func (ec *executionContext) unmarshalNAudioOrder2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioOrder(ctx context.Context, v interface{}) (entity2.AudioOrder, error) {
-	var res entity2.AudioOrder
+func (ec *executionContext) unmarshalNAudioOrder2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudioOrder(ctx context.Context, v interface{}) (entity.AudioOrder, error) {
+	var res entity.AudioOrder
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNAudioOrder2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioOrder(ctx context.Context, sel ast.SelectionSet, v entity2.AudioOrder) graphql.Marshaler {
+func (ec *executionContext) marshalNAudioOrder2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudioOrder(ctx context.Context, sel ast.SelectionSet, v entity.AudioOrder) graphql.Marshaler {
 	return v
 }
 
@@ -6693,11 +6914,11 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) marshalNComment2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐComment(ctx context.Context, sel ast.SelectionSet, v entity2.Comment) graphql.Marshaler {
+func (ec *executionContext) marshalNComment2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐComment(ctx context.Context, sel ast.SelectionSet, v entity.Comment) graphql.Marshaler {
 	return ec._Comment(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNComment2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐComment(ctx context.Context, sel ast.SelectionSet, v *entity2.Comment) graphql.Marshaler {
+func (ec *executionContext) marshalNComment2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐComment(ctx context.Context, sel ast.SelectionSet, v *entity.Comment) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -6707,11 +6928,11 @@ func (ec *executionContext) marshalNComment2ᚖgithubᚗcomᚋhayashikiᚋaudiy�
 	return ec._Comment(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNCommentConnection2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCommentConnection(ctx context.Context, sel ast.SelectionSet, v entity2.CommentConnection) graphql.Marshaler {
+func (ec *executionContext) marshalNCommentConnection2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐCommentConnection(ctx context.Context, sel ast.SelectionSet, v entity.CommentConnection) graphql.Marshaler {
 	return ec._CommentConnection(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNCommentConnection2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCommentConnection(ctx context.Context, sel ast.SelectionSet, v *entity2.CommentConnection) graphql.Marshaler {
+func (ec *executionContext) marshalNCommentConnection2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐCommentConnection(ctx context.Context, sel ast.SelectionSet, v *entity.CommentConnection) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -6721,7 +6942,7 @@ func (ec *executionContext) marshalNCommentConnection2ᚖgithubᚗcomᚋhayashik
 	return ec._CommentConnection(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNCommentEdge2ᚕᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCommentEdge(ctx context.Context, sel ast.SelectionSet, v []*entity2.CommentEdge) graphql.Marshaler {
+func (ec *executionContext) marshalNCommentEdge2ᚕᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐCommentEdge(ctx context.Context, sel ast.SelectionSet, v []*entity.CommentEdge) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -6745,7 +6966,7 @@ func (ec *executionContext) marshalNCommentEdge2ᚕᚖgithubᚗcomᚋhayashiki�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOCommentEdge2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCommentEdge(ctx, sel, v[i])
+			ret[i] = ec.marshalOCommentEdge2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐCommentEdge(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -6755,20 +6976,21 @@ func (ec *executionContext) marshalNCommentEdge2ᚕᚖgithubᚗcomᚋhayashiki�
 
 	}
 	wg.Wait()
+
 	return ret
 }
 
-func (ec *executionContext) unmarshalNCreateCommentInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCreateCommentInput(ctx context.Context, v interface{}) (entity2.CreateCommentInput, error) {
+func (ec *executionContext) unmarshalNCreateCommentInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐCreateCommentInput(ctx context.Context, v interface{}) (entity.CreateCommentInput, error) {
 	res, err := ec.unmarshalInputCreateCommentInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNCreateFeedInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCreateFeedInput(ctx context.Context, v interface{}) (entity2.CreateFeedInput, error) {
+func (ec *executionContext) unmarshalNCreateFeedInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐCreateFeedInput(ctx context.Context, v interface{}) (entity.CreateFeedInput, error) {
 	res, err := ec.unmarshalInputCreateFeedInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNCreateUserInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCreateUserInput(ctx context.Context, v interface{}) (entity2.CreateUserInput, error) {
+func (ec *executionContext) unmarshalNCreateUserInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐCreateUserInput(ctx context.Context, v interface{}) (entity.CreateUserInput, error) {
 	res, err := ec.unmarshalInputCreateUserInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -6788,11 +7010,11 @@ func (ec *executionContext) marshalNCursor2string(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) marshalNDeleteCommentResult2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐDeleteCommentResult(ctx context.Context, sel ast.SelectionSet, v entity2.DeleteCommentResult) graphql.Marshaler {
+func (ec *executionContext) marshalNDeleteCommentResult2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐDeleteCommentResult(ctx context.Context, sel ast.SelectionSet, v entity.DeleteCommentResult) graphql.Marshaler {
 	return ec._DeleteCommentResult(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNDeleteCommentResult2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐDeleteCommentResult(ctx context.Context, sel ast.SelectionSet, v *entity2.DeleteCommentResult) graphql.Marshaler {
+func (ec *executionContext) marshalNDeleteCommentResult2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐDeleteCommentResult(ctx context.Context, sel ast.SelectionSet, v *entity.DeleteCommentResult) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -6802,11 +7024,11 @@ func (ec *executionContext) marshalNDeleteCommentResult2ᚖgithubᚗcomᚋhayash
 	return ec._DeleteCommentResult(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNDeleteFeedResult2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐDeleteFeedResult(ctx context.Context, sel ast.SelectionSet, v entity2.DeleteFeedResult) graphql.Marshaler {
+func (ec *executionContext) marshalNDeleteFeedResult2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐDeleteFeedResult(ctx context.Context, sel ast.SelectionSet, v entity.DeleteFeedResult) graphql.Marshaler {
 	return ec._DeleteFeedResult(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNDeleteFeedResult2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐDeleteFeedResult(ctx context.Context, sel ast.SelectionSet, v *entity2.DeleteFeedResult) graphql.Marshaler {
+func (ec *executionContext) marshalNDeleteFeedResult2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐDeleteFeedResult(ctx context.Context, sel ast.SelectionSet, v *entity.DeleteFeedResult) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -6816,11 +7038,11 @@ func (ec *executionContext) marshalNDeleteFeedResult2ᚖgithubᚗcomᚋhayashiki
 	return ec._DeleteFeedResult(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNFeed2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐFeed(ctx context.Context, sel ast.SelectionSet, v entity2.Feed) graphql.Marshaler {
+func (ec *executionContext) marshalNFeed2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐFeed(ctx context.Context, sel ast.SelectionSet, v entity.Feed) graphql.Marshaler {
 	return ec._Feed(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNFeed2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐFeed(ctx context.Context, sel ast.SelectionSet, v *entity2.Feed) graphql.Marshaler {
+func (ec *executionContext) marshalNFeed2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐFeed(ctx context.Context, sel ast.SelectionSet, v *entity.Feed) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -6830,11 +7052,11 @@ func (ec *executionContext) marshalNFeed2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑa
 	return ec._Feed(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNFeedConnection2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐFeedConnection(ctx context.Context, sel ast.SelectionSet, v entity2.FeedConnection) graphql.Marshaler {
+func (ec *executionContext) marshalNFeedConnection2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐFeedConnection(ctx context.Context, sel ast.SelectionSet, v entity.FeedConnection) graphql.Marshaler {
 	return ec._FeedConnection(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNFeedConnection2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐFeedConnection(ctx context.Context, sel ast.SelectionSet, v *entity2.FeedConnection) graphql.Marshaler {
+func (ec *executionContext) marshalNFeedConnection2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐFeedConnection(ctx context.Context, sel ast.SelectionSet, v *entity.FeedConnection) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -6844,7 +7066,7 @@ func (ec *executionContext) marshalNFeedConnection2ᚖgithubᚗcomᚋhayashiki�
 	return ec._FeedConnection(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNFeedEdge2ᚕᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐFeedEdge(ctx context.Context, sel ast.SelectionSet, v []*entity2.FeedEdge) graphql.Marshaler {
+func (ec *executionContext) marshalNFeedEdge2ᚕᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐFeedEdge(ctx context.Context, sel ast.SelectionSet, v []*entity.FeedEdge) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -6868,7 +7090,7 @@ func (ec *executionContext) marshalNFeedEdge2ᚕᚖgithubᚗcomᚋhayashikiᚋau
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOFeedEdge2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐFeedEdge(ctx, sel, v[i])
+			ret[i] = ec.marshalOFeedEdge2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐFeedEdge(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -6878,16 +7100,17 @@ func (ec *executionContext) marshalNFeedEdge2ᚕᚖgithubᚗcomᚋhayashikiᚋau
 
 	}
 	wg.Wait()
+
 	return ret
 }
 
-func (ec *executionContext) unmarshalNFeedEvent2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐFeedEvent(ctx context.Context, v interface{}) (entity2.FeedEvent, error) {
-	var res entity2.FeedEvent
+func (ec *executionContext) unmarshalNFeedEvent2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐFeedEvent(ctx context.Context, v interface{}) (entity.FeedEvent, error) {
+	var res entity.FeedEvent
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNFeedEvent2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐFeedEvent(ctx context.Context, sel ast.SelectionSet, v entity2.FeedEvent) graphql.Marshaler {
+func (ec *executionContext) marshalNFeedEvent2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐFeedEvent(ctx context.Context, sel ast.SelectionSet, v entity.FeedEvent) graphql.Marshaler {
 	return v
 }
 
@@ -6936,7 +7159,7 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 	return res
 }
 
-func (ec *executionContext) marshalNPageInfo2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v *entity2.PageInfo) graphql.Marshaler {
+func (ec *executionContext) marshalNPageInfo2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v *entity.PageInfo) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -6976,12 +7199,12 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 	return res
 }
 
-func (ec *executionContext) unmarshalNUpdateCommentInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐUpdateCommentInput(ctx context.Context, v interface{}) (entity2.UpdateCommentInput, error) {
+func (ec *executionContext) unmarshalNUpdateCommentInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐUpdateCommentInput(ctx context.Context, v interface{}) (entity.UpdateCommentInput, error) {
 	res, err := ec.unmarshalInputUpdateCommentInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNUpdateFeedInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐUpdateFeedInput(ctx context.Context, v interface{}) (entity2.UpdateFeedInput, error) {
+func (ec *executionContext) unmarshalNUpdateFeedInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐUpdateFeedInput(ctx context.Context, v interface{}) (entity.UpdateFeedInput, error) {
 	res, err := ec.unmarshalInputUpdateFeedInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -7001,11 +7224,11 @@ func (ec *executionContext) marshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋg
 	return res
 }
 
-func (ec *executionContext) marshalNUser2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐUser(ctx context.Context, sel ast.SelectionSet, v entity2.User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐUser(ctx context.Context, sel ast.SelectionSet, v entity.User) graphql.Marshaler {
 	return ec._User(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐUser(ctx context.Context, sel ast.SelectionSet, v *entity2.User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐUser(ctx context.Context, sel ast.SelectionSet, v *entity.User) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -7015,11 +7238,11 @@ func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑa
 	return ec._User(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNVersion2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐVersion(ctx context.Context, sel ast.SelectionSet, v entity2.Version) graphql.Marshaler {
+func (ec *executionContext) marshalNVersion2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐVersion(ctx context.Context, sel ast.SelectionSet, v entity.Version) graphql.Marshaler {
 	return ec._Version(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNVersion2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐVersion(ctx context.Context, sel ast.SelectionSet, v *entity2.Version) graphql.Marshaler {
+func (ec *executionContext) marshalNVersion2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐVersion(ctx context.Context, sel ast.SelectionSet, v *entity.Version) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -7067,6 +7290,13 @@ func (ec *executionContext) marshalN__Directive2ᚕgithubᚗcomᚋ99designsᚋgq
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -7140,6 +7370,13 @@ func (ec *executionContext) marshalN__DirectiveLocation2ᚕstringᚄ(ctx context
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -7189,6 +7426,13 @@ func (ec *executionContext) marshalN__InputValue2ᚕgithubᚗcomᚋ99designsᚋg
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -7230,6 +7474,13 @@ func (ec *executionContext) marshalN__Type2ᚕgithubᚗcomᚋ99designsᚋgqlgen�
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -7258,21 +7509,21 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 	return res
 }
 
-func (ec *executionContext) marshalOAudio2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudio(ctx context.Context, sel ast.SelectionSet, v *entity2.Audio) graphql.Marshaler {
+func (ec *executionContext) marshalOAudio2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudio(ctx context.Context, sel ast.SelectionSet, v *entity.Audio) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Audio(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOAudioEdge2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioEdge(ctx context.Context, sel ast.SelectionSet, v *entity2.AudioEdge) graphql.Marshaler {
+func (ec *executionContext) marshalOAudioEdge2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudioEdge(ctx context.Context, sel ast.SelectionSet, v *entity.AudioEdge) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._AudioEdge(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOAudioFilter2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioFilter(ctx context.Context, v interface{}) (*entity2.AudioFilter, error) {
+func (ec *executionContext) unmarshalOAudioFilter2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudioFilter(ctx context.Context, v interface{}) (*entity.AudioFilter, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -7280,7 +7531,7 @@ func (ec *executionContext) unmarshalOAudioFilter2ᚖgithubᚗcomᚋhayashikiᚋ
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalOAudioOrder2ᚕgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioOrderᚄ(ctx context.Context, v interface{}) ([]entity2.AudioOrder, error) {
+func (ec *executionContext) unmarshalOAudioOrder2ᚕgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudioOrderᚄ(ctx context.Context, v interface{}) ([]entity.AudioOrder, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -7293,10 +7544,10 @@ func (ec *executionContext) unmarshalOAudioOrder2ᚕgithubᚗcomᚋhayashikiᚋa
 		}
 	}
 	var err error
-	res := make([]entity2.AudioOrder, len(vSlice))
+	res := make([]entity.AudioOrder, len(vSlice))
 	for i := range vSlice {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalNAudioOrder2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioOrder(ctx, vSlice[i])
+		res[i], err = ec.unmarshalNAudioOrder2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudioOrder(ctx, vSlice[i])
 		if err != nil {
 			return nil, err
 		}
@@ -7304,7 +7555,7 @@ func (ec *executionContext) unmarshalOAudioOrder2ᚕgithubᚗcomᚋhayashikiᚋa
 	return res, nil
 }
 
-func (ec *executionContext) marshalOAudioOrder2ᚕgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioOrderᚄ(ctx context.Context, sel ast.SelectionSet, v []entity2.AudioOrder) graphql.Marshaler {
+func (ec *executionContext) marshalOAudioOrder2ᚕgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudioOrderᚄ(ctx context.Context, sel ast.SelectionSet, v []entity.AudioOrder) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -7331,7 +7582,7 @@ func (ec *executionContext) marshalOAudioOrder2ᚕgithubᚗcomᚋhayashikiᚋaud
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNAudioOrder2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioOrder(ctx, sel, v[i])
+			ret[i] = ec.marshalNAudioOrder2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudioOrder(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -7341,19 +7592,26 @@ func (ec *executionContext) marshalOAudioOrder2ᚕgithubᚗcomᚋhayashikiᚋaud
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
-func (ec *executionContext) unmarshalOAudioOrder2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioOrder(ctx context.Context, v interface{}) (*entity2.AudioOrder, error) {
+func (ec *executionContext) unmarshalOAudioOrder2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudioOrder(ctx context.Context, v interface{}) (*entity.AudioOrder, error) {
 	if v == nil {
 		return nil, nil
 	}
-	var res = new(entity2.AudioOrder)
+	var res = new(entity.AudioOrder)
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOAudioOrder2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐAudioOrder(ctx context.Context, sel ast.SelectionSet, v *entity2.AudioOrder) graphql.Marshaler {
+func (ec *executionContext) marshalOAudioOrder2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudioOrder(ctx context.Context, sel ast.SelectionSet, v *entity.AudioOrder) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -7384,30 +7642,30 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return graphql.MarshalBoolean(*v)
 }
 
-func (ec *executionContext) marshalOCommentEdge2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCommentEdge(ctx context.Context, sel ast.SelectionSet, v *entity2.CommentEdge) graphql.Marshaler {
+func (ec *executionContext) marshalOCommentEdge2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐCommentEdge(ctx context.Context, sel ast.SelectionSet, v *entity.CommentEdge) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._CommentEdge(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOCommentOrderField2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCommentOrderField(ctx context.Context, v interface{}) (*entity2.CommentOrderField, error) {
+func (ec *executionContext) unmarshalOCommentOrderField2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐCommentOrderField(ctx context.Context, v interface{}) (*entity.CommentOrderField, error) {
 	if v == nil {
 		return nil, nil
 	}
-	var res = new(entity2.CommentOrderField)
+	var res = new(entity.CommentOrderField)
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOCommentOrderField2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCommentOrderField(ctx context.Context, sel ast.SelectionSet, v *entity2.CommentOrderField) graphql.Marshaler {
+func (ec *executionContext) marshalOCommentOrderField2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐCommentOrderField(ctx context.Context, sel ast.SelectionSet, v *entity.CommentOrderField) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return v
 }
 
-func (ec *executionContext) unmarshalOCreateAudioInput2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐCreateAudioInput(ctx context.Context, v interface{}) (*entity2.CreateAudioInput, error) {
+func (ec *executionContext) unmarshalOCreateAudioInput2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐCreateAudioInput(ctx context.Context, v interface{}) (*entity.CreateAudioInput, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -7430,23 +7688,23 @@ func (ec *executionContext) marshalOCursor2ᚖstring(ctx context.Context, sel as
 	return graphql.MarshalString(*v)
 }
 
-func (ec *executionContext) marshalOFeedEdge2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐFeedEdge(ctx context.Context, sel ast.SelectionSet, v *entity2.FeedEdge) graphql.Marshaler {
+func (ec *executionContext) marshalOFeedEdge2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐFeedEdge(ctx context.Context, sel ast.SelectionSet, v *entity.FeedEdge) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._FeedEdge(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOFeedEvent2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐFeedEvent(ctx context.Context, v interface{}) (*entity2.FeedEvent, error) {
+func (ec *executionContext) unmarshalOFeedEvent2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐFeedEvent(ctx context.Context, v interface{}) (*entity.FeedEvent, error) {
 	if v == nil {
 		return nil, nil
 	}
-	var res = new(entity2.FeedEvent)
+	var res = new(entity.FeedEvent)
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOFeedEvent2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐFeedEvent(ctx context.Context, sel ast.SelectionSet, v *entity2.FeedEvent) graphql.Marshaler {
+func (ec *executionContext) marshalOFeedEvent2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐFeedEvent(ctx context.Context, sel ast.SelectionSet, v *entity.FeedEvent) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -7483,16 +7741,16 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	return graphql.MarshalInt(*v)
 }
 
-func (ec *executionContext) unmarshalOSortDirection2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐSortDirection(ctx context.Context, v interface{}) (*entity2.SortDirection, error) {
+func (ec *executionContext) unmarshalOSortDirection2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐSortDirection(ctx context.Context, v interface{}) (*entity.SortDirection, error) {
 	if v == nil {
 		return nil, nil
 	}
-	var res = new(entity2.SortDirection)
+	var res = new(entity.SortDirection)
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOSortDirection2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐSortDirection(ctx context.Context, sel ast.SelectionSet, v *entity2.SortDirection) graphql.Marshaler {
+func (ec *executionContext) marshalOSortDirection2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐSortDirection(ctx context.Context, sel ast.SelectionSet, v *entity.SortDirection) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -7541,6 +7799,12 @@ func (ec *executionContext) marshalOString2ᚕstringᚄ(ctx context.Context, sel
 		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
 	}
 
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -7559,7 +7823,15 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	return graphql.MarshalString(*v)
 }
 
-func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋdomainᚋentityᚐUser(ctx context.Context, sel ast.SelectionSet, v *entity2.User) graphql.Marshaler {
+func (ec *executionContext) unmarshalOUploadAudioInput2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐUploadAudioInput(ctx context.Context, v interface{}) (*entity.UploadAudioInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputUploadAudioInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOUser2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐUser(ctx context.Context, sel ast.SelectionSet, v *entity.User) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -7603,6 +7875,13 @@ func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgq
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -7643,6 +7922,13 @@ func (ec *executionContext) marshalO__Field2ᚕgithubᚗcomᚋ99designsᚋgqlgen
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -7683,6 +7969,13 @@ func (ec *executionContext) marshalO__InputValue2ᚕgithubᚗcomᚋ99designsᚋg
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -7730,6 +8023,13 @@ func (ec *executionContext) marshalO__Type2ᚕgithubᚗcomᚋ99designsᚋgqlgen�
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 

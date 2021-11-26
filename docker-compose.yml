@@ -7,25 +7,48 @@ services:
       dockerfile: dev.Dockerfile
     command: "air -c .air.toml"
     tty: true
+    stdin_open: true
     volumes:
       - .:/app
-#      - ./credentials:/credentials/google-app-credentials
+      - ~/.config/:/root/.config
     ports:
       - "8080:8080"
     environment:
-      - PORT=8080
-      - GOOGLE_APPLICATION_CREDENTIALS=/credentials/google-app-credentials/admin-service-account.json
-      - DATASTORE_EMULATOR_HOST=datastore:8081
-      - DATASTORE_PROJECT_ID=audity-api-dev
+      GCP_PROJECT: local
+      PORT: 8080
+#      - GOOGLE_APPLICATION_CREDENTIALS=/credentials/google-app-credentials/admin-service-account.json
+      DATASTORE_EMULATOR_HOST: datastore:8081
+      DATASTORE_PROJECT_ID: local
+      PUBSUB_EMULATOR_HOST: pubsub:8085
+      STORAGE_EMULATOR_HOST: http://gcs:4443
+      GCS_INPUT_AUDIO_BUCKET: "audio-bucket"
     depends_on:
       - datastore
+      - pubsub
   datastore:
-    image: datastore-emulator
-#    volumes:
-#      - ./.datastore:/root/.config/gcloud/emulators/datastore
+    image: google/cloud-sdk:latest
+    command: gcloud beta emulators datastore start --project=local  --host-port=0.0.0.0:8081
+    ports:
+      - 8081:8081
     environment:
-      TZ: Asia/Tokyo
-      PROJECT_ID: audity-api-dev
-      PORT: 0.0.0.0:8081
+      DATASTORE_PROJECT_ID: local
+    #    volumes:
+#      - ./.datastore:/root/.config/gcloud/emulators/datastore
+#    environment:
+#      TZ: Asia/Tokyo
+#      PROJECT_ID: audity-api-dev
+#      PORT: 0.0.0.0:8081
 #    command: |
 #      gcloud beta emulators datastore start --project=audity-api-dev --host-port=0.0.0.0:8081
+  pubsub:
+    image: google/cloud-sdk:latest
+    command: gcloud beta emulators pubsub start --project=local --host-port=0.0.0.0:8085
+    ports:
+      - 8085:8085
+  fake-gcs-server:
+    image: fsouza/fake-gcs-server
+    command: --scheme http --public-host localhost
+    ports:
+      - 4443:4443
+    volumes:
+      - ./data:/data
