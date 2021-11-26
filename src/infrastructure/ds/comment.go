@@ -5,7 +5,7 @@ import (
 	"errors"
 	"log"
 
-	entity2 "github.com/hayashiki/audiy-api/src/domain/entity"
+	"github.com/hayashiki/audiy-api/src/domain/entity"
 
 	"cloud.google.com/go/datastore"
 	"google.golang.org/api/iterator"
@@ -15,15 +15,15 @@ type commentRepository struct {
 	client *datastore.Client
 }
 
-func NewCommentRepository(client *datastore.Client) entity2.CommentRepository {
+func NewCommentRepository(client *datastore.Client) entity.CommentRepository {
 	return &commentRepository{client: client}
 }
 
 // GetAll user
-func (repo *commentRepository) GetAll(ctx context.Context, userID string, audioID string, cursor string, limit int, sort ...string) ([]*entity2.Comment, string, error) {
+func (repo *commentRepository) GetAll(ctx context.Context, userID string, audioID string, cursor string, limit int, sort ...string) ([]*entity.Comment, string, error) {
 	//userKey := entity.GetUserKey(userID)
-	audioKey := entity2.GetAudioKey(audioID)
-	query := datastore.NewQuery(entity2.CommentKind).Filter("audio_key=", audioKey)
+	audioKey := entity.GetAudioKey(audioID)
+	query := datastore.NewQuery(entity.CommentKind).Filter("audio_key=", audioKey)
 
 	if cursor != "" {
 		dsCursor, err := datastore.DecodeCursor(cursor)
@@ -43,9 +43,9 @@ func (repo *commentRepository) GetAll(ctx context.Context, userID string, audioI
 		query = query.Order(order)
 	}
 	it := repo.client.Run(ctx, query)
-	entities := make([]*entity2.Comment, 0)
+	entities := make([]*entity.Comment, 0)
 	for {
-		entity := &entity2.Comment{}
+		entity := &entity.Comment{}
 
 		_, err := it.Next(entity)
 		if errors.Is(err, iterator.Done) {
@@ -68,9 +68,9 @@ func (repo *commentRepository) GetAll(ctx context.Context, userID string, audioI
 }
 
 // Save saves comment
-func (repo *commentRepository) Save(ctx context.Context, comment *entity2.Comment) error {
+func (repo *commentRepository) Save(ctx context.Context, comment *entity.Comment) error {
 	// TODO: if exists
-	key, err := repo.client.Put(ctx, datastore.IncompleteKey(entity2.CommentKind, nil), comment)
+	key, err := repo.client.Put(ctx, datastore.IncompleteKey(entity.CommentKind, nil), comment)
 	comment.Key = key
 	comment.ID = key.ID
 	return err

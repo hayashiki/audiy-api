@@ -20,7 +20,10 @@ type Filter struct {
 	value interface{}
 }
 
-func (f *Filter) String() string {
+func (f *Filter) String() string {type EntitySpec interface {
+	GetKey() *datastore.Key
+	SetID(id *datastore.Key)
+}
 	return fmt.Sprintf("%s %s", f.key, f.value)
 }
 

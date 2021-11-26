@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	config2 "github.com/hayashiki/audiy-api/src/config"
+	"github.com/hayashiki/audiy-api/src/config"
 
 	"github.com/go-chi/chi"
 
@@ -23,11 +23,20 @@ import (
 const defaultPort = "8080"
 const shutdownTimeout = 30 * time.Second
 
+func init()  {
+	log.SetFlags(log.Llongfile)
+}
+
 func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = defaultPort
 	}
+	conf, err := config.NewConfig()
+	if err != nil {
+		log.Fatalf("failed to read config")
+	}
+
 	//Profiler initialization, best done as early as possible.
 	//if err := profiler.Start(profiler.Config{
 	//	ProjectID: os.Getenv("GCP_PROJECT"),
@@ -35,18 +44,20 @@ func main() {
 	//	log.Fatal(err)
 	//}
 
-	// Create and register a OpenCensus Stackdriver Trace exporter.
-	exporter, err := stackdriver.NewExporter(stackdriver.Options{
-		ProjectID: config2.GetProject(),
-	})
-	if err != nil {
-		log.Fatal(err)
+	if !conf.IsDev {
+		// Create and register a OpenCensus Stackdriver Trace exporter.
+		exporter, err := stackdriver.NewExporter(stackdriver.Options{
+			ProjectID: config.GetProject(),
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+		trace.RegisterExporter(exporter)
+		trace.AlwaysSample()
 	}
-	trace.RegisterExporter(exporter)
-	trace.AlwaysSample()
 
 	d := &app.Dependency{}
-	d.Inject()
+	d.Inject(conf)
 	r := chi.NewRouter()
 	app.Routing(r, d)
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
@@ -67,7 +78,7 @@ func main() {
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP, os.Interrupt)
 	<-sigCh
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 	if err := server.Shutdown(ctx); err != nil {
 		log.Fatalf("graceful shutdown failure: %s", err)
