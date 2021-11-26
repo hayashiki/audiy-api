@@ -9,7 +9,7 @@ import (
 )
 
 //go:generate mockgen -source ./slack.go -destination ./mock/mock_slack.go
-type Slack interface {
+type Service interface {
 	Upload(title, name, channel, ts string, r io.Reader) error
 	Download(url string, b *bytes.Buffer) error
 }
@@ -18,7 +18,7 @@ type client struct {
 	cli *slack.Client
 }
 
-func NewClient(token string) Slack {
+func NewClient(token string) Service {
 	return &client{
 		cli: slack.New(token),
 	}

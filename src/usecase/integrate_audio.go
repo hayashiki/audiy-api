@@ -22,8 +22,8 @@ type IntegrateAudioUsecase interface {
 }
 
 type integrateAudioUsecase struct {
-	slackSvc  slack.Slack
-	gcsSvc    gcs.Client
+	slackSvc  slack.Service
+	gcsSvc    gcs.Service
 	audioRepo entity.AudioRepository
 	feedRepo  entity.FeedRepository
 	userRepo  entity.UserRepository
@@ -57,8 +57,8 @@ func (i AudioInput) Validate() error {
 }
 
 func NewAudio(
-	slackSvc slack.Slack,
-	gcsSvc gcs.Client,
+	slackSvc slack.Service,
+	gcsSvc gcs.Service,
 	audioRepo entity.AudioRepository,
 	feedRepo entity.FeedRepository,
 	userRepo entity.UserRepository,
@@ -95,12 +95,12 @@ func (au *integrateAudioUsecase) Do(ctx context.Context, input *AudioInput) erro
 		fmt.Println("must be file .m4a: " + input.Name)
 		return nil
 	}
-	if err := au.gcsSvc.Put(ctx, fmt.Sprintf("%s%s", input.ID, ext), b.Bytes()); err != nil {
+	r := bytes.NewReader(b.Bytes())
+
+	if err := au.gcsSvc.Write(ctx, fmt.Sprintf("%s%s", input.ID, ext), r); err != nil {
 		log.Printf("failed to put gcs client")
 		return err
 	}
-
-	r := bytes.NewReader(b.Bytes())
 
 	// TODO: ffmpeg svcから実行する
 	log.Println("ffprobe test", r)
@@ -113,6 +113,7 @@ func (au *integrateAudioUsecase) Do(ctx context.Context, input *AudioInput) erro
 	log.Print(string(buf))
 
 	// file check extension only m4a
+
 	getFilePath := getFilePath(au.gcsSvc.Bucket(), fmt.Sprintf("%s%s", input.ID, ext))
 	ut := time.Unix(input.Created, 0)
 	newAudio := entity.NewAudio(input.ID, input.Name, int(100), getFilePath, input.Mimetype, ut)

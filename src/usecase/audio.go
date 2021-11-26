@@ -20,7 +20,7 @@ type AudioUsecase interface {
 }
 
 func NewAudioUsecase(
-	gcsSvc gcs.Client,
+	gcsSvc gcs.Service,
 	audioRepo entity.AudioRepository,
 	feedRepo entity.FeedRepository,
 	userRepo entity.UserRepository,
@@ -34,7 +34,7 @@ func NewAudioUsecase(
 }
 
 type audioUsecase struct {
-	gcsSvc    gcs.Client
+	gcsSvc    gcs.Service
 	audioRepo entity.AudioRepository
 	feedRepo  entity.FeedRepository
 	userRepo  entity.UserRepository
@@ -58,7 +58,7 @@ func (u *audioUsecase) UploadAudio(ctx context.Context, input *entity.UploadAudi
 	if _, err := io.Copy(&b, input.File.File); err != nil {
 		return nil, err
 	}
-	if err := u.gcsSvc.Put(ctx, genID, b.Bytes()); err != nil {
+	if err := u.gcsSvc.Write(ctx, genID, input.File.File); err != nil {
 		return nil, err
 	}
 
