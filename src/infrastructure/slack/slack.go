@@ -11,6 +11,7 @@ import (
 //go:generate mockgen -source ./slack.go -destination ./mock/mock_slack.go
 type Service interface {
 	Upload(title, name, channel, ts string, r io.Reader) error
+	// TODO: change io.Reader
 	Download(url string, b *bytes.Buffer) error
 }
 

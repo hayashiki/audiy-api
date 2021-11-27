@@ -1,0 +1,26 @@
+type MonologueElement {
+    confidence: String!
+    word: String!
+    wordKana: String!
+    startTime: Float!
+    endTime: Float!
+}
+
+type Monologue {
+    elements: [MonologueElement]
+}
+
+type Transcript {
+    id: ID!
+    body: String!
+    audio: Audio!
+    monologues: [Monologue]
+}
+
+input CreateTranscriptInput {
+    audioID: ID!
+}
+
+extend type Mutation {
+    createTranscript(input: CreateTranscriptInput!): Transcript!
+}

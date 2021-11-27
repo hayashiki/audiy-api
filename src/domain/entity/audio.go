@@ -15,7 +15,7 @@ type Audio struct {
 	Key    *datastore.Key `datastore:"__key__"`
 	ID     string         `json:"id" datastore:"-"`
 	Name   string         `json:"name" datastore:"name"`
-	Length int            `json:"length" datastore:"length"`
+	Length float64            `json:"length" datastore:"length"`
 	//URL         string         `json:"url" datastore:"url"`
 	Mimetype     string    `json:"mimetype" datastore:"mimetype"`
 	PublishedAt  time.Time `json:"published_at" datastore:"published_at"`
@@ -41,7 +41,7 @@ func (a *Audio) GetName() string {
 	return a.Name
 }
 
-func (a *Audio) GetLength() int {
+func (a *Audio) GetLength() float64 {
 	return a.Length
 }
 
@@ -67,7 +67,7 @@ func GetAudioKey(id string) *datastore.Key {
 	return entity.GetKey()
 }
 
-func NewAudio(id, name string, length int, url, mimetype string, created time.Time) *Audio {
+func NewAudio(id, name string, length float64, url, mimetype string, created time.Time) *Audio {
 	return &Audio{
 		ID:     id,
 		Name:   name,

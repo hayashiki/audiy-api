@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	entity2 "github.com/hayashiki/audiy-api/src/domain/entity"
+	"github.com/hayashiki/audiy-api/src/domain/entity"
 )
 
 func TestCommentSave(t *testing.T) {
@@ -29,7 +29,7 @@ func TestCommentSave(t *testing.T) {
 	commentRepo := commentRepository{dsCli}
 	t.Log(user)
 	t.Log(audio.ID)
-	newComment := entity2.NewComment(user.ID, audio.ID, "hogehoge")
+	newComment := entity.NewComment(user.ID, audio.ID, "hogehoge")
 	if err := commentRepo.Save(ctx, newComment); err != nil {
 		t.Error(err)
 	}

@@ -2,7 +2,8 @@ package ds
 
 import (
 	"context"
-	
+	"log"
+
 	"cloud.google.com/go/datastore"
 	"github.com/hayashiki/audiy-api/src/domain/entity"
 )
@@ -16,10 +17,16 @@ func NewTranscriptRepository(client *datastore.Client) entity.TranscriptReposito
 }
 
 // Save saves transcription
-func (repo *transcriptRepository) Save(ctx context.Context, transcription *entity.Transcript) error {
+func (repo *transcriptRepository) Save(ctx context.Context, transcript *entity.Transcript) error {
+	log.Println("db save", transcript)
 	// TODO: if exists
-	key, err := repo.client.Put(ctx, datastore.IncompleteKey(entity.TranscriptKind, nil), transcription)
-	transcription.Key = key
-	transcription.ID = key.ID
+	key, err := repo.client.Put(ctx, datastore.IncompleteKey(entity.TranscriptKind, nil), transcript)
+	if err != nil {
+		log.Println("db err", err)
+		return err
+	}
+
+	transcript.Key = key
+	transcript.ID = key.ID
 	return err
 }

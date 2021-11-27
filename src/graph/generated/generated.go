@@ -40,8 +40,10 @@ type ResolverRoot interface {
 	Audio() AudioResolver
 	Comment() CommentResolver
 	Feed() FeedResolver
+	MonologueElement() MonologueElementResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
+	Transcript() TranscriptResolver
 }
 
 type DirectiveRoot struct {
@@ -130,16 +132,29 @@ type ComplexityRoot struct {
 		URL  func(childComplexity int) int
 	}
 
+	Monologue struct {
+		Elements func(childComplexity int) int
+	}
+
+	MonologueElement struct {
+		Confidence func(childComplexity int) int
+		EndTime    func(childComplexity int) int
+		StartTime  func(childComplexity int) int
+		Word       func(childComplexity int) int
+		WordKana   func(childComplexity int) int
+	}
+
 	Mutation struct {
-		CreateAudio   func(childComplexity int, input *entity.CreateAudioInput) int
-		CreateComment func(childComplexity int, input entity.CreateCommentInput) int
-		CreateFeed    func(childComplexity int, input entity.CreateFeedInput) int
-		CreateUser    func(childComplexity int, input entity.CreateUserInput) int
-		DeleteComment func(childComplexity int, id string) int
-		DeleteFeed    func(childComplexity int, id string) int
-		UpdateComment func(childComplexity int, input entity.UpdateCommentInput) int
-		UpdateFeed    func(childComplexity int, input entity.UpdateFeedInput) int
-		UploadAudio   func(childComplexity int, input *entity.UploadAudioInput) int
+		CreateAudio      func(childComplexity int, input *entity.CreateAudioInput) int
+		CreateComment    func(childComplexity int, input entity.CreateCommentInput) int
+		CreateFeed       func(childComplexity int, input entity.CreateFeedInput) int
+		CreateTranscript func(childComplexity int, input entity.CreateTranscriptInput) int
+		CreateUser       func(childComplexity int, input entity.CreateUserInput) int
+		DeleteComment    func(childComplexity int, id string) int
+		DeleteFeed       func(childComplexity int, id string) int
+		UpdateComment    func(childComplexity int, input entity.UpdateCommentInput) int
+		UpdateFeed       func(childComplexity int, input entity.UpdateFeedInput) int
+		UploadAudio      func(childComplexity int, input *entity.UploadAudioInput) int
 	}
 
 	PageInfo struct {
@@ -154,6 +169,13 @@ type ComplexityRoot struct {
 		Comments func(childComplexity int, audioID string, cursor *string, limit *int, order []string) int
 		Feeds    func(childComplexity int, cursor *string, filter *entity.FeedEvent, limit *int, order *entity.AudioOrder) int
 		Version  func(childComplexity int) int
+	}
+
+	Transcript struct {
+		Audio      func(childComplexity int) int
+		Body       func(childComplexity int) int
+		ID         func(childComplexity int) int
+		Monologues func(childComplexity int) int
 	}
 
 	User struct {
@@ -182,6 +204,9 @@ type FeedResolver interface {
 	Audio(ctx context.Context, obj *entity.Feed) (*entity.Audio, error)
 	User(ctx context.Context, obj *entity.Feed) (*entity.User, error)
 }
+type MonologueElementResolver interface {
+	Confidence(ctx context.Context, obj *entity.MonologueElement) (string, error)
+}
 type MutationResolver interface {
 	CreateUser(ctx context.Context, input entity.CreateUserInput) (*entity.User, error)
 	CreateAudio(ctx context.Context, input *entity.CreateAudioInput) (*entity.Audio, error)
@@ -192,6 +217,7 @@ type MutationResolver interface {
 	CreateFeed(ctx context.Context, input entity.CreateFeedInput) (*entity.Feed, error)
 	UpdateFeed(ctx context.Context, input entity.UpdateFeedInput) (*entity.Feed, error)
 	DeleteFeed(ctx context.Context, id string) (*entity.DeleteFeedResult, error)
+	CreateTranscript(ctx context.Context, input entity.CreateTranscriptInput) (*entity.Transcript, error)
 }
 type QueryResolver interface {
 	Version(ctx context.Context) (*entity.Version, error)
@@ -199,6 +225,9 @@ type QueryResolver interface {
 	Audio(ctx context.Context, id string) (*entity.Audio, error)
 	Audios(ctx context.Context, cursor *string, filter *entity.AudioFilter, limit *int, order *entity.AudioOrder) (*entity.AudioConnection, error)
 	Feeds(ctx context.Context, cursor *string, filter *entity.FeedEvent, limit *int, order *entity.AudioOrder) (*entity.FeedConnection, error)
+}
+type TranscriptResolver interface {
+	Audio(ctx context.Context, obj *entity.Transcript) (*entity.Audio, error)
 }
 
 type executableSchema struct {
@@ -538,6 +567,48 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.File.URL(childComplexity), true
 
+	case "Monologue.elements":
+		if e.complexity.Monologue.Elements == nil {
+			break
+		}
+
+		return e.complexity.Monologue.Elements(childComplexity), true
+
+	case "MonologueElement.confidence":
+		if e.complexity.MonologueElement.Confidence == nil {
+			break
+		}
+
+		return e.complexity.MonologueElement.Confidence(childComplexity), true
+
+	case "MonologueElement.endTime":
+		if e.complexity.MonologueElement.EndTime == nil {
+			break
+		}
+
+		return e.complexity.MonologueElement.EndTime(childComplexity), true
+
+	case "MonologueElement.startTime":
+		if e.complexity.MonologueElement.StartTime == nil {
+			break
+		}
+
+		return e.complexity.MonologueElement.StartTime(childComplexity), true
+
+	case "MonologueElement.word":
+		if e.complexity.MonologueElement.Word == nil {
+			break
+		}
+
+		return e.complexity.MonologueElement.Word(childComplexity), true
+
+	case "MonologueElement.wordKana":
+		if e.complexity.MonologueElement.WordKana == nil {
+			break
+		}
+
+		return e.complexity.MonologueElement.WordKana(childComplexity), true
+
 	case "Mutation.createAudio":
 		if e.complexity.Mutation.CreateAudio == nil {
 			break
@@ -573,6 +644,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.CreateFeed(childComplexity, args["input"].(entity.CreateFeedInput)), true
+
+	case "Mutation.createTranscript":
+		if e.complexity.Mutation.CreateTranscript == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createTranscript_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateTranscript(childComplexity, args["input"].(entity.CreateTranscriptInput)), true
 
 	case "Mutation.createUser":
 		if e.complexity.Mutation.CreateUser == nil {
@@ -722,6 +805,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Version(childComplexity), true
 
+	case "Transcript.audio":
+		if e.complexity.Transcript.Audio == nil {
+			break
+		}
+
+		return e.complexity.Transcript.Audio(childComplexity), true
+
+	case "Transcript.body":
+		if e.complexity.Transcript.Body == nil {
+			break
+		}
+
+		return e.complexity.Transcript.Body(childComplexity), true
+
+	case "Transcript.id":
+		if e.complexity.Transcript.ID == nil {
+			break
+		}
+
+		return e.complexity.Transcript.ID(childComplexity), true
+
+	case "Transcript.monologues":
+		if e.complexity.Transcript.Monologues == nil {
+			break
+		}
+
+		return e.complexity.Transcript.Monologues(childComplexity), true
+
 	case "User.email":
 		if e.complexity.User.Email == nil {
 			break
@@ -838,7 +949,7 @@ var sources = []*ast.Source{
 	{Name: "schema/audio.graphqls", Input: `type Audio implements Node {
     id: ID!
     name: String!
-    length: Int!
+    length: Float!
     likeCount: Int!
     playCount: Int!
     commentCount: Int!
@@ -928,7 +1039,7 @@ input CreateAudioInput {
     name: String!
     url: String!
     mimetype: String!
-    length: Int!
+    length: Float!
 }
 `, BuiltIn: false},
 	{Name: "schema/comment.graphqls", Input: `### Comment ###
@@ -1100,6 +1211,33 @@ input QuerySpec {
 scalar Cursor
 scalar DateTime
 `, BuiltIn: false},
+	{Name: "schema/transcribe.graphqls", Input: `type MonologueElement {
+    confidence: String!
+    word: String!
+    wordKana: String!
+    startTime: Float!
+    endTime: Float!
+}
+
+type Monologue {
+    elements: [MonologueElement]
+}
+
+type Transcript {
+    id: ID!
+    body: String!
+    audio: Audio!
+    monologues: [Monologue]
+}
+
+input CreateTranscriptInput {
+    audioID: ID!
+}
+
+extend type Mutation {
+    createTranscript(input: CreateTranscriptInput!): Transcript!
+}
+`, BuiltIn: false},
 	{Name: "schema/user.graphqls", Input: `type User implements Node {
     id: ID!
     email: String!
@@ -1169,6 +1307,21 @@ func (ec *executionContext) field_Mutation_createFeed_args(ctx context.Context, 
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 		arg0, err = ec.unmarshalNCreateFeedInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐCreateFeedInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createTranscript_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 entity.CreateTranscriptInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNCreateTranscriptInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐCreateTranscriptInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1561,9 +1714,9 @@ func (ec *executionContext) _Audio_length(ctx context.Context, field graphql.Col
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(float64)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Audio_likeCount(ctx context.Context, field graphql.CollectedField, obj *entity.Audio) (ret graphql.Marshaler) {
@@ -3068,6 +3221,213 @@ func (ec *executionContext) _File_url(ctx context.Context, field graphql.Collect
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Monologue_elements(ctx context.Context, field graphql.CollectedField, obj *entity.Monologue) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Monologue",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Elements, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]entity.MonologueElement)
+	fc.Result = res
+	return ec.marshalOMonologueElement2ᚕgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐMonologueElement(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MonologueElement_confidence(ctx context.Context, field graphql.CollectedField, obj *entity.MonologueElement) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MonologueElement",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.MonologueElement().Confidence(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MonologueElement_word(ctx context.Context, field graphql.CollectedField, obj *entity.MonologueElement) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MonologueElement",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Word, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MonologueElement_wordKana(ctx context.Context, field graphql.CollectedField, obj *entity.MonologueElement) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MonologueElement",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.WordKana, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MonologueElement_startTime(ctx context.Context, field graphql.CollectedField, obj *entity.MonologueElement) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MonologueElement",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.StartTime, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MonologueElement_endTime(ctx context.Context, field graphql.CollectedField, obj *entity.MonologueElement) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MonologueElement",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.EndTime, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(float64)
+	fc.Result = res
+	return ec.marshalNFloat2float64(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Mutation_createUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3441,6 +3801,48 @@ func (ec *executionContext) _Mutation_deleteFeed(ctx context.Context, field grap
 	res := resTmp.(*entity.DeleteFeedResult)
 	fc.Result = res
 	return ec.marshalNDeleteFeedResult2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐDeleteFeedResult(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_createTranscript(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_createTranscript_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateTranscript(rctx, args["input"].(entity.CreateTranscriptInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*entity.Transcript)
+	fc.Result = res
+	return ec.marshalNTranscript2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐTranscript(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PageInfo_cursor(ctx context.Context, field graphql.CollectedField, obj *entity.PageInfo) (ret graphql.Marshaler) {
@@ -3817,6 +4219,143 @@ func (ec *executionContext) _Query___schema(ctx context.Context, field graphql.C
 	res := resTmp.(*introspection.Schema)
 	fc.Result = res
 	return ec.marshalO__Schema2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐSchema(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Transcript_id(ctx context.Context, field graphql.CollectedField, obj *entity.Transcript) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Transcript",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int64)
+	fc.Result = res
+	return ec.marshalNID2int64(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Transcript_body(ctx context.Context, field graphql.CollectedField, obj *entity.Transcript) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Transcript",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Body, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Transcript_audio(ctx context.Context, field graphql.CollectedField, obj *entity.Transcript) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Transcript",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Transcript().Audio(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*entity.Audio)
+	fc.Result = res
+	return ec.marshalNAudio2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐAudio(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Transcript_monologues(ctx context.Context, field graphql.CollectedField, obj *entity.Transcript) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Transcript",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Monologues, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]entity.Monologue)
+	fc.Result = res
+	return ec.marshalOMonologue2ᚕgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐMonologue(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *entity.User) (ret graphql.Marshaler) {
@@ -5332,7 +5871,7 @@ func (ec *executionContext) unmarshalInputCreateAudioInput(ctx context.Context, 
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("length"))
-			it.Length, err = ec.unmarshalNInt2int(ctx, v)
+			it.Length, err = ec.unmarshalNFloat2float64(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5375,6 +5914,29 @@ func (ec *executionContext) unmarshalInputCreateCommentInput(ctx context.Context
 
 func (ec *executionContext) unmarshalInputCreateFeedInput(ctx context.Context, obj interface{}) (entity.CreateFeedInput, error) {
 	var it entity.CreateFeedInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "audioID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("audioID"))
+			it.AudioID, err = ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputCreateTranscriptInput(ctx context.Context, obj interface{}) (entity.CreateTranscriptInput, error) {
+	var it entity.CreateTranscriptInput
 	asMap := map[string]interface{}{}
 	for k, v := range obj.(map[string]interface{}) {
 		asMap[k] = v
@@ -6292,6 +6854,86 @@ func (ec *executionContext) _File(ctx context.Context, sel ast.SelectionSet, obj
 	return out
 }
 
+var monologueImplementors = []string{"Monologue"}
+
+func (ec *executionContext) _Monologue(ctx context.Context, sel ast.SelectionSet, obj *entity.Monologue) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, monologueImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Monologue")
+		case "elements":
+			out.Values[i] = ec._Monologue_elements(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var monologueElementImplementors = []string{"MonologueElement"}
+
+func (ec *executionContext) _MonologueElement(ctx context.Context, sel ast.SelectionSet, obj *entity.MonologueElement) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, monologueElementImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("MonologueElement")
+		case "confidence":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._MonologueElement_confidence(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "word":
+			out.Values[i] = ec._MonologueElement_word(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "wordKana":
+			out.Values[i] = ec._MonologueElement_wordKana(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "startTime":
+			out.Values[i] = ec._MonologueElement_startTime(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "endTime":
+			out.Values[i] = ec._MonologueElement_endTime(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var mutationImplementors = []string{"Mutation"}
 
 func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -6346,6 +6988,11 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "deleteFeed":
 			out.Values[i] = ec._Mutation_deleteFeed(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "createTranscript":
+			out.Values[i] = ec._Mutation_createTranscript(ctx, field)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -6483,6 +7130,54 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Values[i] = ec._Query___type(ctx, field)
 		case "__schema":
 			out.Values[i] = ec._Query___schema(ctx, field)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var transcriptImplementors = []string{"Transcript"}
+
+func (ec *executionContext) _Transcript(ctx context.Context, sel ast.SelectionSet, obj *entity.Transcript) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, transcriptImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Transcript")
+		case "id":
+			out.Values[i] = ec._Transcript_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "body":
+			out.Values[i] = ec._Transcript_body(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "audio":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Transcript_audio(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "monologues":
+			out.Values[i] = ec._Transcript_monologues(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -6990,6 +7685,11 @@ func (ec *executionContext) unmarshalNCreateFeedInput2githubᚗcomᚋhayashiki�
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNCreateTranscriptInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐCreateTranscriptInput(ctx context.Context, v interface{}) (entity.CreateTranscriptInput, error) {
+	res, err := ec.unmarshalInputCreateTranscriptInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNCreateUserInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐCreateUserInput(ctx context.Context, v interface{}) (entity.CreateUserInput, error) {
 	res, err := ec.unmarshalInputCreateUserInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -7114,6 +7814,21 @@ func (ec *executionContext) marshalNFeedEvent2githubᚗcomᚋhayashikiᚋaudiy�
 	return v
 }
 
+func (ec *executionContext) unmarshalNFloat2float64(ctx context.Context, v interface{}) (float64, error) {
+	res, err := graphql.UnmarshalFloat(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNFloat2float64(ctx context.Context, sel ast.SelectionSet, v float64) graphql.Marshaler {
+	res := graphql.MarshalFloat(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) unmarshalNID2int64(ctx context.Context, v interface{}) (int64, error) {
 	res, err := graphql.UnmarshalInt64(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -7197,6 +7912,20 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNTranscript2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐTranscript(ctx context.Context, sel ast.SelectionSet, v entity.Transcript) graphql.Marshaler {
+	return ec._Transcript(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNTranscript2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐTranscript(ctx context.Context, sel ast.SelectionSet, v *entity.Transcript) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Transcript(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNUpdateCommentInput2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐUpdateCommentInput(ctx context.Context, v interface{}) (entity.UpdateCommentInput, error) {
@@ -7739,6 +8468,96 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 		return graphql.Null
 	}
 	return graphql.MarshalInt(*v)
+}
+
+func (ec *executionContext) marshalOMonologue2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐMonologue(ctx context.Context, sel ast.SelectionSet, v entity.Monologue) graphql.Marshaler {
+	return ec._Monologue(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOMonologue2ᚕgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐMonologue(ctx context.Context, sel ast.SelectionSet, v []entity.Monologue) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOMonologue2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐMonologue(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	return ret
+}
+
+func (ec *executionContext) marshalOMonologueElement2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐMonologueElement(ctx context.Context, sel ast.SelectionSet, v entity.MonologueElement) graphql.Marshaler {
+	return ec._MonologueElement(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOMonologueElement2ᚕgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐMonologueElement(ctx context.Context, sel ast.SelectionSet, v []entity.MonologueElement) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOMonologueElement2githubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐMonologueElement(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalOSortDirection2ᚖgithubᚗcomᚋhayashikiᚋaudiyᚑapiᚋsrcᚋdomainᚋentityᚐSortDirection(ctx context.Context, v interface{}) (*entity.SortDirection, error) {

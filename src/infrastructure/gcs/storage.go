@@ -4,6 +4,7 @@ import (
 	"cloud.google.com/go/storage"
 	"context"
 	"io"
+	"log"
 )
 
 type Service interface {
@@ -36,6 +37,7 @@ func (s *service) Read(ctx context.Context, name string) (io.ReadCloser, error) 
 	}
 	defer client.Close()
 
+	log.Println(s.bucket, name)
 	return client.Bucket(s.bucket).Object(name).NewReader(ctx)
 }
 

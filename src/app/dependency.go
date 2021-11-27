@@ -51,9 +51,7 @@ func (d *Dependency) Inject(conf config.Config) {
 	gcsSvc := gcs.NewService(conf.GCSInputAudioBucket)
 	slackSvc := slack.NewClient(conf.SlackBotToken)
 
-	prover := ffmpeg.Service{}
-	log.Println(prover)
-
+	proveSvc := ffmpeg.Service{}
 	transcoder := ffmpeg.Transcoder{}
 	transcriptSvc  := transcript.NewSpeechRecogniser()
 
@@ -72,7 +70,7 @@ func (d *Dependency) Inject(conf config.Config) {
 	commentUsecase := usecase.NewCommentUsecase(commentRepo, audioRepo)
 	userUsecase := usecase.NewUserUsecase(userRepo, audioRepo, feedRepo)
 	feedUsecase := usecase.NewFeedUsecase(feedRepo, audioRepo)
-	transcriptUsecase := usecase.NewTranscriptAudioUsecase(gcsSvc, audioRepo, transcriptRepo, prover, transcoder, transcriptSvc)
+	transcriptUsecase := usecase.NewTranscriptAudioUsecase(gcsSvc, audioRepo, transcriptRepo, proveSvc, transcoder, transcriptSvc)
 
 	logger := logging.NewLogger(conf.IsDev)
 
@@ -104,6 +102,6 @@ func (d *Dependency) Inject(conf config.Config) {
 		Propagation: &propagation.HTTPFormat{},
 	}
 
-	apiHandler := handler.NewAPIHandler(slackSvc, gcsSvc, audioRepo, feedRepo, userRepo)
+	apiHandler := handler.NewAPIHandler(slackSvc, gcsSvc, proveSvc, audioRepo, feedRepo, userRepo)
 	d.apiHandler = apiHandler
 }

@@ -4,56 +4,56 @@ import (
 	"context"
 	"log"
 
-	entity2 "github.com/hayashiki/audiy-api/src/domain/entity"
+	"github.com/hayashiki/audiy-api/src/domain/entity"
 )
 
 type FeedUsecase interface {
-	GetConnection(ctx context.Context, userID string, cursor string, limit int, filter *entity2.FeedEvent, order []string) (*entity2.FeedConnection, error)
-	Get(ctx context.Context, id int64, userID string) (*entity2.Feed, error)
-	Put(ctx context.Context, userID string, audioID string, event entity2.FeedEvent) (*entity2.Feed, error)
+	GetConnection(ctx context.Context, userID string, cursor string, limit int, filter *entity.FeedEvent, order []string) (*entity.FeedConnection, error)
+	Get(ctx context.Context, id int64, userID string) (*entity.Feed, error)
+	Put(ctx context.Context, userID string, audioID string, event entity.FeedEvent) (*entity.Feed, error)
 }
 
-func NewFeedUsecase(feedRepo entity2.FeedRepository, audioRepo entity2.AudioRepository) FeedUsecase {
+func NewFeedUsecase(feedRepo entity.FeedRepository, audioRepo entity.AudioRepository) FeedUsecase {
 	return &feedUsecase{feedRepo: feedRepo, audioRepo: audioRepo}
 }
 
 type feedUsecase struct {
-	feedRepo  entity2.FeedRepository
-	audioRepo entity2.AudioRepository
+	feedRepo  entity.FeedRepository
+	audioRepo entity.AudioRepository
 }
 
-func (u *feedUsecase) GetConnection(ctx context.Context, userID string, cursor string, limit int, filter *entity2.FeedEvent, order []string) (*entity2.FeedConnection, error) {
+func (u *feedUsecase) GetConnection(ctx context.Context, userID string, cursor string, limit int, filter *entity.FeedEvent, order []string) (*entity.FeedConnection, error) {
 	var filters map[string]interface{}
 
 	if filter == nil {
 		filter = nil
 	} else {
 		switch *filter {
-		case entity2.FeedEventLiked:
+		case entity.FeedEventLiked:
 			filters = map[string]interface{}{
 				"liked": true,
 			}
-		case entity2.FeedEventUnliked:
+		case entity.FeedEventUnliked:
 			filters = map[string]interface{}{
 				"liked": false,
 			}
-		case entity2.FeedEventStared:
+		case entity.FeedEventStared:
 			filters = map[string]interface{}{
 				"stared": true,
 			}
-		case entity2.FeedEventUnstared:
+		case entity.FeedEventUnstared:
 			filters = map[string]interface{}{
 				"stared": false,
 			}
-		case entity2.FeedEventPlayed:
+		case entity.FeedEventPlayed:
 			filters = map[string]interface{}{
 				"played": true,
 			}
-		case entity2.FeedEventUnplayed:
+		case entity.FeedEventUnplayed:
 			filters = map[string]interface{}{
 				"played": false,
 			}
-		case entity2.FeedEventAll:
+		case entity.FeedEventAll:
 			filters = map[string]interface{}{}
 		default:
 			filters = map[string]interface{}{}
@@ -64,15 +64,15 @@ func (u *feedUsecase) GetConnection(ctx context.Context, userID string, cursor s
 	if err != nil {
 		return nil, err
 	}
-	feedEdges := make([]*entity2.FeedEdge, len(feeds))
+	feedEdges := make([]*entity.FeedEdge, len(feeds))
 	for i, a := range feeds {
-		feedEdges[i] = &entity2.FeedEdge{
+		feedEdges[i] = &entity.FeedEdge{
 			Cursor: nextCursor,
 			Node:   a,
 		}
 	}
-	return &entity2.FeedConnection{
-		PageInfo: &entity2.PageInfo{
+	return &entity.FeedConnection{
+		PageInfo: &entity.PageInfo{
 			Cursor:  nextCursor,
 			HasMore: HasMore,
 		},
@@ -80,11 +80,11 @@ func (u *feedUsecase) GetConnection(ctx context.Context, userID string, cursor s
 	}, nil
 }
 
-func (u *feedUsecase) Get(ctx context.Context, id int64, userID string) (*entity2.Feed, error) {
+func (u *feedUsecase) Get(ctx context.Context, id int64, userID string) (*entity.Feed, error) {
 	return u.feedRepo.Find(ctx, id, userID)
 }
 
-func (u *feedUsecase) Put(ctx context.Context, userID string, audioID string, event entity2.FeedEvent) (*entity2.Feed, error) {
+func (u *feedUsecase) Put(ctx context.Context, userID string, audioID string, event entity.FeedEvent) (*entity.Feed, error) {
 	feed, err := u.feedRepo.FindByAudio(ctx, userID, audioID)
 	if err != nil {
 		return nil, err
@@ -96,31 +96,31 @@ func (u *feedUsecase) Put(ctx context.Context, userID string, audioID string, ev
 	}
 
 	switch event {
-	case entity2.FeedEventPlayed:
+	case entity.FeedEventPlayed:
 		audio.PlayCount += 1
 		feed.Played = true
-	case entity2.FeedEventUnplayed:
+	case entity.FeedEventUnplayed:
 		if !feed.Played {
 			return feed, nil
 		}
 		feed.Played = false
-	case entity2.FeedEventStared:
+	case entity.FeedEventStared:
 		if feed.Stared {
 			return feed, nil
 		}
 		feed.Stared = true
-	case entity2.FeedEventUnstared:
+	case entity.FeedEventUnstared:
 		if !feed.Stared {
 			return feed, nil
 		}
 		feed.Stared = false
-	case entity2.FeedEventLiked:
+	case entity.FeedEventLiked:
 		if feed.Liked {
 			return feed, nil
 		}
 		feed.Liked = true
 		audio.LikeCount += 1
-	case entity2.FeedEventUnliked:
+	case entity.FeedEventUnliked:
 		if !feed.Liked {
 			return feed, nil
 		}

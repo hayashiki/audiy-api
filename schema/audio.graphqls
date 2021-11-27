@@ -1,7 +1,7 @@
 type Audio implements Node {
     id: ID!
     name: String!
-    length: Int!
+    length: Float!
     likeCount: Int!
     playCount: Int!
     commentCount: Int!
@@ -91,5 +91,5 @@ input CreateAudioInput {
     name: String!
     url: String!
     mimetype: String!
-    length: Int!
+    length: Float!
 }

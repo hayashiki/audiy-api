@@ -65,7 +65,7 @@ func (u *audioUsecase) UploadAudio(ctx context.Context, input *entity.UploadAudi
 	// 一旦テスト的にここでとめる
 	return nil, nil
 
-	newAudio := entity.NewAudio(genID, input.File.Filename, int(100), "dummy", input.File.ContentType, time.Now())
+	newAudio := entity.NewAudio(genID, input.File.Filename, float64(100), "dummy", input.File.ContentType, time.Now())
 
 	err := u.audioRepo.Save(ctx, newAudio)
 	log.Printf("newAudio %+v", newAudio.GetKey())

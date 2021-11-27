@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	entity2 "github.com/hayashiki/audiy-api/src/domain/entity"
+	"github.com/hayashiki/audiy-api/src/domain/entity"
 )
 
 func TestSaveAndGetAudio(t *testing.T) {
@@ -29,12 +29,12 @@ func TestSaveAndGetAudio(t *testing.T) {
 	if !exists {
 		t.Fatal("not exists user data")
 	}
-	newTestAudio1 := entity2.NewAudio("dummy1", "dummy1", 100, "url", "audio/mp4", time.Now())
+	newTestAudio1 := entity.NewAudio("dummy1", "dummy1", 100, "url", "audio/mp4", time.Now())
 	err = audioRepo.Save(ctx, newTestAudio1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	newTestAudio2 := entity2.NewAudio("dummy2", "dummy2", 100, "url", "audio/mp4", time.Now())
+	newTestAudio2 := entity.NewAudio("dummy2", "dummy2", 100, "url", "audio/mp4", time.Now())
 	err = audioRepo.Save(ctx, newTestAudio2)
 	if err != nil {
 		t.Fatal(err)
