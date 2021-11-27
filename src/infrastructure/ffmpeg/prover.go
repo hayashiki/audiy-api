@@ -19,6 +19,7 @@ func init() {
 	}
 }
 
+// TODO: rename
 type Service struct {
 	inputPath string
 	outputPath string

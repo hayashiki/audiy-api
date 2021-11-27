@@ -16,6 +16,7 @@ const (
 
 type SpeechRecogniser interface {
 	Recognize(ctx context.Context, file io.Reader) (*speechpb.LongRunningRecognizeResponse, error)
+	RecognizeGCS(ctx context.Context, gcsURL string) (*speechpb.LongRunningRecognizeResponse, error)
 }
 
 type speechRecogniser struct {
@@ -51,6 +52,37 @@ func (s *speechRecogniser) Recognize(ctx context.Context, file io.Reader) (*spee
 		},
 		Audio: &speechpb.RecognitionAudio{
 			AudioSource: &speechpb.RecognitionAudio_Content{Content: buf.Bytes()},
+		},
+	}
+
+	op, err := client.LongRunningRecognize(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := op.Wait(ctx)
+	if err != nil {
+		return nil, err
+	}
+	//result := NewTranscriptionResult(resp)
+	return resp, nil
+}
+
+func (s *speechRecogniser) RecognizeGCS(ctx context.Context, gcsURL string) (*speechpb.LongRunningRecognizeResponse, error) {
+	client, err := s.new(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	req := &speechpb.LongRunningRecognizeRequest{
+		Config: &speechpb.RecognitionConfig{
+			Encoding:                   RecognitionConfig,
+			SampleRateHertz:            AudioRateHertz,
+			LanguageCode:               AudioLang,
+			EnableAutomaticPunctuation: true,
+			EnableWordTimeOffsets: true,
+		},
+		Audio: &speechpb.RecognitionAudio{
+			AudioSource: &speechpb.RecognitionAudio_Uri{Uri: gcsURL},
 		},
 	}
 

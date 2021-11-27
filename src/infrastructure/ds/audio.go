@@ -3,9 +3,8 @@ package ds
 import (
 	"context"
 	"errors"
+	"github.com/hayashiki/audiy-api/src/domain/entity"
 	"log"
-
-	entity2 "github.com/hayashiki/audiy-api/src/domain/entity"
 
 	"cloud.google.com/go/datastore"
 	"google.golang.org/api/iterator"
@@ -17,7 +16,7 @@ type audioRepository struct {
 }
 
 // NewAudioRepository returns the AudioRepository
-func NewAudioRepository(client *datastore.Client) entity2.AudioRepository {
+func NewAudioRepository(client *datastore.Client) entity.AudioRepository {
 	return &audioRepository{client: client}
 }
 
@@ -28,8 +27,8 @@ func (repo *audioRepository) Exists(ctx context.Context, id string) bool {
 }
 
 // FindAll finds all radios
-func (repo *audioRepository) FindAll(ctx context.Context, filters map[string]interface{}, cursor string, limit int, sort ...string) ([]*entity2.Audio, string, error) {
-	query := datastore.NewQuery(entity2.AudioKind)
+func (repo *audioRepository) FindAll(ctx context.Context, filters map[string]interface{}, cursor string, limit int, sort ...string) ([]*entity.Audio, string, error) {
+	query := datastore.NewQuery(entity.AudioKind)
 	if cursor != "" {
 		dsCursor, err := datastore.DecodeCursor(cursor)
 		if err != nil {
@@ -52,9 +51,9 @@ func (repo *audioRepository) FindAll(ctx context.Context, filters map[string]int
 	}
 	log.Printf("query %+v", query)
 	it := repo.client.Run(ctx, query)
-	entities := make([]*entity2.Audio, 0)
+	entities := make([]*entity.Audio, 0)
 	for {
-		entity := &entity2.Audio{}
+		entity := &entity.Audio{}
 
 		_, err := it.Next(entity)
 		if errors.Is(err, iterator.Done) {
@@ -77,16 +76,16 @@ func (repo *audioRepository) FindAll(ctx context.Context, filters map[string]int
 }
 
 // Find finds audio given id
-func (repo *audioRepository) Find(ctx context.Context, id string) (*entity2.Audio, error) {
-	var audio entity2.Audio
-	err := repo.client.Get(ctx, datastore.NameKey(entity2.AudioKind, id, nil), &audio)
+func (repo *audioRepository) Find(ctx context.Context, id string) (*entity.Audio, error) {
+	var audio entity.Audio
+	err := repo.client.Get(ctx, datastore.NameKey(entity.AudioKind, id, nil), &audio)
 	audio.ID = audio.Key.Name
 	return &audio, err
 }
 
 // Save saves audios
-func (repo *audioRepository) Save(ctx context.Context, audio *entity2.Audio) error {
-	key, err := repo.client.Put(ctx, datastore.NameKey(entity2.AudioKind, audio.ID, nil), audio)
+func (repo *audioRepository) Save(ctx context.Context, audio *entity.Audio) error {
+	key, err := repo.client.Put(ctx, datastore.NameKey(entity.AudioKind, audio.ID, nil), audio)
 	audio.Key = key
 
 	return err

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 
-	entity2 "github.com/hayashiki/audiy-api/src/domain/entity"
+	"github.com/hayashiki/audiy-api/src/domain/entity"
 
 	"cloud.google.com/go/datastore"
 	"google.golang.org/api/iterator"
@@ -18,20 +18,20 @@ type feedRepository struct {
 }
 
 // NewFeedRepository returns the FeedRepository
-func NewFeedRepository(client *datastore.Client) entity2.FeedRepository {
+func NewFeedRepository(client *datastore.Client) entity.FeedRepository {
 	return &feedRepository{client: client}
 }
 
 func (repo *feedRepository) key(userID string) *datastore.Key {
-	return datastore.IncompleteKey(entity2.FeedKind, repo.parentKey(userID))
+	return datastore.IncompleteKey(entity.FeedKind, repo.parentKey(userID))
 }
 
 func (repo *feedRepository) getKey(id int64, userID string) *datastore.Key {
-	return datastore.IDKey(entity2.FeedKind, id, repo.parentKey(userID))
+	return datastore.IDKey(entity.FeedKind, id, repo.parentKey(userID))
 }
 
 func (repo *feedRepository) parentKey(userID string) *datastore.Key {
-	return datastore.NameKey(entity2.UserKind, userID, nil)
+	return datastore.NameKey(entity.UserKind, userID, nil)
 }
 
 // Exists exists item
@@ -41,9 +41,9 @@ func (repo *feedRepository) Exists(ctx context.Context, id int64, userID string)
 }
 
 // FindAll finds all Feeds
-func (repo *feedRepository) FindAll(ctx context.Context, userID string, filters map[string]interface{}, cursor string, limit int, sort ...string) ([]*entity2.Feed, string, bool, error) {
-	userKey := entity2.GetUserKey(userID)
-	query := datastore.NewQuery(entity2.FeedKind).Ancestor(userKey)
+func (repo *feedRepository) FindAll(ctx context.Context, userID string, filters map[string]interface{}, cursor string, limit int, sort ...string) ([]*entity.Feed, string, bool, error) {
+	userKey := entity.GetUserKey(userID)
+	query := datastore.NewQuery(entity.FeedKind).Ancestor(userKey)
 	if cursor != "" {
 		dsCursor, err := datastore.DecodeCursor(cursor)
 		if err != nil {
@@ -65,12 +65,12 @@ func (repo *feedRepository) FindAll(ctx context.Context, userID string, filters 
 	}
 	log.Printf("query %+v", query)
 	it := repo.client.Run(ctx, query)
-	entities := make([]*entity2.Feed, 0, limit)
+	entities := make([]*entity.Feed, 0, limit)
 	count := 0
 	hasMore := false
 	var nextCursor datastore.Cursor
 	for {
-		entity := &entity2.Feed{}
+		entity := &entity.Feed{}
 
 		_, err := it.Next(entity)
 		if errors.Is(err, iterator.Done) {
@@ -101,17 +101,17 @@ func (repo *feedRepository) FindAll(ctx context.Context, userID string, filters 
 }
 
 // Find finds Feed given id
-func (repo *feedRepository) Find(ctx context.Context, id int64, userID string) (*entity2.Feed, error) {
-	var feed entity2.Feed
+func (repo *feedRepository) Find(ctx context.Context, id int64, userID string) (*entity.Feed, error) {
+	var feed entity.Feed
 	err := repo.client.Get(ctx, repo.getKey(id, userID), &feed)
 	feed.ID = feed.Key.ID
 	return &feed, err
 }
 
-func (repo *feedRepository) FindByAudio(ctx context.Context, userID string, audioID string) (*entity2.Feed, error) {
-	userKey := entity2.GetUserKey(userID)
-	audioKey := entity2.GetAudioKey(audioID)
-	q := datastore.NewQuery(entity2.FeedKind).Ancestor(userKey).KeysOnly().Filter("audio_key =", audioKey).Limit(1)
+func (repo *feedRepository) FindByAudio(ctx context.Context, userID string, audioID string) (*entity.Feed, error) {
+	userKey := entity.GetUserKey(userID)
+	audioKey := entity.GetAudioKey(audioID)
+	q := datastore.NewQuery(entity.FeedKind).Ancestor(userKey).KeysOnly().Filter("audio_key =", audioKey).Limit(1)
 
 	keys, err := repo.client.GetAll(context.Background(), q, nil)
 
@@ -119,7 +119,7 @@ func (repo *feedRepository) FindByAudio(ctx context.Context, userID string, audi
 		return nil, fmt.Errorf("not found feed keys %w", err)
 	}
 
-	var feed entity2.Feed
+	var feed entity.Feed
 
 	if err := repo.client.Get(ctx, keys[0], &feed); err != nil {
 		return nil, fmt.Errorf("not found feed %w", err)
@@ -131,7 +131,7 @@ func (repo *feedRepository) FindByAudio(ctx context.Context, userID string, audi
 }
 
 // Save saves Feeds
-func (repo *feedRepository) Save(ctx context.Context, userID string, feed *entity2.Feed) error {
+func (repo *feedRepository) Save(ctx context.Context, userID string, feed *entity.Feed) error {
 	if feed.Key != nil {
 		_, err := repo.client.Put(ctx, feed.Key, feed)
 		return err
@@ -144,7 +144,7 @@ func (repo *feedRepository) Save(ctx context.Context, userID string, feed *entit
 }
 
 // Save saves Feeds
-func (repo *feedRepository) SaveAll(ctx context.Context, userIDs []string, feeds []*entity2.Feed) error {
+func (repo *feedRepository) SaveAll(ctx context.Context, userIDs []string, feeds []*entity.Feed) error {
 	keys := make([]*datastore.Key, len(userIDs))
 	for i, u := range userIDs {
 		keys[i] = repo.key(u)

@@ -4,10 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"gopkg.in/vansante/go-ffprobe.v2"
+	"github.com/hayashiki/audiy-api/src/infrastructure/ffmpeg"
 	"log"
 	"path/filepath"
 	"time"
@@ -24,6 +23,7 @@ type IntegrateAudioUsecase interface {
 type integrateAudioUsecase struct {
 	slackSvc  slack.Service
 	gcsSvc    gcs.Service
+	proverSvc ffmpeg.Service
 	audioRepo entity.AudioRepository
 	feedRepo  entity.FeedRepository
 	userRepo  entity.UserRepository
@@ -59,6 +59,7 @@ func (i AudioInput) Validate() error {
 func NewAudio(
 	slackSvc slack.Service,
 	gcsSvc gcs.Service,
+	proverSvc ffmpeg.Service,
 	audioRepo entity.AudioRepository,
 	feedRepo entity.FeedRepository,
 	userRepo entity.UserRepository,
@@ -66,6 +67,7 @@ func NewAudio(
 	return &integrateAudioUsecase{
 		slackSvc:  slackSvc,
 		gcsSvc:    gcsSvc,
+		proverSvc: proverSvc,
 		audioRepo: audioRepo,
 		feedRepo:  feedRepo,
 		userRepo:  userRepo,
@@ -78,7 +80,7 @@ type GCSEvent struct {
 	Name   string `json:"name"`
 }
 
-// Do is ラジオ情報を保存して、コンバートしてストレージに保存
+// Do is audioを保存して、コンバートしてストレージに保存
 func (au *integrateAudioUsecase) Do(ctx context.Context, input *AudioInput) error {
 
 	// TODO:
@@ -102,21 +104,21 @@ func (au *integrateAudioUsecase) Do(ctx context.Context, input *AudioInput) erro
 		return err
 	}
 
-	// TODO: ffmpeg svcから実行する
-	log.Println("ffprobe test", r)
-	data, err := ffprobe.ProbeReader(ctx, r)
-	log.Println("ffprobe data", data)
-	buf, err := json.MarshalIndent(data, "", "  ")
+	newFile, err := au.gcsSvc.Read(ctx, fmt.Sprintf("%s%s", input.ID, ext))
 	if err != nil {
-		log.Panicf("Error unmarshalling: %v", err)
+		log.Printf("failed to read gcs client")
+		return err
 	}
-	log.Print(string(buf))
 
+	data, err := au.proverSvc.GetProbe(ctx, newFile)
+	log.Println("ffprobe data", data)
+	if err != nil {
+		return err
+	}
 	// file check extension only m4a
-
 	getFilePath := getFilePath(au.gcsSvc.Bucket(), fmt.Sprintf("%s%s", input.ID, ext))
 	ut := time.Unix(input.Created, 0)
-	newAudio := entity.NewAudio(input.ID, input.Name, int(100), getFilePath, input.Mimetype, ut)
+	newAudio := entity.NewAudio(input.ID, input.Name, data.Format.DurationSeconds, getFilePath, input.Mimetype, ut)
 	err = au.audioRepo.Save(ctx, newAudio)
 	log.Printf("newAudio %+v", newAudio.GetKey())
 	if err != nil {

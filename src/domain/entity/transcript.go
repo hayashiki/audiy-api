@@ -2,6 +2,7 @@ package entity
 
 import (
 	speechpb "google.golang.org/genproto/googleapis/cloud/speech/v1p1beta1"
+	"log"
 	"strings"
 	"time"
 
@@ -14,7 +15,7 @@ type Transcript struct {
 	Key        *datastore.Key `datastore:"__key__"`
 	ID         int64          `json:"id" datastore:"-"`
 	AudioKey   *datastore.Key `json:"audio_key" datastore:"audio_key"`
-	Body       string         `json:"body" datastore:"body"`
+	Body       string         `json:"body" datastore:"body,noindex"`
 	Monologues []Monologue `json:"monologues" datastore:"monologues"`
 	CreatedAt  time.Time `json:"createdAt" datastore:"created_at"`
 	UpdatedAt  time.Time `json:"updatedAt" datastore:"updated_at"`
@@ -52,11 +53,15 @@ func NewTranscript(audioID string, resp *speechpb.LongRunningRecognizeResponse) 
 		ws := make([]MonologueElement, len(alt.Words))
 		for i, w := range alt.Words {
 			// TODO: Wordがpipeされないケースはある？
-			parts := strings.Split(w.Word,
-				"|")
+			parts := strings.Split(w.Word, "|")
+
+			if len(parts) != 2 {
+				log.Println(parts)
+			}
+
 			ws[i] = MonologueElement{
 				Word:      parts[0],
-				WordKana:  parts[1],
+				//WordKana:  parts[1],
 				StartTime: float64(w.StartTime.Seconds) + float64(w.StartTime.Nanos)*1e-9,
 				EndTime:   float64(w.EndTime.Seconds) + float64(w.EndTime.Nanos)*1e-9,
 			}

@@ -4,25 +4,25 @@ import (
 	"context"
 	"log"
 
-	entity2 "github.com/hayashiki/audiy-api/src/domain/entity"
+	"github.com/hayashiki/audiy-api/src/domain/entity"
 )
 
 type CommentUsecase interface {
-	Save(ctx context.Context, userID string, input entity2.CreateCommentInput) (*entity2.Comment, error)
-	GetConnection(ctx context.Context, userID string, audioID string, cursor string, limit int, order []string) (*entity2.CommentConnection, error)
+	Save(ctx context.Context, userID string, input entity.CreateCommentInput) (*entity.Comment, error)
+	GetConnection(ctx context.Context, userID string, audioID string, cursor string, limit int, order []string) (*entity.CommentConnection, error)
 }
 
-func NewCommentUsecase(commentRepo entity2.CommentRepository, audioRepo entity2.AudioRepository) CommentUsecase {
+func NewCommentUsecase(commentRepo entity.CommentRepository, audioRepo entity.AudioRepository) CommentUsecase {
 	return &commentUsecase{commentRepo: commentRepo, audioRepo: audioRepo}
 }
 
 type commentUsecase struct {
-	commentRepo entity2.CommentRepository
-	audioRepo   entity2.AudioRepository
+	commentRepo entity.CommentRepository
+	audioRepo   entity.AudioRepository
 }
 
-func (c *commentUsecase) Save(ctx context.Context, userID string, input entity2.CreateCommentInput) (*entity2.Comment, error) {
-	newComment := entity2.NewComment(userID, input.AudioID, input.Body)
+func (c *commentUsecase) Save(ctx context.Context, userID string, input entity.CreateCommentInput) (*entity.Comment, error) {
+	newComment := entity.NewComment(userID, input.AudioID, input.Body)
 	err := c.commentRepo.Save(ctx, newComment)
 	if err != nil {
 		return nil, err
@@ -43,20 +43,20 @@ func (c *commentUsecase) Save(ctx context.Context, userID string, input entity2.
 	return newComment, nil
 }
 
-func (c *commentUsecase) GetConnection(ctx context.Context, userID string, audioID string, cursor string, limit int, order []string) (*entity2.CommentConnection, error) {
+func (c *commentUsecase) GetConnection(ctx context.Context, userID string, audioID string, cursor string, limit int, order []string) (*entity.CommentConnection, error) {
 	comments, nextCursor, err := c.commentRepo.GetAll(ctx, userID, audioID, cursor, limit, order...)
 	if err != nil {
 		return nil, err
 	}
-	commentEdges := make([]*entity2.CommentEdge, len(comments))
+	commentEdges := make([]*entity.CommentEdge, len(comments))
 	for i, a := range comments {
-		commentEdges[i] = &entity2.CommentEdge{
+		commentEdges[i] = &entity.CommentEdge{
 			Cursor: nextCursor,
 			Node:   a,
 		}
 	}
-	return &entity2.CommentConnection{
-		PageInfo: &entity2.PageInfo{
+	return &entity.CommentConnection{
+		PageInfo: &entity.PageInfo{
 			Cursor:  nextCursor,
 			HasMore: len(comments) != 0,
 		},
