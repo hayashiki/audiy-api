@@ -51,6 +51,7 @@ func NewAPIHandler(
 	return h.Handler()
 }
 
+// TODO: ファイルを分ける
 func (h *APIHandler) Handler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("audio called")

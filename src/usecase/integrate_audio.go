@@ -82,10 +82,10 @@ type GCSEvent struct {
 
 // Do is audioを保存して、コンバートしてストレージに保存
 func (au *integrateAudioUsecase) Do(ctx context.Context, input *AudioInput) error {
-
-	// TODO:
-	// input.IDがrepoにある、storageにある場合はスキップする
-	//fileName := filepath.Base(payload.File.URLPrivateDownload)
+	if ok := au.audioRepo.Exists(ctx, input.ID); ok {
+		log.Printf("already exists...")
+		return nil
+	}
 	b := bytes.Buffer{}
 	err := au.slackSvc.Download(input.URLPrivateDownload, &b)
 	if err != nil {
@@ -125,7 +125,10 @@ func (au *integrateAudioUsecase) Do(ctx context.Context, input *AudioInput) erro
 		return fmt.Errorf("fail to create radios record err: %w", err)
 	}
 
-	users, _ := au.userRepo.GetAll(ctx)
+	users, err := au.userRepo.GetAll(ctx)
+	if err != nil {
+		return err
+	}
 	feeds := make([]*entity.Feed, len(users))
 	userIDs := make([]string, len(users))
 	newFeed := entity.NewFeed(newAudio.Key.Name, newAudio.PublishedAt)
@@ -135,7 +138,10 @@ func (au *integrateAudioUsecase) Do(ctx context.Context, input *AudioInput) erro
 		userIDs[i] = u.ID
 		feeds[i] = newFeed
 	}
-	au.feedRepo.SaveAll(ctx, userIDs, feeds)
+	err = au.feedRepo.SaveAll(ctx, userIDs, feeds)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -15,7 +15,7 @@ type Audio struct {
 	Key    *datastore.Key `datastore:"__key__"`
 	ID     string         `json:"id" datastore:"-"`
 	Name   string         `json:"name" datastore:"name"`
-	Length float64            `json:"length" datastore:"length"`
+	Length float64        `json:"length" datastore:"length"`
 	//URL         string         `json:"url" datastore:"url"`
 	Mimetype     string    `json:"mimetype" datastore:"mimetype"`
 	PublishedAt  time.Time `json:"published_at" datastore:"published_at"`
@@ -24,6 +24,7 @@ type Audio struct {
 	LikeCount    int       `json:"like_count" datastore:"like_count"`
 	PlayCount    int       `json:"play_count" datastore:"play_count"`
 	CommentCount int       `json:"comment_count" datastore:"comment_count"`
+	Transcribed  bool      `json:"transcribed" datastore:"transcribed"`
 }
 
 func (a *Audio) GetKey() *datastore.Key {
@@ -67,6 +68,10 @@ func GetAudioKey(id string) *datastore.Key {
 	return entity.GetKey()
 }
 
+func (a *Audio) SetTranscribed() {
+	a.Transcribed = true
+}
+
 func NewAudio(id, name string, length float64, url, mimetype string, created time.Time) *Audio {
 	return &Audio{
 		ID:     id,
@@ -77,6 +82,7 @@ func NewAudio(id, name string, length float64, url, mimetype string, created tim
 		PublishedAt: created,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
+		Transcribed: false,
 	}
 }
 

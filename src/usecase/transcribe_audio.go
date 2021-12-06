@@ -30,6 +30,11 @@ func (t transcriptAudioUsecase) Do(ctx context.Context, input entity.CreateTrans
 	if err != nil {
 		return nil
 	}
+	if audio.Transcribed {
+		log.Printf("already transcribed")
+		return nil
+	}
+	log.Println(0)
 	// TODO: ".m4a" handle
 	audioReader, err := t.gcsSvc.Read(ctx, input.AudioID+".m4a")
 	if err != nil {
@@ -47,23 +52,36 @@ func (t transcriptAudioUsecase) Do(ctx context.Context, input entity.CreateTrans
 	go func() {
 		defer wg.Done()
 		// TODO: ".mp3" handle
+		log.Println(1)
 		err := t.gcsSvc.Write(ctx, input.AudioID+".mp3", convOutput)
 		if err != nil {
 			fmt.Errorf("failed to write to gcs %w", err)
 			return
 		}
 		// transcribe
+		log.Println(2, t.gcsSvc.Bucket(), input.AudioID+".mp3")
+
 		ts, err := t.transcriptSvc.RecognizeGCS(ctx, "gs://"+t.gcsSvc.Bucket()+"/"+input.AudioID+".mp3")
 		if err != nil {
+			log.Println(2.5, err)
 			fmt.Errorf("failed to recognize to gcs %w", err)
 			return
 		}
+		// TODO: transaction
+		log.Println(3)
 		newTranscript := entity.NewTranscript(audio.ID, ts)
 		if err := t.transcriptRepo.Save(ctx, newTranscript); err != nil {
 			log.Println("ds save err", err)
 			fmt.Errorf("failed to transcribe to gcs %w", err)
 			return
 		}
+		log.Println(4)
+		audio.SetTranscribed()
+		if err := t.audioRepo.Save(ctx, audio); err != nil {
+			fmt.Errorf("failed to save audio %w", err)
+			return
+		}
+		log.Println(5)
 		convOutput.Close()
 	}()
 	convProgress.Wait()

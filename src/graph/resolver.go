@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"github.com/hayashiki/audiy-api/src/graph/dataloaders"
 	"github.com/hayashiki/audiy-api/src/usecase"
 )
 
@@ -9,6 +10,7 @@ import (
 // It serves as dependency injection for your app, add any dependencies you require here.
 
 type Resolver struct {
+	dataLoaders       dataloaders.DataLoaderService
 	userUsecase       usecase.UserUsecase
 	audioUsecase      usecase.AudioUsecase
 	commentUsecase    usecase.CommentUsecase
@@ -17,6 +19,7 @@ type Resolver struct {
 }
 
 func NewResolver(
+	dataLoaders dataloaders.DataLoaderService,
 	userUsecase usecase.UserUsecase,
 	audioUsecase usecase.AudioUsecase,
 	commentUsecase usecase.CommentUsecase,
@@ -24,6 +27,7 @@ func NewResolver(
 	transcriptUsecase usecase.TranscriptAudioUsecase,
 ) *Resolver {
 	return &Resolver{
+		dataLoaders:    dataLoaders,
 		userUsecase:    userUsecase,
 		audioUsecase:   audioUsecase,
 		commentUsecase: commentUsecase,
