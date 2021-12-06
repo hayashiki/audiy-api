@@ -6,13 +6,14 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/hayashiki/audiy-api/src/infrastructure/ffmpeg"
 	"log"
 	"path/filepath"
 	"time"
 
-	entity2 "github.com/hayashiki/audiy-api/src/domain/entity"
-	gcs2 "github.com/hayashiki/audiy-api/src/infrastructure/gcs"
-	slack2 "github.com/hayashiki/audiy-api/src/infrastructure/slack"
+	entity "github.com/hayashiki/audiy-api/src/domain/entity"
+	gcs "github.com/hayashiki/audiy-api/src/infrastructure/gcs"
+	slack "github.com/hayashiki/audiy-api/src/infrastructure/slack"
 )
 
 type IntegrateAudioUsecase interface {
@@ -20,11 +21,12 @@ type IntegrateAudioUsecase interface {
 }
 
 type integrateAudioUsecase struct {
-	slackSvc  slack2.Slack
-	gcsSvc    gcs2.Client
-	audioRepo entity2.AudioRepository
-	feedRepo  entity2.FeedRepository
-	userRepo  entity2.UserRepository
+	slackSvc  slack.Service
+	gcsSvc    gcs.Service
+	proverSvc ffmpeg.Service
+	audioRepo entity.AudioRepository
+	feedRepo  entity.FeedRepository
+	userRepo  entity.UserRepository
 }
 
 type MockAudioUsecase struct {
@@ -55,15 +57,17 @@ func (i AudioInput) Validate() error {
 }
 
 func NewAudio(
-	slackSvc slack2.Slack,
-	gcsSvc gcs2.Client,
-	audioRepo entity2.AudioRepository,
-	feedRepo entity2.FeedRepository,
-	userRepo entity2.UserRepository,
+	slackSvc slack.Service,
+	gcsSvc gcs.Service,
+	proverSvc ffmpeg.Service,
+	audioRepo entity.AudioRepository,
+	feedRepo entity.FeedRepository,
+	userRepo entity.UserRepository,
 ) IntegrateAudioUsecase {
 	return &integrateAudioUsecase{
 		slackSvc:  slackSvc,
 		gcsSvc:    gcsSvc,
+		proverSvc: proverSvc,
 		audioRepo: audioRepo,
 		feedRepo:  feedRepo,
 		userRepo:  userRepo,
@@ -76,7 +80,7 @@ type GCSEvent struct {
 	Name   string `json:"name"`
 }
 
-// Do is ラジオ情報を保存して、コンバートしてストレージに保存
+// Do is audioを保存して、コンバートしてストレージに保存
 func (au *integrateAudioUsecase) Do(ctx context.Context, input *AudioInput) error {
 
 	// TODO:
@@ -93,20 +97,28 @@ func (au *integrateAudioUsecase) Do(ctx context.Context, input *AudioInput) erro
 		fmt.Println("must be file .m4a: " + input.Name)
 		return nil
 	}
-	if err := au.gcsSvc.Put(ctx, fmt.Sprintf("%s%s", input.ID, ext), b.Bytes()); err != nil {
+	r := bytes.NewReader(b.Bytes())
+
+	if err := au.gcsSvc.Write(ctx, fmt.Sprintf("%s%s", input.ID, ext), r); err != nil {
 		log.Printf("failed to put gcs client")
 		return err
 	}
 
-	//data, err := au.gcsSvc.Get(ctx, input.Name)
-	//if err != nil || data == nil {
-	//	return fmt.Errorf("failed to read gcsSvc data %w", err)
-	//}
-	// file check extension only m4a
+	newFile, err := au.gcsSvc.Read(ctx, fmt.Sprintf("%s%s", input.ID, ext))
+	if err != nil {
+		log.Printf("failed to read gcs client")
+		return err
+	}
 
+	data, err := au.proverSvc.GetProbe(ctx, newFile)
+	log.Println("ffprobe data", data)
+	if err != nil {
+		return err
+	}
+	// file check extension only m4a
 	getFilePath := getFilePath(au.gcsSvc.Bucket(), fmt.Sprintf("%s%s", input.ID, ext))
 	ut := time.Unix(input.Created, 0)
-	newAudio := entity2.NewAudio(input.ID, input.Name, int(100), getFilePath, input.Mimetype, ut)
+	newAudio := entity.NewAudio(input.ID, input.Name, data.Format.DurationSeconds, getFilePath, input.Mimetype, ut)
 	err = au.audioRepo.Save(ctx, newAudio)
 	log.Printf("newAudio %+v", newAudio.GetKey())
 	if err != nil {
@@ -114,9 +126,9 @@ func (au *integrateAudioUsecase) Do(ctx context.Context, input *AudioInput) erro
 	}
 
 	users, _ := au.userRepo.GetAll(ctx)
-	feeds := make([]*entity2.Feed, len(users))
+	feeds := make([]*entity.Feed, len(users))
 	userIDs := make([]string, len(users))
-	newFeed := entity2.NewFeed(newAudio.Key.Name, newAudio.PublishedAt)
+	newFeed := entity.NewFeed(newAudio.Key.Name, newAudio.PublishedAt)
 	newFeed.PublishedAt = newAudio.PublishedAt
 
 	for i, u := range users {

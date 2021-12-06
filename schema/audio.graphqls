@@ -1,7 +1,7 @@
 type Audio implements Node {
     id: ID!
     name: String!
-    length: Int!
+    length: Float!
     likeCount: Int!
     playCount: Int!
     commentCount: Int!
@@ -33,8 +33,8 @@ enum AudioOrder {
 }
 
 enum State {
-    Played
-    Unplayed
+    PLAYED
+    UNPLAYED
 }
 
 input AudioFilter {
@@ -53,7 +53,7 @@ extend type Query {
     ): AudioConnection!
 }
 
-input CreateAudioInput {
+input UploadAudioInput {
 #    id: ID!
 #    name: String!
 #    url: String!
@@ -69,6 +69,7 @@ input UploadAudioFileInput {
 
 extend type Mutation {
     createAudio(input: CreateAudioInput): Audio!
+    uploadAudio(input: UploadAudioInput): Audio!
 }
 
 scalar Upload
@@ -82,4 +83,13 @@ type File {
 input UploadFileInput {
     id: Int!
     file: Upload!
+}
+
+input CreateAudioInput {
+#    必須入力からはずしたい
+    id: ID!
+    name: String!
+    url: String!
+    mimetype: String!
+    length: Float!
 }

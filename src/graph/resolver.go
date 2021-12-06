@@ -1,7 +1,7 @@
 package graph
 
 import (
-	usecase2 "github.com/hayashiki/audiy-api/src/usecase"
+	"github.com/hayashiki/audiy-api/src/usecase"
 )
 
 // This file will not be regenerated automatically.
@@ -9,22 +9,25 @@ import (
 // It serves as dependency injection for your app, add any dependencies you require here.
 
 type Resolver struct {
-	userUsecase    usecase2.UserUsecase
-	audioUsecase   usecase2.AudioUsecase
-	commentUsecase usecase2.CommentUsecase
-	feedUseCase    usecase2.FeedUsecase
+	userUsecase       usecase.UserUsecase
+	audioUsecase      usecase.AudioUsecase
+	commentUsecase    usecase.CommentUsecase
+	feedUseCase       usecase.FeedUsecase
+	transcriptUsecase usecase.TranscriptAudioUsecase
 }
 
 func NewResolver(
-	userUsecase usecase2.UserUsecase,
-	audioUsecase usecase2.AudioUsecase,
-	commentUsecase usecase2.CommentUsecase,
-	feedUseCase usecase2.FeedUsecase,
+	userUsecase usecase.UserUsecase,
+	audioUsecase usecase.AudioUsecase,
+	commentUsecase usecase.CommentUsecase,
+	feedUseCase usecase.FeedUsecase,
+	transcriptUsecase usecase.TranscriptAudioUsecase,
 ) *Resolver {
 	return &Resolver{
 		userUsecase:    userUsecase,
 		audioUsecase:   audioUsecase,
 		commentUsecase: commentUsecase,
 		feedUseCase:    feedUseCase,
+		transcriptUsecase: transcriptUsecase,
 	}
 }

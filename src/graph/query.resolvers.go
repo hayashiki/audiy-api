@@ -7,11 +7,10 @@ import (
 	"context"
 	"log"
 
-	"github.com/hayashiki/audiy-api/src/version"
-
 	"github.com/hayashiki/audiy-api/src/domain/entity"
 	"github.com/hayashiki/audiy-api/src/graph/auth"
 	"github.com/hayashiki/audiy-api/src/graph/generated"
+	"github.com/hayashiki/audiy-api/src/version"
 )
 
 func (r *queryResolver) Version(ctx context.Context) (*entity.Version, error) {

@@ -28,4 +28,4 @@ datastore-build:
 	DOCKER_BUILDKIT=1 docker build -t $(SERVICE) . -f deployments/docker/datastore/Dockerfile
 
 build-api:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=readonly -ldflags="-w -s -X ${PACKAGE}/etc/version.Version=${BUILD_VERSION} -X ${PACKAGE}/etc/version.BuildTime=$(BUILD_TIME)" -v -o bin/gqlserver cmd/gqlserver/main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -mod=readonly -trimpath -ldflags="-w -s -X ${PACKAGE}/etc/version.Version=${BUILD_VERSION} -X ${PACKAGE}/etc/version.BuildTime=$(BUILD_TIME)" -v -o bin/gqlserver cmd/gqlserver/main.go

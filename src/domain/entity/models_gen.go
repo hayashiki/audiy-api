@@ -67,8 +67,11 @@ type CommentOrder struct {
 }
 
 type CreateAudioInput struct {
-	Description *string        `json:"description"`
-	File        graphql.Upload `json:"file"`
+	ID       string  `json:"id"`
+	Name     string  `json:"name"`
+	URL      string  `json:"url"`
+	Mimetype string  `json:"mimetype"`
+	Length   float64 `json:"length"`
 }
 
 type CreateCommentInput struct {
@@ -77,6 +80,10 @@ type CreateCommentInput struct {
 }
 
 type CreateFeedInput struct {
+	AudioID string `json:"audioID"`
+}
+
+type CreateTranscriptInput struct {
 	AudioID string `json:"audioID"`
 }
 
@@ -144,6 +151,11 @@ type UpdateFeedInput struct {
 
 type UploadAudioFileInput struct {
 	File graphql.Upload `json:"file"`
+}
+
+type UploadAudioInput struct {
+	Description *string        `json:"description"`
+	File        graphql.Upload `json:"file"`
 }
 
 type UploadFileInput struct {
@@ -332,8 +344,8 @@ func (e SortDirection) MarshalGQL(w io.Writer) {
 type State string
 
 const (
-	StatePlayed   State = "Played"
-	StateUnplayed State = "Unplayed"
+	StatePlayed   State = "PLAYED"
+	StateUnplayed State = "UNPLAYED"
 )
 
 var AllState = []State{

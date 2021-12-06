@@ -3,23 +3,25 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"github.com/hayashiki/audiy-api/src/infrastructure/ffmpeg"
 	"log"
 	"net/http"
 
-	entity2 "github.com/hayashiki/audiy-api/src/domain/entity"
-	gcs2 "github.com/hayashiki/audiy-api/src/infrastructure/gcs"
-	slack2 "github.com/hayashiki/audiy-api/src/infrastructure/slack"
-	usecase2 "github.com/hayashiki/audiy-api/src/usecase"
+	"github.com/hayashiki/audiy-api/src/domain/entity"
+	"github.com/hayashiki/audiy-api/src/infrastructure/gcs"
+	"github.com/hayashiki/audiy-api/src/infrastructure/slack"
+	"github.com/hayashiki/audiy-api/src/usecase"
 
 	importer "github.com/hayashiki/audiy-importer"
 )
 
 type APIHandler struct {
-	slackSvc  slack2.Slack
-	gcsSvc    gcs2.Client
-	audioRepo entity2.AudioRepository
-	feedRepo  entity2.FeedRepository
-	userRepo  entity2.UserRepository
+	slackSvc  slack.Service
+	gcsSvc    gcs.Service
+	proverSvc ffmpeg.Service
+	audioRepo entity.AudioRepository
+	feedRepo  entity.FeedRepository
+	userRepo  entity.UserRepository
 }
 
 type PubSubMessage struct {
@@ -31,13 +33,21 @@ type PubSubMessage struct {
 
 // NewAPIHandler returns rest api
 func NewAPIHandler(
-	slackSvc slack2.Slack,
-	gcsSvc gcs2.Client,
-	audioRepo entity2.AudioRepository,
-	feedRepo entity2.FeedRepository,
-	userRepo entity2.UserRepository,
+	slackSvc slack.Service,
+	gcsSvc gcs.Service,
+	proverSvc ffmpeg.Service,
+	audioRepo entity.AudioRepository,
+	feedRepo entity.FeedRepository,
+	userRepo entity.UserRepository,
 ) http.Handler {
-	h := APIHandler{slackSvc: slackSvc, gcsSvc: gcsSvc, audioRepo: audioRepo, feedRepo: feedRepo, userRepo: userRepo}
+	h := APIHandler{
+		slackSvc: slackSvc,
+		gcsSvc: gcsSvc,
+		proverSvc: proverSvc,
+		audioRepo: audioRepo,
+		feedRepo: feedRepo,
+		userRepo: userRepo,
+	}
 	return h.Handler()
 }
 
@@ -57,10 +67,8 @@ func (h *APIHandler) Handler() http.HandlerFunc {
 			return
 		}
 		log.Printf("e is %+v", e)
-
 		//http.Error(w, "hoge", http.StatusInternalServerError)
-
-		input := &usecase2.AudioInput{
+		input := &usecase.AudioInput{
 			ID:                 e.ID,
 			Name:               e.Name,
 			Title:              e.Title,
@@ -74,7 +82,7 @@ func (h *APIHandler) Handler() http.HandlerFunc {
 			return
 		}
 
-		auc := usecase2.NewAudio(h.slackSvc, h.gcsSvc, h.audioRepo, h.feedRepo, h.userRepo)
+		auc := usecase.NewAudio(h.slackSvc, h.gcsSvc, h.proverSvc, h.audioRepo, h.feedRepo, h.userRepo)
 		if err := auc.Do(context.Background(), input); err != nil {
 			log.Print(err)
 			return
