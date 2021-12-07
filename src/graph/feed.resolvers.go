@@ -13,7 +13,9 @@ import (
 )
 
 func (r *feedResolver) Audio(ctx context.Context, obj *entity.Feed) (*entity.Audio, error) {
-	return r.audioUsecase.Get(ctx, obj.AudioKey.Name)
+	// TODO: dataloaders
+	return r.dataLoaders.AudioGetByID(ctx, obj.AudioKey.Name)
+	//return r.audioUsecase.Get(ctx, obj.AudioKey.Name)
 }
 
 func (r *feedResolver) User(ctx context.Context, obj *entity.Feed) (*entity.User, error) {

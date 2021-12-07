@@ -10,6 +10,7 @@ type Audio implements Node {
     publishedAt: Time!
     createdAt: Time!
     updatedAt: Time!
+    transcribed: Boolean!
 }
 
 type AudioEdge implements Edge {

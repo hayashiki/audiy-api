@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"github.com/hayashiki/audiy-api/src/graph/dataloaders"
 	"github.com/hayashiki/audiy-api/src/infrastructure/ffmpeg"
 	"github.com/hayashiki/audiy-api/src/infrastructure/transcript"
 	"log"
@@ -36,6 +37,7 @@ type Dependency struct {
 	feedRepo       entity.FeedRepository
 	resolver       *graph.Resolver
 	authenticator  middleware.Authenticator
+	dataloaderSvc  dataloaders.DataLoaderService
 	// TODO: handler struct
 	apiHandler     http.Handler
 	graphQLHandler http.Handler
@@ -43,6 +45,7 @@ type Dependency struct {
 
 func (d *Dependency) Inject(conf config.Config) {
 	// infrastructure
+	log.Println(config.GetProject())
 	dsCli, err := ds.NewClient(context.Background(), config.GetProject())
 	if err != nil {
 		log.Fatalf("failed to read datastore client")
@@ -74,6 +77,8 @@ func (d *Dependency) Inject(conf config.Config) {
 
 	logger := logging.NewLogger(conf.IsDev)
 
+	d.dataloaderSvc = dataloaders.NewDataLoaderService(audioRepo)
+
 	d.log = logger
 	d.audioUsecase = audioUsecase
 	d.userUsecase = userUsecase
@@ -87,7 +92,7 @@ func (d *Dependency) Inject(conf config.Config) {
 	d.feedRepo = feedRepo
 	d.authenticator = authenticator
 
-	resolver := graph.NewResolver(userUsecase, audioUsecase, commentUsecase, feedUsecase, transcriptUsecase)
+	resolver := graph.NewResolver(d.dataloaderSvc, userUsecase, audioUsecase, commentUsecase, feedUsecase, transcriptUsecase)
 	d.resolver = resolver
 	graphHandler := NewGraphQLHandler(d.resolver)
 	d.graphQLHandler = graphHandler

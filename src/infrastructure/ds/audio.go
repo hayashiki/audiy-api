@@ -3,6 +3,7 @@ package ds
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/hayashiki/audiy-api/src/domain/entity"
 	"log"
 
@@ -79,13 +80,39 @@ func (repo *audioRepository) FindAll(ctx context.Context, filters map[string]int
 func (repo *audioRepository) Find(ctx context.Context, id string) (*entity.Audio, error) {
 	var audio entity.Audio
 	err := repo.client.Get(ctx, datastore.NameKey(entity.AudioKind, id, nil), &audio)
+	if err != nil {
+		return nil, err
+	}
 	audio.ID = audio.Key.Name
 	return &audio, err
+}
+
+// Find finds audios given ids
+func (repo *audioRepository) GetMulti(ctx context.Context, IDs []string) ([]*entity.Audio, error) {
+	keys := make([]*datastore.Key, len(IDs))
+	for i, id := range IDs {
+		keys[i] = datastore.NameKey(entity.AudioKind, id, nil)
+	}
+
+	log.Print(IDs)
+	audios := make([]*entity.Audio, len(IDs))
+	err := repo.client.GetMulti(ctx, keys, audios)
+	if err != nil {
+		return nil, fmt.Errorf("failed to GetMulti %w", err)
+	}
+	for _, a := range audios {
+		a.ID = a.Key.Name
+	}
+
+	return audios, nil
 }
 
 // Save saves audios
 func (repo *audioRepository) Save(ctx context.Context, audio *entity.Audio) error {
 	key, err := repo.client.Put(ctx, datastore.NameKey(entity.AudioKind, audio.ID, nil), audio)
+	if err != nil {
+		return err
+	}
 	audio.Key = key
 
 	return err

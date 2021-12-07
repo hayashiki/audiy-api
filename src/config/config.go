@@ -1,12 +1,11 @@
 package config
 
 import (
+	"cloud.google.com/go/compute/metadata"
 	"log"
 	"os"
 
 	"github.com/kelseyhightower/envconfig"
-
-	"cloud.google.com/go/compute/metadata"
 )
 
 type Config struct {
@@ -27,10 +26,9 @@ func GetProject() string {
 		project string
 		err     error
 	)
-
-	project, err = metadata.ProjectID()
-	if err != nil {
-		if project = os.Getenv("GCP_PROJECT"); project == "" {
+	if project = os.Getenv("GCP_PROJECT"); project == "" {
+		project, err = metadata.ProjectID()
+		if err != nil || project == "" {
 			log.Fatal("project id can't be empty")
 		}
 	}

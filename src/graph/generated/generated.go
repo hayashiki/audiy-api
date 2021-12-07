@@ -60,6 +60,7 @@ type ComplexityRoot struct {
 		Name         func(childComplexity int) int
 		PlayCount    func(childComplexity int) int
 		PublishedAt  func(childComplexity int) int
+		Transcribed  func(childComplexity int) int
 		URL          func(childComplexity int) int
 		UpdatedAt    func(childComplexity int) int
 	}
@@ -307,6 +308,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Audio.PublishedAt(childComplexity), true
+
+	case "Audio.transcribed":
+		if e.complexity.Audio.Transcribed == nil {
+			break
+		}
+
+		return e.complexity.Audio.Transcribed(childComplexity), true
 
 	case "Audio.url":
 		if e.complexity.Audio.URL == nil {
@@ -958,6 +966,7 @@ var sources = []*ast.Source{
     publishedAt: Time!
     createdAt: Time!
     updatedAt: Time!
+    transcribed: Boolean!
 }
 
 type AudioEdge implements Edge {
@@ -1997,6 +2006,41 @@ func (ec *executionContext) _Audio_updatedAt(ctx context.Context, field graphql.
 	res := resTmp.(time.Time)
 	fc.Result = res
 	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Audio_transcribed(ctx context.Context, field graphql.CollectedField, obj *entity.Audio) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Audio",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Transcribed, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _AudioConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *entity.AudioConnection) (ret graphql.Marshaler) {
@@ -6390,6 +6434,11 @@ func (ec *executionContext) _Audio(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "updatedAt":
 			out.Values[i] = ec._Audio_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "transcribed":
+			out.Values[i] = ec._Audio_transcribed(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
