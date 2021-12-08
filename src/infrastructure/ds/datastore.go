@@ -1,146 +1,141 @@
 package ds
 
 import (
-	"context"
-	"errors"
-	"log"
-
 	"cloud.google.com/go/datastore"
-	"google.golang.org/api/iterator"
+
+	"go.mercari.io/datastore/boom"
+	"go.mercari.io/datastore/clouddatastore"
+
+	"context"
+	"github.com/hayashiki/audiy-api/src/config"
+	"github.com/pkg/errors"
+	"log"
 )
 
-var (
-	datastoreClient *datastore.Client
-)
+const defaultLimit = 100
 
-type DataStore struct {
-	Client *datastore.Client
+var ErrNoSuchEntity = errors.New("datastore: no such entity")
+
+type client struct {}
+
+type datastoreTransactor struct {
 }
 
-func (d *DataStore) Get(ctx context.Context, entity EntitySpec) error {
-	err := d.Client.Get(ctx, entity.GetKey(), entity)
-	return err
+func NewDatastoreTransactor() Transactor {
+	return &datastoreTransactor{}
 }
 
-func (d *DataStore) GetAll(
-	ctx context.Context,
-	opts *Query,
-	generator func() interface{},
-) ([]interface{}, string, error) {
-	query := datastore.NewQuery(opts.Kind)
-	if opts.Cursor != "" {
-		dsCursor, err := datastore.DecodeCursor(opts.Cursor)
+func (t *datastoreTransactor) RunInTransaction(ctx context.Context, fn func(tx *boom.Transaction) error) error {
+	if _, err := FromContext(ctx).RunInTransaction(fn); err != nil {
+		return errors.WithStack(err)
+	}
+	return nil
+}
+
+func New() Client {
+	return &client{}
+}
+
+type Client interface {
+	GetAll(ctx context.Context, kind string, filters map[string]interface{}, dst interface{}, cursor string, limit int, orderBy string) error
+	GetMulti(ctx context.Context, dst interface{}) error
+	Get(ctx context.Context, dst interface{}) error
+	Put(tx *boom.Transaction, src interface{}) error
+	Delete(tx *boom.Transaction, src interface{}) error
+}
+
+type Transactor interface {
+	RunInTransaction(context.Context, func(tx *boom.Transaction) error,) error
+}
+
+func FromContext(ctx context.Context) *boom.Boom {
+	cli, err := datastore.NewClient(ctx, config.GetProject())
+	if err != nil {
+		log.Println("cli", err)
+		panic(err)
+	}
+	ds, err := clouddatastore.FromClient(ctx, cli)
+	if err != nil {
+		panic(err)
+	}
+	return boom.FromClient(ctx, ds)
+}
+
+func (c *client) GetAll(ctx context.Context, kind string, filters map[string]interface{}, dst interface{}, cursor string, limit int, orderBy string) error {
+	b := FromContext(ctx)
+	q := b.Client.NewQuery(kind)
+
+	if len(filters) > 0 {
+		for k, v := range filters {
+			q = q.Filter(k, v)
+		}
+	}
+	if orderBy != "" {
+		q = q.Order(orderBy)
+	}
+	if cursor != "" {
+		dsCursor, err := datastore.DecodeCursor(cursor)
 		if err != nil {
 			//TODO
 			log.Printf("failed to decode %v", err)
 		}
-		query = query.Start(dsCursor)
+		q = q.Start(dsCursor)
 	}
-	if opts.Limit > 0 {
-		query = query.Limit(opts.Limit)
+	if limit != 0 {
+		q = q.Limit(limit)
+	} else {
+		limit = defaultLimit
 	}
-	//for _, filter := range opts.Filters {
-	//	query = query.Filter(filter.key, filter.value)
-	//}
-	for _, order := range opts.Order {
-		query = query.Order(order)
+	if _, err := b.GetAll(q, dst); err != nil {
+		return errors.WithStack(err)
 	}
-
-	log.Printf("query debug %+v", opts.Order)
-	it := d.Client.Run(ctx, query)
-
-	entities := make([]interface{}, 0)
-
-	for {
-		entity := generator()
-
-		_, err := it.Next(entity)
-		if errors.Is(err, iterator.Done) {
-			break
-		}
-		if _, ok := err.(*datastore.ErrFieldMismatch); ok {
-			entities = append(entities, entity)
-			continue
-		}
-		if err != nil {
-			return entities, "", err
-		}
-		entities = append(entities, entity)
-	}
-
-	cursor, err := it.Cursor()
-	if err != nil {
-		return entities, "", err
-	}
-
-	return entities, cursor.String(), nil
+	return nil
 }
 
-func (d *DataStore) GetAll2(
-	ctx context.Context,
-	q Query2,
-	generator func() interface{},
-) ([]interface{}, string, error) {
-	v, ok := q.(*dsQuery)
-	if !ok {
-		return nil, "", errors.New("failed to build query")
+func (c *client) Get(ctx context.Context, dst interface{}) error {
+	b := FromContext(ctx)
+	if err := b.Get(dst); err != nil {
+		if err == datastore.ErrNoSuchEntity {
+			return errors.WithStack(ErrNoSuchEntity)
+		}
+		return errors.WithStack(err)
 	}
 
-	it := d.Client.Run(ctx, v.Query)
-
-	entities := make([]interface{}, 0)
-
-	for {
-		entity := generator()
-
-		_, err := it.Next(entity)
-		if errors.Is(err, iterator.Done) {
-			break
-		}
-		if _, ok := err.(*datastore.ErrFieldMismatch); ok {
-			entities = append(entities, entity)
-			continue
-		}
-		if err != nil {
-			return entities, "", err
-		}
-		entities = append(entities, entity)
-	}
-
-	cursor, err := it.Cursor()
-	if err != nil {
-		return entities, "", err
-	}
-
-	return entities, cursor.String(), nil
+	return nil
 }
 
-func (d *DataStore) Put(ctx context.Context, doc EntitySpec) (*datastore.Key, error) {
-	key := doc.GetKey()
-	//val := reflect.ValueOf(doc).Elem()
-	//now := reflect.ValueOf(time.Now())
-	//
-	//if key.Incomplete() {
-	//	val.FieldByName("CreatedAt").Set(now)
-	//}
-	//val.FieldByName("UpdatedAt").Set(now)
+func (c *client) GetMulti(ctx context.Context, dst interface{}) error {
+	b := FromContext(ctx)
 
-	key, err := d.Client.Put(ctx, key, doc)
-	if err != nil {
-		return nil, err
+	if err := b.GetMulti(dst); err != nil {
+		multiErr, ok := err.(datastore.MultiError)
+		if !ok {
+			return errors.WithStack(err)
+		}
+
+		for _, e := range multiErr {
+			if e == datastore.ErrNoSuchEntity {
+				return errors.WithStack(ErrNoSuchEntity)
+			}
+		}
+		return errors.WithStack(err)
 	}
-	doc.SetID(key)
 
-	return key, err
+	return nil
 }
 
-func (d *DataStore) Delete(ctx context.Context, doc EntitySpec) (*datastore.Key, error) {
-	key := doc.GetKey()
-	err := d.Client.Delete(ctx, key)
-	if err != nil {
-		return nil, err
+func (c *client) Put(tx *boom.Transaction, src interface{}) error {
+	if _, err := tx.Put(src); err != nil {
+		return errors.WithStack(err)
 	}
-	doc.SetID(key)
-
-	return key, err
+	return nil
 }
+
+func (c *client) Delete(tx *boom.Transaction, src interface{}) error {
+	if err := tx.Delete(src); err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
+}
+
