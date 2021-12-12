@@ -2,15 +2,17 @@ package graph
 
 import (
 	"context"
+	"github.com/hayashiki/audiy-api/src/infrastructure/datastore/comment_entity"
+	"github.com/hayashiki/audiy-api/src/infrastructure/datastore/user_entity"
 	"os"
 	"strconv"
 	"testing"
 	"time"
 
-	"github.com/hayashiki/audiy-api/src/domain/entity"
+	"github.com/hayashiki/audiy-api/src/domain/model"
 	"github.com/hayashiki/audiy-api/src/graph/auth"
 	"github.com/hayashiki/audiy-api/src/graph/generated"
-	"github.com/hayashiki/audiy-api/src/infrastructure/ds"
+	"github.com/hayashiki/audiy-api/src/infrastructure/datastore"
 	middleware2 "github.com/hayashiki/audiy-api/src/middleware"
 	"github.com/hayashiki/audiy-api/src/usecase"
 
@@ -19,8 +21,8 @@ import (
 )
 
 func TestMockUsecase(t *testing.T) {
-	dsCli, _ := ds.NewClient(context.Background(), os.Getenv("GCP_PROJECT"))
-	commentRepo := ds.NewCommentRepository(dsCli)
+	dsCli, _ := datastore.NewClient(context.Background(), os.Getenv("GCP_PROJECT"))
+	commentRepo := comment_entity.NewCommentRepository(dsCli)
 
 	// usecase
 	audioUsecase := usecase.NewAudioUsecase(nil)
@@ -40,7 +42,7 @@ func TestMockUsecase(t *testing.T) {
 	}
 	commentUsecase := usecase.NewCommentUsecase(commentRepo)
 
-	obj := &entity.Audio{
+	obj := &model.Audio{
 		ID: testAudioID,
 	}
 	ctx := context.Background()
@@ -49,12 +51,12 @@ func TestMockUsecase(t *testing.T) {
 	})
 
 	userUsecase := usecase.MockUserUsecase{}
-	userUsecase.SaveFunc = func(input entity.CreateUserInput) error {
+	userUsecase.SaveFunc = func(input model.CreateUserInput) error {
 		return nil
 	}
-	userUsecase.GetFunc = func(id string) (*entity.User, error) {
+	userUsecase.GetFunc = func(id string) (*model.User, error) {
 		idInt, _ := strconv.Atoi(id)
-		return &entity.User{
+		return &model.User{
 			ID:        int64(idInt),
 			Email:     "hayashiki@example.com",
 			CreatedAt: time.Time{},
@@ -76,9 +78,9 @@ func TestMockUsecase(t *testing.T) {
 
 func TestAudioCollection(t *testing.T) {
 
-	dsCli, _ := ds.NewClient(context.Background(), os.Getenv("GCP_PROJECT"))
-	commentRepo := ds.NewCommentRepository(dsCli)
-	userRepo := ds.NewUserRepository(dsCli)
+	dsCli, _ := datastore.NewClient(context.Background(), os.Getenv("GCP_PROJECT"))
+	commentRepo := comment_entity.NewCommentRepository(dsCli)
+	userRepo := user_entity.NewUserRepository(dsCli)
 
 	authenticator := middleware2.NewAuthenticator()
 	// usecase

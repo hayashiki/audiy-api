@@ -9,13 +9,13 @@ import (
 	"log"
 	"os"
 
-	"github.com/hayashiki/audiy-api/src/domain/entity"
+	"github.com/hayashiki/audiy-api/src/domain/model"
 	"github.com/hayashiki/audiy-api/src/graph/auth"
 	"github.com/hayashiki/audiy-api/src/graph/generated"
 	"github.com/hayashiki/audiy-api/src/infrastructure/gcs"
 )
 
-func (r *audioResolver) URL(ctx context.Context, obj *entity.Audio) (string, error) {
+func (r *audioResolver) URL(ctx context.Context, obj *model.Audio) (string, error) {
 	filePath := gcs.StorageObjectFilePath(obj.ID, "m4a")
 	// TODO: read from config
 	bucketName := os.Getenv("GCS_INPUT_AUDIO_BUCKET")
@@ -25,21 +25,21 @@ func (r *audioResolver) URL(ctx context.Context, obj *entity.Audio) (string, err
 	//return gcs.GetGCSSignedURL(context.Background(), bucketName, filePath, "GET", "")
 }
 
-func (r *mutationResolver) CreateAudio(ctx context.Context, input *entity.CreateAudioInput) (*entity.Audio, error) {
+func (r *mutationResolver) CreateAudio(ctx context.Context, input *model.CreateAudioInput) (*model.Audio, error) {
 	log.Println("CreateAudio")
 	log.Println(input)
 	return r.audioUsecase.CreateAudio(ctx, input)
 }
 
-func (r *mutationResolver) UploadAudio(ctx context.Context, input *entity.UploadAudioInput) (*entity.Audio, error) {
+func (r *mutationResolver) UploadAudio(ctx context.Context, input *model.UploadAudioInput) (*model.Audio, error) {
 	return r.audioUsecase.UploadAudio(ctx, input)
 }
 
-func (r *queryResolver) Audio(ctx context.Context, id string) (*entity.Audio, error) {
+func (r *queryResolver) Audio(ctx context.Context, id string) (*model.Audio, error) {
 	return r.audioUsecase.Get(ctx, id)
 }
 
-func (r *queryResolver) Audios(ctx context.Context, cursor *string, filter *entity.AudioFilter, limit *int, order *entity.AudioOrder) (*entity.AudioConnection, error) {
+func (r *queryResolver) Audios(ctx context.Context, cursor *string, filter *model.AudioFilter, limit *int, order *model.AudioOrder) (*model.AudioConnection, error) {
 	_, err := auth.ForContext(ctx)
 	if err != nil {
 		return nil, err
@@ -48,30 +48,16 @@ func (r *queryResolver) Audios(ctx context.Context, cursor *string, filter *enti
 	if *cursor == "" {
 		*cursor = ""
 	}
-	var orderStr []string
-	log.Println("order", order)
+	var orderBy string
 	if order == nil {
-		orderStr = []string{"-published_at"}
-	} else if order.String() == entity.AudioOrderPublishedAtAsc.String() {
-		orderStr = []string{"published_at"}
-	} else if order.String() == entity.AudioOrderPublishedAtDesc.String() {
-		orderStr = []string{"-published_at"}
+		orderBy = "-PublishedAt"
+	} else if order.String() == model.AudioOrderPublishedAtAsc.String() {
+		orderBy = "PublishedAt"
+	} else if order.String() == model.AudioOrderPublishedAtDesc.String() {
+		orderBy = "-PublishedAt"
 	}
-	//if *filter.Played {
-	//	*filter.Played = false
-	//}
-	//if *filter.Liked {
-	//	*filter.Liked = false
-	//}
-	//if *filter.Stared {
-	//	*filter.Stared = false
-	//}
 
-	//log.Printf("filter.Liked %v", filter.Liked)
-	//log.Printf("filter.Played %v", *filter.Played)
-	//log.Printf("filter.Stared %v", *filter.Stared)
-
-	return r.audioUsecase.GetConnection(ctx, *cursor, *limit, orderStr)
+	return r.audioUsecase.GetConnection(ctx, *cursor, *limit, orderBy)
 }
 
 // Audio returns generated.AudioResolver implementation.

@@ -7,21 +7,21 @@ import (
 	"context"
 	"log"
 
-	"github.com/hayashiki/audiy-api/src/domain/entity"
+	"github.com/hayashiki/audiy-api/src/domain/model"
 	"github.com/hayashiki/audiy-api/src/graph/auth"
 	"github.com/hayashiki/audiy-api/src/graph/generated"
 	"github.com/hayashiki/audiy-api/src/version"
 )
 
-func (r *queryResolver) Version(ctx context.Context) (*entity.Version, error) {
-	v := &entity.Version{
+func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
+	v := &model.Version{
 		Version: version.Version,
 	}
 	return v, nil
 }
 
-func (r *queryResolver) Comments(ctx context.Context, audioID string, cursor *string, limit *int, order []string) (*entity.CommentConnection, error) {
-	auth, err := auth.ForContext(ctx)
+func (r *queryResolver) Comments(ctx context.Context, audioID string, cursor *string, limit *int, order []string) (*model.CommentConnection, error) {
+	_, err := auth.ForContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -36,10 +36,10 @@ func (r *queryResolver) Comments(ctx context.Context, audioID string, cursor *st
 	log.Printf("%s", order)
 
 	//if len() == 0 {
-	order = []string{"created_at"}
+	orderBy := "CreatedAt"
 	//}
 
-	return r.commentUsecase.GetConnection(ctx, auth.ID, audioID, *cursor, *limit, order)
+	return r.commentUsecase.GetConnection(ctx, audioID, *cursor, *limit, orderBy)
 }
 
 // Query returns generated.QueryResolver implementation.

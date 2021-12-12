@@ -6,13 +6,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hayashiki/audiy-api/src/domain/entity"
+	"github.com/hayashiki/audiy-api/src/domain/model"
 )
 
 // AudioLoaderConfig captures the config to create a new AudioLoader
 type AudioLoaderConfig struct {
 	// Fetch is a method that provides the data for the loader
-	Fetch func(keys []string) ([]*entity.Audio, []error)
+	Fetch func(keys []string) ([]*model.Audio, []error)
 
 	// Wait is how long wait before sending a batch
 	Wait time.Duration
@@ -33,7 +33,7 @@ func NewAudioLoader(config AudioLoaderConfig) *AudioLoader {
 // AudioLoader batches and caches requests
 type AudioLoader struct {
 	// this method provides the data for the loader
-	fetch func(keys []string) ([]*entity.Audio, []error)
+	fetch func(keys []string) ([]*model.Audio, []error)
 
 	// how long to done before sending a batch
 	wait time.Duration
@@ -44,7 +44,7 @@ type AudioLoader struct {
 	// INTERNAL
 
 	// lazily created cache
-	cache map[string]*entity.Audio
+	cache map[string]*model.Audio
 
 	// the current batch. keys will continue to be collected until timeout is hit,
 	// then everything will be sent to the fetch method and out to the listeners
@@ -56,25 +56,25 @@ type AudioLoader struct {
 
 type audioLoaderBatch struct {
 	keys    []string
-	data    []*entity.Audio
+	data    []*model.Audio
 	error   []error
 	closing bool
 	done    chan struct{}
 }
 
 // Load a Audio by key, batching and caching will be applied automatically
-func (l *AudioLoader) Load(key string) (*entity.Audio, error) {
+func (l *AudioLoader) Load(key string) (*model.Audio, error) {
 	return l.LoadThunk(key)()
 }
 
 // LoadThunk returns a function that when called will block waiting for a Audio.
 // This method should be used if you want one goroutine to make requests to many
 // different data loaders without blocking until the thunk is called.
-func (l *AudioLoader) LoadThunk(key string) func() (*entity.Audio, error) {
+func (l *AudioLoader) LoadThunk(key string) func() (*model.Audio, error) {
 	l.mu.Lock()
 	if it, ok := l.cache[key]; ok {
 		l.mu.Unlock()
-		return func() (*entity.Audio, error) {
+		return func() (*model.Audio, error) {
 			return it, nil
 		}
 	}
@@ -85,10 +85,10 @@ func (l *AudioLoader) LoadThunk(key string) func() (*entity.Audio, error) {
 	pos := batch.keyIndex(l, key)
 	l.mu.Unlock()
 
-	return func() (*entity.Audio, error) {
+	return func() (*model.Audio, error) {
 		<-batch.done
 
-		var data *entity.Audio
+		var data *model.Audio
 		if pos < len(batch.data) {
 			data = batch.data[pos]
 		}
@@ -113,14 +113,14 @@ func (l *AudioLoader) LoadThunk(key string) func() (*entity.Audio, error) {
 
 // LoadAll fetches many keys at once. It will be broken into appropriate sized
 // sub batches depending on how the loader is configured
-func (l *AudioLoader) LoadAll(keys []string) ([]*entity.Audio, []error) {
-	results := make([]func() (*entity.Audio, error), len(keys))
+func (l *AudioLoader) LoadAll(keys []string) ([]*model.Audio, []error) {
+	results := make([]func() (*model.Audio, error), len(keys))
 
 	for i, key := range keys {
 		results[i] = l.LoadThunk(key)
 	}
 
-	audios := make([]*entity.Audio, len(keys))
+	audios := make([]*model.Audio, len(keys))
 	errors := make([]error, len(keys))
 	for i, thunk := range results {
 		audios[i], errors[i] = thunk()
@@ -131,13 +131,13 @@ func (l *AudioLoader) LoadAll(keys []string) ([]*entity.Audio, []error) {
 // LoadAllThunk returns a function that when called will block waiting for a Audios.
 // This method should be used if you want one goroutine to make requests to many
 // different data loaders without blocking until the thunk is called.
-func (l *AudioLoader) LoadAllThunk(keys []string) func() ([]*entity.Audio, []error) {
-	results := make([]func() (*entity.Audio, error), len(keys))
+func (l *AudioLoader) LoadAllThunk(keys []string) func() ([]*model.Audio, []error) {
+	results := make([]func() (*model.Audio, error), len(keys))
 	for i, key := range keys {
 		results[i] = l.LoadThunk(key)
 	}
-	return func() ([]*entity.Audio, []error) {
-		audios := make([]*entity.Audio, len(keys))
+	return func() ([]*model.Audio, []error) {
+		audios := make([]*model.Audio, len(keys))
 		errors := make([]error, len(keys))
 		for i, thunk := range results {
 			audios[i], errors[i] = thunk()
@@ -149,7 +149,7 @@ func (l *AudioLoader) LoadAllThunk(keys []string) func() ([]*entity.Audio, []err
 // Prime the cache with the provided key and value. If the key already exists, no change is made
 // and false is returned.
 // (To forcefully prime the cache, clear the key first with loader.clear(key).prime(key, value).)
-func (l *AudioLoader) Prime(key string, value *entity.Audio) bool {
+func (l *AudioLoader) Prime(key string, value *model.Audio) bool {
 	l.mu.Lock()
 	var found bool
 	if _, found = l.cache[key]; !found {
@@ -169,9 +169,9 @@ func (l *AudioLoader) Clear(key string) {
 	l.mu.Unlock()
 }
 
-func (l *AudioLoader) unsafeSet(key string, value *entity.Audio) {
+func (l *AudioLoader) unsafeSet(key string, value *model.Audio) {
 	if l.cache == nil {
-		l.cache = map[string]*entity.Audio{}
+		l.cache = map[string]*model.Audio{}
 	}
 	l.cache[key] = value
 }

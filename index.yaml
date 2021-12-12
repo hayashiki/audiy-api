@@ -1,50 +1,55 @@
 indexes:
+#- kind: Comment
+#  properties:
+#    - name: audio_key
+#    - name: created_at
+#
 - kind: Comment
   properties:
-    - name: audio_key
-    - name: created_at
+    - name: AudioID
+    - name: CreatedAt
 
 - kind: Feed
   ancestor: yes
   properties:
-    - name: published_at
+    - name: PublishedAt
 
 - kind: Feed
   ancestor: yes
   properties:
-    - name: published_at
+    - name: PublishedAt
       direction: desc
 
 - kind: Feed
   properties:
-    - name: played
-    - name: published_at
+    - name: Played
+    - name: PublishedAt
       direction: desc
 
 - kind: Feed
   ancestor: yes
   properties:
-    - name: played
-    - name: published_at
+    - name: Played
+    - name: PublishedAt
 
 - kind: Feed
   properties:
-    - name: liked
-    - name: published_at
+    - name: Liked
+    - name: PublishedAt
       direction: desc
 
 - kind: Feed
   properties:
-    - name: liked
-    - name: published_at
+    - name: Liked
+    - name: PublishedAt
 
 - kind: Feed
   properties:
-    - name: stared
-    - name: published_at
+    - name: Stared
+    - name: PublishedAt
       direction: desc
 
 - kind: Feed
   properties:
-    - name: stared
-    - name: published_at
+    - name: Stared
+    - name: PublishedAt

@@ -7,21 +7,21 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hayashiki/audiy-api/src/domain/entity"
+	"github.com/hayashiki/audiy-api/src/domain/model"
 	"github.com/hayashiki/audiy-api/src/graph/generated"
 )
 
-func (r *monologueElementResolver) Confidence(ctx context.Context, obj *entity.MonologueElement) (string, error) {
+func (r *monologueElementResolver) Confidence(ctx context.Context, obj *model.MonologueElement) (string, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *mutationResolver) CreateTranscript(ctx context.Context, input entity.CreateTranscriptInput) (*entity.Transcript, error) {
+func (r *mutationResolver) CreateTranscript(ctx context.Context, input model.CreateTranscriptInput) (*model.Transcript, error) {
 	err := r.transcriptUsecase.Do(ctx, input)
-	en := &entity.Transcript{}
+	en := &model.Transcript{}
 	return en, err
 }
 
-func (r *transcriptResolver) Audio(ctx context.Context, obj *entity.Transcript) (*entity.Audio, error) {
+func (r *transcriptResolver) Audio(ctx context.Context, obj *model.Transcript) (*model.Audio, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 

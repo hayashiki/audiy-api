@@ -5,8 +5,8 @@ exec:
   package: generated
 
 model:
-  filename: src/domain/entity/models_gen.go
-  package: entity
+  filename: src/domain/model/models_gen.go
+  package: model
 
 resolver:
   layout: follow-schema
@@ -14,7 +14,7 @@ resolver:
   package: graph
 
 autobind:
-  - "github.com/hayashiki/audiy-api/src/domain/entity"
+  - "github.com/hayashiki/audiy-api/src/domain/model"
 
 models:
   ID:

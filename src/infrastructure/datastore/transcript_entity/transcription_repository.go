@@ -7,7 +7,6 @@ import (
 	"github.com/hayashiki/audiy-api/src/infrastructure/datastore"
 	"github.com/pkg/errors"
 	"go.mercari.io/datastore/boom"
-	"log"
 )
 
 type repo struct {
@@ -56,5 +55,3 @@ func (r *repo) DeleteTx(tx *boom.Transaction, id int64) error {
 
 	return nil
 }
-
-

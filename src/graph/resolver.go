@@ -16,6 +16,7 @@ type Resolver struct {
 	commentUsecase    usecase.CommentUsecase
 	feedUseCase       usecase.FeedUsecase
 	transcriptUsecase usecase.TranscriptAudioUsecase
+	fcmUsecase        usecase.FcmUsecase
 }
 
 func NewResolver(
@@ -25,13 +26,15 @@ func NewResolver(
 	commentUsecase usecase.CommentUsecase,
 	feedUseCase usecase.FeedUsecase,
 	transcriptUsecase usecase.TranscriptAudioUsecase,
+	fcmUsecase usecase.FcmUsecase,
 ) *Resolver {
 	return &Resolver{
-		dataLoaders:    dataLoaders,
-		userUsecase:    userUsecase,
-		audioUsecase:   audioUsecase,
-		commentUsecase: commentUsecase,
-		feedUseCase:    feedUseCase,
+		dataLoaders:       dataLoaders,
+		userUsecase:       userUsecase,
+		audioUsecase:      audioUsecase,
+		commentUsecase:    commentUsecase,
+		feedUseCase:       feedUseCase,
 		transcriptUsecase: transcriptUsecase,
+		fcmUsecase:        fcmUsecase,
 	}
 }

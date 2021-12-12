@@ -3,11 +3,11 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"github.com/hayashiki/audiy-api/src/domain/repository"
 	"github.com/hayashiki/audiy-api/src/infrastructure/ffmpeg"
 	"log"
 	"net/http"
 
-	"github.com/hayashiki/audiy-api/src/domain/entity"
 	"github.com/hayashiki/audiy-api/src/infrastructure/gcs"
 	"github.com/hayashiki/audiy-api/src/infrastructure/slack"
 	"github.com/hayashiki/audiy-api/src/usecase"
@@ -19,9 +19,9 @@ type APIHandler struct {
 	slackSvc  slack.Service
 	gcsSvc    gcs.Service
 	proverSvc ffmpeg.Service
-	audioRepo entity.AudioRepository
-	feedRepo  entity.FeedRepository
-	userRepo  entity.UserRepository
+	audioRepo repository.AudioRepository
+	feedRepo  repository.FeedRepository
+	userRepo  repository.UserRepository
 }
 
 type PubSubMessage struct {
@@ -36,17 +36,17 @@ func NewAPIHandler(
 	slackSvc slack.Service,
 	gcsSvc gcs.Service,
 	proverSvc ffmpeg.Service,
-	audioRepo entity.AudioRepository,
-	feedRepo entity.FeedRepository,
-	userRepo entity.UserRepository,
+	audioRepo repository.AudioRepository,
+	feedRepo repository.FeedRepository,
+	userRepo repository.UserRepository,
 ) http.Handler {
 	h := APIHandler{
-		slackSvc: slackSvc,
-		gcsSvc: gcsSvc,
+		slackSvc:  slackSvc,
+		gcsSvc:    gcsSvc,
 		proverSvc: proverSvc,
 		audioRepo: audioRepo,
-		feedRepo: feedRepo,
-		userRepo: userRepo,
+		feedRepo:  feedRepo,
+		userRepo:  userRepo,
 	}
 	return h.Handler()
 }
