@@ -1,39 +1,60 @@
 package transcript_entity
-//
-//import (
-//	"context"
-//	"log"
-//
-//	"cloud.google.com/go/datastore"
-//	"github.com/hayashiki/audiy-api/src/domain/model"
-//)
-//
-//type transcriptRepository struct {
-//	client *datastore.Client
-//}
-//
-//// Save saves transcription
-//func (repo *transcriptRepository) Save(ctx context.Context, transcript *model.Transcript) error {
-//	log.Println("db save", transcript)
-//	// TODO: if exists
-//	key, err := repo.client.Put(ctx, datastore.IncompleteKey(model.TranscriptKind, nil), transcript)
-//	if err != nil {
-//		log.Println("db err", err)
-//		return err
-//	}
-//
-//	transcript.Key = key
-//	transcript.ID = key.ID
-//	return err
-//}
-//
-//// Get user
-//func (repo *transcriptRepository) Get(ctx context.Context, id int64) (*model.Transcript, error) {
-//	var tran model.Transcript
-//	err := repo.client.Get(ctx, datastore.IDKey(model.TranscriptKind, id, nil), &tran)
-//	if err != nil {
-//		return nil, err
-//	}
-//	tran.ID = tran.Key.ID
-//	return &tran, err
-//}
+
+import (
+	"context"
+	"github.com/hayashiki/audiy-api/src/domain/model"
+	"github.com/hayashiki/audiy-api/src/domain/repository"
+	"github.com/hayashiki/audiy-api/src/infrastructure/datastore"
+	"github.com/pkg/errors"
+	"go.mercari.io/datastore/boom"
+	"log"
+)
+
+type repo struct {
+	client datastore.Client
+}
+
+func NewTranscriptRepository(client datastore.Client) repository.TranscriptRepository {
+	return &repo{
+		client: client,
+	}
+}
+
+func (r *repo) GetAll(ctx context.Context) ([]*model.Transcript, error) {
+	var entities []*entity
+	if err := r.client.GetAll(ctx, kind, &entities); err != nil {
+		return nil, err
+	}
+	transcripts := make([]*model.Transcript, len(entities))
+	for i, e := range entities {
+		transcripts[i] = e.toDomain()
+	}
+	return transcripts, nil
+}
+
+func (r *repo) Put(ctx context.Context, item *model.Transcript) error {
+	if err := r.client.Put(ctx, toEntity(item)); err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
+}
+
+func (r *repo) PutTx(tx *boom.Transaction, item *model.Transcript) error {
+	if err := r.client.PutTx(tx, toEntity(item)); err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
+}
+
+// TODO: idに型をつけよう。。
+func (r *repo) DeleteTx(tx *boom.Transaction, id int64) error {
+	if err := r.client.DeleteTx(tx, onlyID(id)); err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
+}
+
+

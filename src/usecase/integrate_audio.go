@@ -6,14 +6,15 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/hayashiki/audiy-api/src/domain/repository"
 	"github.com/hayashiki/audiy-api/src/infrastructure/ffmpeg"
 	"log"
 	"path/filepath"
 	"time"
 
-	entity "github.com/hayashiki/audiy-api/src/domain/entity"
-	gcs "github.com/hayashiki/audiy-api/src/infrastructure/gcs"
-	slack "github.com/hayashiki/audiy-api/src/infrastructure/slack"
+	"github.com/hayashiki/audiy-api/src/domain/model"
+	"github.com/hayashiki/audiy-api/src/infrastructure/gcs"
+	"github.com/hayashiki/audiy-api/src/infrastructure/slack"
 )
 
 type IntegrateAudioUsecase interface {
@@ -24,9 +25,9 @@ type integrateAudioUsecase struct {
 	slackSvc  slack.Service
 	gcsSvc    gcs.Service
 	proverSvc ffmpeg.Service
-	audioRepo entity.AudioRepository
-	feedRepo  entity.FeedRepository
-	userRepo  entity.UserRepository
+	audioRepo repository.AudioRepository
+	feedRepo  repository.FeedRepository
+	userRepo  repository.UserRepository
 }
 
 type MockAudioUsecase struct {
@@ -60,9 +61,9 @@ func NewAudio(
 	slackSvc slack.Service,
 	gcsSvc gcs.Service,
 	proverSvc ffmpeg.Service,
-	audioRepo entity.AudioRepository,
-	feedRepo entity.FeedRepository,
-	userRepo entity.UserRepository,
+	audioRepo repository.AudioRepository,
+	feedRepo repository.FeedRepository,
+	userRepo repository.UserRepository,
 ) IntegrateAudioUsecase {
 	return &integrateAudioUsecase{
 		slackSvc:  slackSvc,
@@ -82,7 +83,8 @@ type GCSEvent struct {
 
 // Do is audioを保存して、コンバートしてストレージに保存
 func (au *integrateAudioUsecase) Do(ctx context.Context, input *AudioInput) error {
-	if ok := au.audioRepo.Exists(ctx, input.ID); ok {
+	// TODO: error handle
+	if ok, _ := au.audioRepo.Exists(ctx, input.ID); ok {
 		log.Printf("already exists...")
 		return nil
 	}
@@ -118,8 +120,8 @@ func (au *integrateAudioUsecase) Do(ctx context.Context, input *AudioInput) erro
 	// file check extension only m4a
 	getFilePath := getFilePath(au.gcsSvc.Bucket(), fmt.Sprintf("%s%s", input.ID, ext))
 	ut := time.Unix(input.Created, 0)
-	newAudio := entity.NewAudio(input.ID, input.Name, data.Format.DurationSeconds, getFilePath, input.Mimetype, ut)
-	err = au.audioRepo.Save(ctx, newAudio)
+	newAudio := model.NewAudio(input.ID, input.Name, data.Format.DurationSeconds, getFilePath, input.Mimetype, ut)
+	err = au.audioRepo.Put(ctx, newAudio)
 	log.Printf("newAudio %+v", newAudio.GetKey())
 	if err != nil {
 		return fmt.Errorf("fail to create radios record err: %w", err)
@@ -129,19 +131,14 @@ func (au *integrateAudioUsecase) Do(ctx context.Context, input *AudioInput) erro
 	if err != nil {
 		return err
 	}
-	feeds := make([]*entity.Feed, len(users))
-	userIDs := make([]string, len(users))
-	newFeed := entity.NewFeed(newAudio.Key.Name, newAudio.PublishedAt)
-	newFeed.PublishedAt = newAudio.PublishedAt
-
+	feeds := make([]*model.Feed, len(users))
 	for i, u := range users {
-		userIDs[i] = u.ID
+		newFeed := model.NewFeed(newAudio.ID, u.ID, newAudio.PublishedAt)
+		// TODO: setter
+		newFeed.PublishedAt = newAudio.PublishedAt
 		feeds[i] = newFeed
 	}
-	err = au.feedRepo.SaveAll(ctx, userIDs, feeds)
-	if err != nil {
-		return err
-	}
+	err = au.feedRepo.PutMulti(ctx, feeds)
 
 	return nil
 }

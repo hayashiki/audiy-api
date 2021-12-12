@@ -3,30 +3,31 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"github.com/hayashiki/audiy-api/src/domain/repository"
 	"log"
 	"sync"
 
-	"github.com/hayashiki/audiy-api/src/domain/entity"
+	"github.com/hayashiki/audiy-api/src/domain/model"
 	"github.com/hayashiki/audiy-api/src/infrastructure/ffmpeg"
 	"github.com/hayashiki/audiy-api/src/infrastructure/gcs"
 	"github.com/hayashiki/audiy-api/src/infrastructure/transcript"
 )
 
 type TranscriptAudioUsecase interface {
-	Do(ctx context.Context, input entity.CreateTranscriptInput) error
+	Do(ctx context.Context, input model.CreateTranscriptInput) error
 }
 
 type transcriptAudioUsecase struct {
 	gcsSvc         gcs.Service
-	audioRepo      entity.AudioRepository
-	transcriptRepo entity.TranscriptRepository
+	audioRepo      repository.AudioRepository
+	transcriptRepo repository.TranscriptRepository
 	ffmpegProveSvc ffmpeg.Service
 	transcoder     ffmpeg.Transcoder
 	transcriptSvc  transcript.SpeechRecogniser
 }
 
-func (t transcriptAudioUsecase) Do(ctx context.Context, input entity.CreateTranscriptInput) error {
-	audio, err := t.audioRepo.Find(ctx, input.AudioID)
+func (t transcriptAudioUsecase) Do(ctx context.Context, input model.CreateTranscriptInput) error {
+	audio, err := t.audioRepo.Get(ctx, input.AudioID)
 	if err != nil {
 		return nil
 	}
@@ -69,15 +70,15 @@ func (t transcriptAudioUsecase) Do(ctx context.Context, input entity.CreateTrans
 		}
 		// TODO: transaction
 		log.Println(3)
-		newTranscript := entity.NewTranscript(audio.ID, ts)
-		if err := t.transcriptRepo.Save(ctx, newTranscript); err != nil {
+		newTranscript := model.NewTranscript(audio.ID, ts)
+		if err := t.transcriptRepo.Put(ctx, newTranscript); err != nil {
 			log.Println("ds save err", err)
 			fmt.Errorf("failed to transcribe to gcs %w", err)
 			return
 		}
 		log.Println(4)
 		audio.SetTranscribed()
-		if err := t.audioRepo.Save(ctx, audio); err != nil {
+		if err := t.audioRepo.Put(ctx, audio); err != nil {
 			fmt.Errorf("failed to save audio %w", err)
 			return
 		}
@@ -91,8 +92,8 @@ func (t transcriptAudioUsecase) Do(ctx context.Context, input entity.CreateTrans
 
 func NewTranscriptAudioUsecase(
 	gcsSvc gcs.Service,
-	audioRepo entity.AudioRepository,
-	transcriptRepo entity.TranscriptRepository,
+	audioRepo repository.AudioRepository,
+	transcriptRepo repository.TranscriptRepository,
 	proveSvc ffmpeg.Service,
 	transcoderSvc ffmpeg.Transcoder,
 	transcriptSvc transcript.SpeechRecogniser,

@@ -1,153 +1,166 @@
 package feed_entity
 
+import (
+	clouddatastore "cloud.google.com/go/datastore"
+	"context"
+	"github.com/hayashiki/audiy-api/src/domain/repository"
+	"log"
+
+	"github.com/hayashiki/audiy-api/src/domain/model"
+	"github.com/hayashiki/audiy-api/src/infrastructure/datastore"
+	"github.com/pkg/errors"
+)
+
+type repo struct {
+	client datastore.DSClient
+}
+
+func NewFeedRepository(client datastore.DSClient) repository.FeedRepository {
+	return &repo{
+		client: client,
+	}
+}
+
+func (r *repo) GetAll(
+	ctx context.Context,
+	userID string,
+	filters map[string]interface{},
+	cursor string,
+	limit int,
+	orderBy string) ([]*model.Feed, string, bool, error) {
+
+	var keys []*clouddatastore.Key
+	var parentKey *clouddatastore.Key
+	parentKey = clouddatastore.NameKey(parentKind, userID, parentKey)
+	//filters := map[string]interface{}{
+	//	//"AudioID=": audioID,
+	//}
+	keys, nextCursor, hasMore, err := r.client.RunQuery(
+		ctx, kind, parentKey, filters, cursor, limit, orderBy)
+	if err != nil {
+		return nil, nextCursor, hasMore, errors.WithStack(err)
+	}
+	entities := make([]*entity, len(keys))
+	if err := r.client.GetMulti(ctx, keys, entities); err != nil {
+		return nil, nextCursor, hasMore, errors.WithStack(err)
+	}
+	audios := make([]*model.Feed, len(entities))
+	for i, e := range entities {
+		audios[i] = e.toDomain()
+	}
+	return audios, nextCursor, hasMore, err
+}
+
+func (r *repo) GetMulti(ctx context.Context, userID string, ids []int64) ([]*model.Feed, error) {
+
+	keys := make([]*clouddatastore.Key, 0, len(ids))
+	var parentKey *clouddatastore.Key
+	parentKey = clouddatastore.NameKey("User", userID, nil)
+
+	entities := make([]*entity, 0, len(ids))
+	for i, id := range ids {
+		entities[i] = onlyID(id)
+		keys[i] = clouddatastore.IDKey(kind, id, parentKey)
+	}
+
+	if err := r.client.GetMulti(ctx, keys, entities); err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	items := make([]*model.Feed, 0, len(entities))
+	for _, e := range entities {
+		items = append(items, e.toDomain())
+	}
+
+	return items, nil
+}
+
+func (r *repo) Get(ctx context.Context, userID string, id int64) (*model.Feed, error) {
+	entity := onlyID(id)
+	parentKey := clouddatastore.NameKey(parentKind, userID, nil)
+	key := clouddatastore.IDKey(kind, id, parentKey)
+	if err := r.client.Get(ctx, key, entity); err != nil {
+		log.Println(entity, err)
+		return nil, errors.WithStack(err)
+	}
+
+	return entity.toDomain(), nil
+}
+
+// TODO: ancestor
+func (r *repo) GetByAudio(ctx context.Context, userID string, audioID string) (*model.Feed, error) {
+	filters := map[string]interface{}{
+		"AudioID=": audioID,
+	}
+	parentKey := clouddatastore.NameKey(parentKind, userID, nil)
+	keys, _, _, err := r.client.RunQuery(ctx, kind, parentKey, filters, "", 1, "")
+	if err != nil {
+		return nil, err
+	}
+	var item *entity
+
+	if err := r.client.Get(ctx, keys[0], &item); err != nil {
+		return nil, err
+	}
+
+	return item.toDomain(), nil
+}
+
+func (r *repo) Exists(ctx context.Context, userID string, id int64) (bool, error) {
+	parentKey := clouddatastore.NameKey(parentKind, userID, nil)
+	key := clouddatastore.IDKey(kind, id, parentKey)
+	exists, err := r.client.Exists(ctx, key, onlyID(id))
+	if err != nil {
+		return false, errors.WithStack(err)
+	}
+
+	return exists, nil
+
+}
+
+func (r *repo) Put(ctx context.Context, userID string, item *model.Feed) error {
+	parentKey := clouddatastore.NameKey(parentKind, userID, nil)
+	key := clouddatastore.IDKey(kind, item.ID, parentKey)
+	if err := r.client.Put(ctx, key, toEntity(item)); err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
+}
+
+func (r *repo) PutMulti(ctx context.Context, feeds []*model.Feed) error {
+	keys := make([]*clouddatastore.Key, len(feeds))
+
+	for i, item := range feeds {
+		parentKey := clouddatastore.NameKey(kind, item.UserID, nil)
+		keys[i] = clouddatastore.IDKey(kind, item.ID, parentKey)
+	}
+
+	err := r.client.PutMulti(ctx, keys, feeds)
+	//feed.Key = key
+
+	return err
+}
+
+func (r *repo) PutTx(tx *clouddatastore.Transaction, userID string, item *model.Feed) error {
+	parentKey := clouddatastore.NameKey(parentKind, userID, nil)
+	key := clouddatastore.IDKey(kind, item.ID, parentKey)
+
+	if err := r.client.PutTx(tx, key, toEntity(item)); err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
+}
 //
-//// FeedRepository operates Feed entity
-//type feedRepository struct {
-//	client *datastore.Client
-//}
-//
-////// NewFeedRepository returns the FeedRepository
-////func NewFeedRepository(client *datastore.Client) repository.FeedRepository {
-////	return &feedRepository{client: client}
-////}
-//
-//func (repo *feedRepository) key(userID string) *datastore.Key {
-//	return datastore.IncompleteKey(model.FeedKind, repo.parentKey(userID))
-//}
-//
-//func (repo *feedRepository) getKey(id int64, userID string) *datastore.Key {
-//	return datastore.IDKey(model.FeedKind, id, repo.parentKey(userID))
-//}
-//
-//func (repo *feedRepository) parentKey(userID string) *datastore.Key {
-//	return datastore.NameKey(model.UserKind, userID, nil)
-//}
-//
-//// Exists exists item
-//func (repo *feedRepository) Exists(ctx context.Context, id int64, userID string) bool {
-//	_, err := repo.Find(ctx, id, userID)
-//	return err == nil
-//}
-//
-//// FindAll finds all Feeds
-//func (repo *feedRepository) FindAll(ctx context.Context, userID string, filters map[string]interface{}, cursor string, limit int, sort ...string) ([]*model.Feed, string, bool, error) {
-//	userKey := model.GetUserKey(userID)
-//	query := datastore.NewQuery(model.FeedKind).Ancestor(userKey)
-//	if cursor != "" {
-//		dsCursor, err := datastore.DecodeCursor(cursor)
-//		if err != nil {
-//			//TODO
-//			log.Printf("failed to decode %v", err)
-//		}
-//		query = query.Start(dsCursor)
-//	}
-//	if limit > 0 {
-//		query = query.Limit(limit + 1)
-//	}
-//	for key, val := range filters {
-//		log.Println(key, val)
-//		query = query.Filter(key+"=", val)
-//	}
-//
-//	for _, order := range sort {
-//		query = query.Order(order)
-//	}
-//	log.Printf("query %+v", query)
-//	it := repo.client.Run(ctx, query)
-//	entities := make([]*model.Feed, 0, limit)
-//	count := 0
-//	hasMore := false
-//	var nextCursor datastore.Cursor
-//	for {
-//		entity := &model.Feed{}
-//
-//		_, err := it.Next(entity)
-//		if errors.Is(err, iterator.Done) {
-//			break
-//		}
-//		if err != nil {
-//			log.Printf("err %+v", err)
-//			return entities, "", hasMore, err
-//		}
-//		count++
-//		if limit < count {
-//			hasMore = true
-//			break
-//		}
-//
-//		entity.ID = entity.Key.ID
-//		entities = append(entities, entity)
-//
-//		if limit == count {
-//			nextCursor, err = it.Cursor()
-//			if err != nil {
-//				return entities, "", hasMore, err
-//			}
-//		}
-//	}
-//	log.Printf("entities %+v", len(entities))
-//	return entities, nextCursor.String(), hasMore, nil
-//}
-//
-//// Find finds Feed given id
-//func (repo *feedRepository) Find(ctx context.Context, id int64, userID string) (*model.Feed, error) {
-//	var feed model.Feed
-//	err := repo.client.Get(ctx, repo.getKey(id, userID), &feed)
-//	feed.ID = feed.Key.ID
-//	return &feed, err
-//}
-//
-//func (repo *feedRepository) FindByAudio(ctx context.Context, userID string, audioID string) (*model.Feed, error) {
-//	userKey := model.GetUserKey(userID)
-//	audioKey := model.GetAudioKey(audioID)
-//	q := datastore.NewQuery(model.FeedKind).Ancestor(userKey).KeysOnly().Filter("audio_key =", audioKey).Limit(1)
-//
-//	keys, err := repo.client.GetAll(context.Background(), q, nil)
-//
-//	if err != nil {
-//		return nil, fmt.Errorf("not found feed keys %w", err)
-//	}
-//
-//	var feed model.Feed
-//
-//	if err := repo.client.Get(ctx, keys[0], &feed); err != nil {
-//		return nil, fmt.Errorf("not found feed %w", err)
-//	}
-//
-//	feed.ID = keys[0].ID
-//
-//	return &feed, nil
-//}
-//
-//// Save saves Feeds
-//func (repo *feedRepository) Save(ctx context.Context, userID string, feed *model.Feed) error {
-//	if feed.Key != nil {
-//		_, err := repo.client.Put(ctx, feed.Key, feed)
-//		return err
-//	}
-//
-//	key, err := repo.client.Put(ctx, repo.key(userID), feed)
-//	feed.Key = key
-//
-//	return err
-//}
-//
-//// Save saves Feeds
-//func (repo *feedRepository) SaveAll(ctx context.Context, userIDs []string, feeds []*model.Feed) error {
-//	keys := make([]*datastore.Key, len(userIDs))
-//	for i, u := range userIDs {
-//		keys[i] = repo.key(u)
-//	}
-//
-//	keys, err := repo.client.PutMulti(ctx, keys, feeds)
-//	log.Println(keys, err)
-//	//feed.Key = key
-//
-//	return err
-//}
-//
-//// Delete saves Feeds
-//func (repo *feedRepository) Delete(ctx context.Context, FeedKey *datastore.Key) error {
-//	err := repo.client.Delete(ctx, FeedKey)
-//	return err
-//}
+//// TODO: idに型をつけよう。。
+func (r *repo) DeleteTx(tx *clouddatastore.Transaction, userID string, id int64) error {
+	pKey := clouddatastore.NameKey(parentKind, userID, nil)
+	key := clouddatastore.IDKey(kind, id, pKey)
+
+	if err := r.client.DeleteTx(tx, key); err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
+}
