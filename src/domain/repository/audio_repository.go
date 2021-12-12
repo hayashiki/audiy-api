@@ -1,17 +1,22 @@
-package model
+package repository
 
 import (
 	"context"
-
-	"cloud.google.com/go/datastore"
+	"github.com/hayashiki/audiy-api/src/domain/model"
+	"go.mercari.io/datastore/boom"
 )
 
 // AudioRepository interface
 type AudioRepository interface {
-	Exists(ctx context.Context, id string) bool
-	FindAll(ctx context.Context, filters map[string]interface{}, cursor string, limit int, sort ...string) ([]*Audio, string, error)
-	GetMulti(ctx context.Context, IDs []string) ([]*Audio, error)
-	Find(ctx context.Context, id string) (*Audio, error)
-	Save(ctx context.Context, audio *Audio) error
-	Delete(ctx context.Context, audioKey *datastore.Key) error
+	Exists(ctx context.Context, id string) (bool, error)
+	GetAll(
+		ctx context.Context,
+		cursor string,
+		limit int,
+		orderBy string) ([]*model.Audio, string, bool, error)
+	GetMulti(ctx context.Context, ids []string) ([]*model.Audio, error)
+	Get(ctx context.Context, id string) (*model.Audio, error)
+	Put(ctx context.Context, audio *model.Audio) error
+	PutTx(tx *boom.Transaction, item *model.Audio) error
+	DeleteTx(tx *boom.Transaction, id string) error
 }

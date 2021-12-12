@@ -1,25 +1,19 @@
-package model
+package repository
 
 import (
 	"context"
+	"github.com/hayashiki/audiy-api/src/domain/model"
+	"go.mercari.io/datastore/boom"
 )
-
-type Query struct {
-	Kind    string
-	Filters []*Filter
-	Offset  int
-	Cursor  string
-	Limit   int
-	Order   []string
-}
-
-type Filter struct {
-	key   string
-	value interface{}
-}
 
 // CommentRepository interface
 type CommentRepository interface {
-	GetAll(ctx context.Context, userID string, audioID string, cursor string, limit int, sort ...string) ([]*Comment, string, error)
-	Save(ctx context.Context, comment *Comment) error
+	GetAllByAudio(
+		ctx context.Context,
+		audioID string,
+		cursor string,
+		limit int,
+		orderBy string) ([]*model.Comment, string, bool, error)
+	PutTx(tx *boom.Transaction, comment *model.Comment) error
+	DeleteTx(tx *boom.Transaction, id int64) error
 }

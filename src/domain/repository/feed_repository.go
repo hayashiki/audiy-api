@@ -1,18 +1,23 @@
-package model
+package repository
 
 import (
 	"context"
-
-	"cloud.google.com/go/datastore"
+	"github.com/hayashiki/audiy-api/src/domain/model"
 )
 
 // FeedRepository interface
 type FeedRepository interface {
-	Exists(ctx context.Context, id int64, userID string) bool
-	FindAll(ctx context.Context, userID string, filters map[string]interface{}, cursor string, limit int, sort ...string) ([]*Feed, string, bool, error)
-	Find(ctx context.Context, id int64, userID string) (*Feed, error)
-	FindByAudio(ctx context.Context, userID string, audioID string) (*Feed, error)
-	Save(ctx context.Context, userID string, feed *Feed) error
-	SaveAll(ctx context.Context, userIDs []string, feeds []*Feed) error
-	Delete(ctx context.Context, FeedKey *datastore.Key) error
+	Exists(ctx context.Context, userID string,id int64) (bool, error)
+	GetAll(
+		ctx context.Context,
+		userID string,
+		filters map[string]interface{},
+		cursor string,
+		limit int,
+		orderBy string) ([]*model.Feed, string, bool, error)
+	Get(ctx context.Context, userID string, id int64) (*model.Feed, error)
+	GetByAudio(ctx context.Context, userID string, audioID string) (*model.Feed, error)
+	Put(ctx context.Context, userID string, item *model.Feed) error
+	PutMulti(ctx context.Context, feeds []*model.Feed) error
+	//Delete(ctx context.Context, FeedKey *datastore.Key) error
 }

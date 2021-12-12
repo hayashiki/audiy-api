@@ -1,6 +1,7 @@
-package entity
+package model
 
 import (
+	m "go.mercari.io/datastore"
 	"time"
 
 	"cloud.google.com/go/datastore"
@@ -10,6 +11,7 @@ const UserKind = "User"
 
 type User struct {
 	Key       *datastore.Key `datastore:"__key__"`
+	Key2       m.Key `datastore:"__key__"`
 	ID        string         `json:"id" datastore:"-"`
 	Email     string         `json:"email" datastore:"email"`
 	Name      string         `json:"name" datastore:"name"`

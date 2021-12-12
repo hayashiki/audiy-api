@@ -1,10 +1,14 @@
-package model
+package repository
 
-import "context"
+import (
+	"context"
+	"github.com/hayashiki/audiy-api/src/domain/model"
+	"go.mercari.io/datastore/boom"
+)
 
 // UserRepository interface
 type UserRepository interface {
-	Save(context.Context, *User) error
-	Get(ctx context.Context, id string) (*User, error)
-	GetAll(ctx context.Context) ([]*User, error)
+	PutTx(tx *boom.Transaction, item *model.User) error
+	Get(ctx context.Context, id string) (*model.User, error)
+	GetAll(ctx context.Context) ([]*model.User, error)
 }

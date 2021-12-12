@@ -1,24 +1,22 @@
-package entity
+package model
 
 import (
 	speechpb "google.golang.org/genproto/googleapis/cloud/speech/v1p1beta1"
 	"log"
 	"strings"
 	"time"
-
-	"cloud.google.com/go/datastore"
 )
 
 const TranscriptKind = "Transcript"
 
 type Transcript struct {
-	Key        *datastore.Key `datastore:"__key__"`
-	ID         int64          `json:"id" datastore:"-"`
-	AudioKey   *datastore.Key `json:"audio_key" datastore:"audio_key"`
-	Body       string         `json:"body" datastore:"body,noindex"`
-	Monologues []Monologue `json:"monologues" datastore:"monologues"`
-	CreatedAt  time.Time `json:"createdAt" datastore:"created_at"`
-	UpdatedAt  time.Time `json:"updatedAt" datastore:"updated_at"`
+	ID         int64          `json:"id"`
+	//AudioKey   *datastore.Key `json:"audio_key"`
+	AudioID   string `json:"audio_key" datastore:"audio_key"`
+	Body       string         `json:"body"`
+	Monologues []Monologue `json:"monologues"`
+	CreatedAt  time.Time `json:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt"`
 }
 
 type Monologue struct {
@@ -36,10 +34,9 @@ type MonologueElement struct {
 func (Transcript) IsNode() {}
 
 func NewTranscript(audioID string, resp *speechpb.LongRunningRecognizeResponse) *Transcript {
-	audioKey := GetAudioKey(audioID)
-
 	t := &Transcript{
-		AudioKey:  audioKey,
+		ID:        NewID(TranscriptKind),
+		AudioID:   audioID,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
