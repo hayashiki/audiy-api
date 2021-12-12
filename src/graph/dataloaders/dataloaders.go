@@ -3,7 +3,8 @@ package dataloaders
 import (
 	"context"
 	"errors"
-	"github.com/hayashiki/audiy-api/src/domain/entity"
+	"github.com/hayashiki/audiy-api/src/domain/model"
+	"github.com/hayashiki/audiy-api/src/domain/repository"
 	"net/http"
 	"time"
 )
@@ -24,10 +25,10 @@ func (s *DataLoaderService) Initialize(ctx context.Context) context.Context {
 }
 
 type DataLoaderService struct {
-	audioRepo entity.AudioRepository
+	audioRepo repository.AudioRepository
 }
 
-func NewDataLoaderService(audioRepo entity.AudioRepository) DataLoaderService {
+func NewDataLoaderService(audioRepo repository.AudioRepository) DataLoaderService {
 	return DataLoaderService{audioRepo: audioRepo}
 }
 
@@ -48,7 +49,7 @@ func (s *DataLoaderService) retrieve(ctx context.Context) (*loaders, error) {
 	return l, nil
 }
 
-func (s *DataLoaderService) AudioGetByID(ctx context.Context, id string) (*entity.Audio, error) {
+func (s *DataLoaderService) AudioGetByID(ctx context.Context, id string) (*model.Audio, error) {
 	l, err := s.retrieve(ctx)
 	if err != nil {
 		return nil, err
@@ -56,20 +57,20 @@ func (s *DataLoaderService) AudioGetByID(ctx context.Context, id string) (*entit
 	return l.AudioByID.Load(id)
 }
 
-func newAudioByID(ctx context.Context, repo entity.AudioRepository) *AudioLoader {
+func newAudioByID(ctx context.Context, repo repository.AudioRepository) *AudioLoader {
 	return NewAudioLoader(AudioLoaderConfig{
 		MaxBatch: 100,
 		Wait:     5 * time.Millisecond,
-		Fetch: func(ids []string) ([]*entity.Audio, []error) {
+		Fetch: func(ids []string) ([]*model.Audio, []error) {
 			res, err := repo.GetMulti(ctx, ids)
 			if err != nil {
 				return nil, []error{err}
 			}
-			groupByID := make(map[string]*entity.Audio, len(ids))
+			groupByID := make(map[string]*model.Audio, len(ids))
 			for _, r := range res {
-				groupByID[r.Key.Name] = r
+				groupByID[r.ID] = r
 			}
-			result := make([]*entity.Audio, len(ids))
+			result := make([]*model.Audio, len(ids))
 			for i, id := range ids {
 				result[i] = groupByID[id]
 			}

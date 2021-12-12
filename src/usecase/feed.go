@@ -61,7 +61,7 @@ func (u *feedUsecase) GetConnection(ctx context.Context, userID string, cursor s
 		}
 	}
 
-	feeds, nextCursor, HasMore, err := u.feedRepo.GetAll(ctx, userID, filters, cursor, limit, "")
+	feeds, nextCursor, HasMore, err := u.feedRepo.GetAll(ctx, userID, filters, cursor, limit, orderBy)
 	if err != nil {
 		return nil, err
 	}

@@ -1,8 +1,15 @@
 package app
 
 import (
-	"context"
+	"github.com/hayashiki/audiy-api/src/domain/repository"
+	"github.com/hayashiki/audiy-api/src/domain/service"
 	"github.com/hayashiki/audiy-api/src/graph/dataloaders"
+	"github.com/hayashiki/audiy-api/src/infrastructure/datastore/audio_entity"
+	"github.com/hayashiki/audiy-api/src/infrastructure/datastore/comment_entity"
+	"github.com/hayashiki/audiy-api/src/infrastructure/datastore/fcm_entity"
+	"github.com/hayashiki/audiy-api/src/infrastructure/datastore/feed_entity"
+	"github.com/hayashiki/audiy-api/src/infrastructure/datastore/transcript_entity"
+	"github.com/hayashiki/audiy-api/src/infrastructure/datastore/user_entity"
 	"github.com/hayashiki/audiy-api/src/infrastructure/ffmpeg"
 	"github.com/hayashiki/audiy-api/src/infrastructure/transcript"
 	"log"
@@ -10,10 +17,9 @@ import (
 
 	"contrib.go.opencensus.io/exporter/stackdriver/propagation"
 	"github.com/hayashiki/audiy-api/src/config"
-	"github.com/hayashiki/audiy-api/src/domain/entity"
 	"github.com/hayashiki/audiy-api/src/graph"
 	"github.com/hayashiki/audiy-api/src/handler"
-	"github.com/hayashiki/audiy-api/src/infrastructure/ds"
+	"github.com/hayashiki/audiy-api/src/infrastructure/datastore"
 	"github.com/hayashiki/audiy-api/src/infrastructure/gcs"
 	"github.com/hayashiki/audiy-api/src/infrastructure/slack"
 	"github.com/hayashiki/audiy-api/src/logging"
@@ -31,10 +37,10 @@ type Dependency struct {
 	commentUsecase usecase.CommentUsecase
 	gcsSvc         gcs.Service
 	slackSvc       slack.Service
-	commentRepo    entity.CommentRepository
-	audioRepo      entity.AudioRepository
-	userRepo       entity.UserRepository
-	feedRepo       entity.FeedRepository
+	commentRepo    repository.CommentRepository
+	audioRepo      repository.AudioRepository
+	userRepo       repository.UserRepository
+	feedRepo       repository.FeedRepository
 	resolver       *graph.Resolver
 	authenticator  middleware.Authenticator
 	dataloaderSvc  dataloaders.DataLoaderService
@@ -46,10 +52,14 @@ type Dependency struct {
 func (d *Dependency) Inject(conf config.Config) {
 	// infrastructure
 	log.Println(config.GetProject())
-	dsCli, err := ds.NewClient(context.Background(), config.GetProject())
-	if err != nil {
-		log.Fatalf("failed to read datastore client")
-	}
+	mDsClid := datastore.New()
+	dsCli := datastore.NewDS()
+	//if err != nil {
+	//	log.Fatalf("failed to read datastore client")
+	//}
+
+	transaction := datastore.NewDatastoreTransactor()
+
 	// inject
 	gcsSvc := gcs.NewService(conf.GCSInputAudioBucket)
 	slackSvc := slack.NewClient(conf.SlackBotToken)
@@ -59,21 +69,27 @@ func (d *Dependency) Inject(conf config.Config) {
 	transcriptSvc  := transcript.NewSpeechRecogniser()
 
 	// repository
-	commentRepo := ds.NewCommentRepository(dsCli)
-	userRepo := ds.NewUserRepository(dsCli)
-	audioRepo := ds.NewAudioRepository(dsCli)
-	feedRepo := ds.NewFeedRepository(dsCli)
-	transcriptRepo := ds.NewTranscriptRepository(dsCli)
+	commentRepo := comment_entity.NewCommentRepository(mDsClid)
+	userRepo := user_entity.NewUserRepository(mDsClid)
+	audioRepo := audio_entity.NewAudioRepository(mDsClid)
+	feedRepo := feed_entity.NewFeedRepository(dsCli)
+	transcriptRepo := transcript_entity.NewTranscriptRepository(mDsClid)
 
 	// middleware
 	authenticator := middleware.NewAuthenticator()
 
+	// domain/service
+	ds := datastore.New()
+	fcmRepo := fcm_entity.NewRepository(ds)
+	fcmSvc := service.NewFcmService(fcmRepo)
+
 	// usecase
 	audioUsecase := usecase.NewAudioUsecase(gcsSvc, audioRepo, feedRepo, userRepo)
-	commentUsecase := usecase.NewCommentUsecase(commentRepo, audioRepo)
+	commentUsecase := usecase.NewCommentUsecase(transaction, commentRepo, audioRepo)
 	userUsecase := usecase.NewUserUsecase(userRepo, audioRepo, feedRepo)
 	feedUsecase := usecase.NewFeedUsecase(feedRepo, audioRepo)
 	transcriptUsecase := usecase.NewTranscriptAudioUsecase(gcsSvc, audioRepo, transcriptRepo, proveSvc, transcoder, transcriptSvc)
+	fcmUsecase := usecase.NewFcmUsecase(fcmSvc)
 
 	logger := logging.NewLogger(conf.IsDev)
 
@@ -92,7 +108,7 @@ func (d *Dependency) Inject(conf config.Config) {
 	d.feedRepo = feedRepo
 	d.authenticator = authenticator
 
-	resolver := graph.NewResolver(d.dataloaderSvc, userUsecase, audioUsecase, commentUsecase, feedUsecase, transcriptUsecase)
+	resolver := graph.NewResolver(d.dataloaderSvc, userUsecase, audioUsecase, commentUsecase, feedUsecase, transcriptUsecase, fcmUsecase)
 	d.resolver = resolver
 	graphHandler := NewGraphQLHandler(d.resolver)
 	d.graphQLHandler = graphHandler
