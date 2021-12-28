@@ -2,77 +2,78 @@ package usecase
 
 import (
 	"context"
+	"github.com/hayashiki/audiy-api/src/domain/repository"
 	"log"
 
-	"github.com/hayashiki/audiy-api/src/domain/entity"
+	"github.com/hayashiki/audiy-api/src/domain/model"
 )
 
 type FeedUsecase interface {
-	GetConnection(ctx context.Context, userID string, cursor string, limit int, filter *entity.FeedEvent, order []string) (*entity.FeedConnection, error)
-	Get(ctx context.Context, id int64, userID string) (*entity.Feed, error)
-	Put(ctx context.Context, userID string, audioID string, event entity.FeedEvent) (*entity.Feed, error)
+	GetConnection(ctx context.Context, userID string, cursor string, limit int, filter *model.FeedEvent, orderBy string) (*model.FeedConnection, error)
+	Get(ctx context.Context, userID string, id int64) (*model.Feed, error)
+	Put(ctx context.Context, userID string, audioID string, event model.FeedEvent) (*model.Feed, error)
 }
 
-func NewFeedUsecase(feedRepo entity.FeedRepository, audioRepo entity.AudioRepository) FeedUsecase {
+func NewFeedUsecase(feedRepo repository.FeedRepository, audioRepo repository.AudioRepository) FeedUsecase {
 	return &feedUsecase{feedRepo: feedRepo, audioRepo: audioRepo}
 }
 
 type feedUsecase struct {
-	feedRepo  entity.FeedRepository
-	audioRepo entity.AudioRepository
+	feedRepo  repository.FeedRepository
+	audioRepo repository.AudioRepository
 }
 
-func (u *feedUsecase) GetConnection(ctx context.Context, userID string, cursor string, limit int, filter *entity.FeedEvent, order []string) (*entity.FeedConnection, error) {
+func (u *feedUsecase) GetConnection(ctx context.Context, userID string, cursor string, limit int, filter *model.FeedEvent, orderBy string) (*model.FeedConnection, error) {
 	var filters map[string]interface{}
 
 	if filter == nil {
 		filter = nil
 	} else {
 		switch *filter {
-		case entity.FeedEventLiked:
+		case model.FeedEventLiked:
 			filters = map[string]interface{}{
-				"liked": true,
+				"Liked": true,
 			}
-		case entity.FeedEventUnliked:
+		case model.FeedEventUnliked:
 			filters = map[string]interface{}{
-				"liked": false,
+				"Liked": false,
 			}
-		case entity.FeedEventStared:
+		case model.FeedEventStared:
 			filters = map[string]interface{}{
-				"stared": true,
+				"Stared": true,
 			}
-		case entity.FeedEventUnstared:
+		case model.FeedEventUnstared:
 			filters = map[string]interface{}{
-				"stared": false,
+				"Stared": false,
 			}
-		case entity.FeedEventPlayed:
+		case model.FeedEventPlayed:
 			filters = map[string]interface{}{
-				"played": true,
+				"Played": true,
 			}
-		case entity.FeedEventUnplayed:
+		case model.FeedEventUnplayed:
 			filters = map[string]interface{}{
-				"played": false,
+				"Played": false,
 			}
-		case entity.FeedEventAll:
+		case model.FeedEventAll:
 			filters = map[string]interface{}{}
 		default:
 			filters = map[string]interface{}{}
 		}
 	}
 
-	feeds, nextCursor, HasMore, err := u.feedRepo.FindAll(ctx, userID, filters, cursor, limit, order...)
+	feeds, nextCursor, HasMore, err := u.feedRepo.GetAll(ctx, userID, filters, cursor, limit, orderBy)
 	if err != nil {
 		return nil, err
 	}
-	feedEdges := make([]*entity.FeedEdge, len(feeds))
+	feedEdges := make([]*model.FeedEdge, len(feeds))
 	for i, a := range feeds {
-		feedEdges[i] = &entity.FeedEdge{
+		feedEdges[i] = &model.FeedEdge{
 			Cursor: nextCursor,
 			Node:   a,
 		}
 	}
-	return &entity.FeedConnection{
-		PageInfo: &entity.PageInfo{
+	return &model.FeedConnection{
+		PageInfo: &model.PageInfo{
 			Cursor:  nextCursor,
 			HasMore: HasMore,
 		},
@@ -80,47 +81,47 @@ func (u *feedUsecase) GetConnection(ctx context.Context, userID string, cursor s
 	}, nil
 }
 
-func (u *feedUsecase) Get(ctx context.Context, id int64, userID string) (*entity.Feed, error) {
-	return u.feedRepo.Find(ctx, id, userID)
+func (u *feedUsecase) Get(ctx context.Context, userID string, id int64) (*model.Feed, error) {
+	return u.feedRepo.Get(ctx, userID, id)
 }
 
-func (u *feedUsecase) Put(ctx context.Context, userID string, audioID string, event entity.FeedEvent) (*entity.Feed, error) {
-	feed, err := u.feedRepo.FindByAudio(ctx, userID, audioID)
+func (u *feedUsecase) Put(ctx context.Context, userID string, audioID string, event model.FeedEvent) (*model.Feed, error) {
+	feed, err := u.feedRepo.GetByAudio(ctx, userID, audioID)
 	if err != nil {
 		return nil, err
 	}
 
-	audio, err := u.audioRepo.Find(ctx, feed.AudioKey.Name)
+	audio, err := u.audioRepo.Get(ctx, feed.AudioID)
 	if err != nil {
 		return nil, err
 	}
 
 	switch event {
-	case entity.FeedEventPlayed:
+	case model.FeedEventPlayed:
 		audio.PlayCount += 1
 		feed.Played = true
-	case entity.FeedEventUnplayed:
+	case model.FeedEventUnplayed:
 		if !feed.Played {
 			return feed, nil
 		}
 		feed.Played = false
-	case entity.FeedEventStared:
+	case model.FeedEventStared:
 		if feed.Stared {
 			return feed, nil
 		}
 		feed.Stared = true
-	case entity.FeedEventUnstared:
+	case model.FeedEventUnstared:
 		if !feed.Stared {
 			return feed, nil
 		}
 		feed.Stared = false
-	case entity.FeedEventLiked:
+	case model.FeedEventLiked:
 		if feed.Liked {
 			return feed, nil
 		}
 		feed.Liked = true
 		audio.LikeCount += 1
-	case entity.FeedEventUnliked:
+	case model.FeedEventUnliked:
 		if !feed.Liked {
 			return feed, nil
 		}
@@ -129,10 +130,10 @@ func (u *feedUsecase) Put(ctx context.Context, userID string, audioID string, ev
 	default:
 		log.Printf("invalid event %s", event)
 	}
-	if err := u.feedRepo.Save(ctx, userID, feed); err != nil {
+	if err := u.feedRepo.Put(ctx, userID, feed); err != nil {
 		return nil, err
 	}
-	if err := u.audioRepo.Save(ctx, audio); err != nil {
+	if err := u.audioRepo.Put(ctx, audio); err != nil {
 		return nil, err
 	}
 	return feed, err

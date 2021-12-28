@@ -7,27 +7,26 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hayashiki/audiy-api/src/domain/entity"
+	"github.com/hayashiki/audiy-api/src/domain/model"
 	"github.com/hayashiki/audiy-api/src/graph/auth"
 	"github.com/hayashiki/audiy-api/src/graph/generated"
 )
 
-func (r *feedResolver) Audio(ctx context.Context, obj *entity.Feed) (*entity.Audio, error) {
-	// TODO: dataloaders
-	return r.dataLoaders.AudioGetByID(ctx, obj.AudioKey.Name)
+func (r *feedResolver) Audio(ctx context.Context, obj *model.Feed) (*model.Audio, error) {
+	return r.dataLoaders.AudioGetByID(ctx, obj.AudioID)
 	//return r.audioUsecase.Get(ctx, obj.AudioKey.Name)
 }
 
-func (r *feedResolver) User(ctx context.Context, obj *entity.Feed) (*entity.User, error) {
+func (r *feedResolver) User(ctx context.Context, obj *model.Feed) (*model.User, error) {
 	// TODO: delete
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *mutationResolver) CreateFeed(ctx context.Context, input entity.CreateFeedInput) (*entity.Feed, error) {
+func (r *mutationResolver) CreateFeed(ctx context.Context, input model.CreateFeedInput) (*model.Feed, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *mutationResolver) UpdateFeed(ctx context.Context, input entity.UpdateFeedInput) (*entity.Feed, error) {
+func (r *mutationResolver) UpdateFeed(ctx context.Context, input model.UpdateFeedInput) (*model.Feed, error) {
 	auth, err := auth.ForContext(ctx)
 	if err != nil {
 		return nil, err
@@ -35,11 +34,11 @@ func (r *mutationResolver) UpdateFeed(ctx context.Context, input entity.UpdateFe
 	return r.feedUseCase.Put(ctx, auth.ID, input.ID, input.Event)
 }
 
-func (r *mutationResolver) DeleteFeed(ctx context.Context, id string) (*entity.DeleteFeedResult, error) {
+func (r *mutationResolver) DeleteFeed(ctx context.Context, id string) (*model.DeleteFeedResult, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *queryResolver) Feeds(ctx context.Context, cursor *string, filter *entity.FeedEvent, limit *int, order *entity.AudioOrder) (*entity.FeedConnection, error) {
+func (r *queryResolver) Feeds(ctx context.Context, cursor *string, filter *model.FeedEvent, limit *int, order *model.AudioOrder) (*model.FeedConnection, error) {
 	auth, err := auth.ForContext(ctx)
 	if err != nil {
 		return nil, err
@@ -49,15 +48,15 @@ func (r *queryResolver) Feeds(ctx context.Context, cursor *string, filter *entit
 		*cursor = ""
 	}
 
-	var orderStr []string
+	var orderBy string
 	if order == nil {
-		orderStr = []string{"-published_at"}
-	} else if order.String() == entity.AudioOrderPublishedAtAsc.String() {
-		orderStr = []string{"published_at"}
-	} else if order.String() == entity.AudioOrderPublishedAtDesc.String() {
-		orderStr = []string{"-published_at"}
+		orderBy = "-PublishedAt"
+	} else if order.String() == model.AudioOrderPublishedAtAsc.String() {
+		orderBy = "PublishedAt"
+	} else if order.String() == model.AudioOrderPublishedAtDesc.String() {
+		orderBy = "-PublishedAt"
 	}
-	return r.feedUseCase.GetConnection(ctx, auth.ID, *cursor, *limit, filter, orderStr)
+	return r.feedUseCase.GetConnection(ctx, auth.ID, *cursor, *limit, filter, orderBy)
 }
 
 // Feed returns generated.FeedResolver implementation.

@@ -6,11 +6,11 @@ package graph
 import (
 	"context"
 
-	"github.com/hayashiki/audiy-api/src/domain/entity"
+	"github.com/hayashiki/audiy-api/src/domain/model"
 	"github.com/hayashiki/audiy-api/src/graph/generated"
 )
 
-func (r *mutationResolver) CreateUser(ctx context.Context, input entity.CreateUserInput) (*entity.User, error) {
+func (r *mutationResolver) CreateUser(ctx context.Context, input model.CreateUserInput) (*model.User, error) {
 	return r.userUsecase.Save(ctx, input)
 }
 
