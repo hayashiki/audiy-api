@@ -112,4 +112,13 @@ func (r *repo) DeleteTx(tx *boom.Transaction, id string) error {
 	return nil
 }
 
+// TODO: idに型をつけよう。。
+func (r *repo) Delete(ctx context.Context, id string) error {
+	if err := r.client.Delete(ctx, onlyID(id)); err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
+}
+
 
