@@ -50,6 +50,16 @@ func (r *repo) GetAllByAudio(
 	return comments, nextCursor, hasMore, err
 }
 
+func (r *repo) Get(ctx context.Context, id int64) (*model.Comment, error) {
+	entity := onlyID(id)
+
+	if err := r.client.Get(ctx, entity); err != nil {
+		return nil, errors.WithStack(err)
+	}
+
+	return entity.toDomain(), nil
+}
+
 func (r *repo) Put(ctx context.Context, item *model.Comment) error {
 	if err := r.client.Put(ctx, toEntity(item)); err != nil {
 		return errors.WithStack(err)
@@ -69,6 +79,14 @@ func (r *repo) PutTx(tx *boom.Transaction, item *model.Comment) error {
 // TODO: idに型をつけよう。。
 func (r *repo) DeleteTx(tx *boom.Transaction, id int64) error {
 	if err := r.client.DeleteTx(tx, onlyID(id)); err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
+}
+
+func (r *repo) Delete(ctx context.Context, id int64) error {
+	if err := r.client.Delete(ctx, onlyID(id)); err != nil {
 		return errors.WithStack(err)
 	}
 

@@ -13,7 +13,7 @@ func onlyID(id int64) *entity {
 
 type entity struct {
 	kind      string `boom:"kind,Comment"`
-	ID        int64 `boom:"id"`
+	ID        int64 `datastore:"-" boom:"id"`
 	UserID    string
 	AudioID   string
 	Body      string `datastore:",noindex"`
@@ -34,7 +34,6 @@ func (f *entity) toDomain() *model.Comment {
 
 func toEntity(from *model.Comment) *entity {
 	return &entity{
-		ID:        from.ID,
 		UserID:    from.UserID,
 		AudioID:   from.AudioID,
 		Body:      from.Body,
