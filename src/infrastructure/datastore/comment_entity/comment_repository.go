@@ -30,7 +30,7 @@ func (r *repo) GetAllByAudio(
 		"AudioID=": audioID,
 	}
 
-	keys, nextCursor, hasMore, err := r.client.RunQuery(
+	keys, nextCursor, hasMore, err := r.client.Run(
 		ctx, kind, filters, cursor, limit, orderBy)
 	if err != nil {
 		return nil, nextCursor, hasMore, errors.WithStack(err)

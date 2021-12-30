@@ -1,7 +1,6 @@
 package datastore
 
 import (
-	"cloud.google.com/go/datastore"
 	"google.golang.org/api/iterator"
 
 	"context"
@@ -38,11 +37,12 @@ func New() Client {
 type Client interface {
 	GetAll(ctx context.Context, kind string, dst interface{}) error
 	GetMulti(ctx context.Context, dst interface{}) error
-	RunQuery(ctx context.Context, kind string, filters map[string]interface{}, cursor string, limit int, orderBy string) ([]mdatastore.Key, string, bool, error)
+	Run(ctx context.Context, kind string, filters map[string]interface{}, cursor string, limit int, orderBy string) ([]mdatastore.Key, string, bool, error)
 	Exists(ctx context.Context, dst interface{}) (bool, error)
 	Get(ctx context.Context, dst interface{}) error
 	Put(ctx context.Context, src interface{}) error
 	PutTx(tx *boom.Transaction, src interface{}) error
+	Delete(ctx context.Context, src interface{}) error
 	DeleteTx(tx *boom.Transaction, src interface{}) error
 }
 
@@ -54,14 +54,13 @@ type Transactor interface {
 func (c *client) GetAll(ctx context.Context, kind string, dst interface{}) error {
 	b := FromContext(ctx)
 	q := b.NewQuery(kind)
-	log.Println(kind)
 	if _, err := b.GetAll(q, dst); err != nil {
 		return errors.WithStack(err)
 	}
 	return nil
 }
 
-func (c *client) RunQuery(
+func (c *client) Run(
 	ctx context.Context,
 	kind string,
 	filters map[string]interface{},
@@ -85,7 +84,7 @@ func (c *client) RunQuery(
 	}
 
 	if cursor != "" {
-		dsCursor, err := b.Client.DecodeCursor(cursor)
+		dsCursor, err := b.DecodeCursor(cursor)
 		if err != nil {
 			//TODO
 			log.Printf("failed to decode %v", err)
@@ -94,8 +93,6 @@ func (c *client) RunQuery(
 	}
 
 	if limit > 0 {
-		log.Printf("limit %d", limit+1)
-		// nextCursorがあるか把握する
 		q = q.Limit(limit+1)
 	} else {
 		// TODO: add test case
@@ -120,18 +117,15 @@ func (c *client) RunQuery(
 			keys = append(keys, key)
 			if limit == count {
 				nextCursor, err := it.Cursor()
+				nextCursorStr = nextCursor.String()
 				if err != nil {
 					return keys, nextCursor.String(), hasMore, err
 				}
 			}
 		}
 	}
+	it.Cursor()
 	return keys, nextCursorStr, hasMore, nil
-}
-
-type parent struct {
-	kind      string `boom:"kind,Audio"`
-	ID        string `boom:"id"`
 }
 
 func (c *client) Get(ctx context.Context, dst interface{}) error {
@@ -147,17 +141,34 @@ func (c *client) Get(ctx context.Context, dst interface{}) error {
 	return nil
 }
 
+func (c *client) Get2(ctx context.Context, dst interface{}) error {
+	b, cli := FromContext2(ctx)
+
+	key := cli.NameKey("Audio", "1",  nil)
+	key.SetNamespace("hoge")
+
+	if err := b.Get(dst); err != nil {
+		if err == mdatastore.ErrNoSuchEntity {
+			return errors.WithStack(ErrNoSuchEntity)
+		}
+		return errors.WithStack(err)
+	}
+
+	return nil
+}
+
+
 func (c *client) GetMulti(ctx context.Context, dst interface{}) error {
 	b := FromContext(ctx)
 
 	if err := b.GetMulti(dst); err != nil {
-		multiErr, ok := err.(datastore.MultiError)
+		multiErr, ok := err.(mdatastore.MultiError)
 		if !ok {
 			return errors.WithStack(err)
 		}
 
 		for _, e := range multiErr {
-			if e == datastore.ErrNoSuchEntity {
+			if e == mdatastore.ErrNoSuchEntity {
 				return errors.WithStack(ErrNoSuchEntity)
 			}
 		}
@@ -171,7 +182,7 @@ func (c *client) Exists(ctx context.Context, dst interface{}) (bool, error) {
 	b := FromContext(ctx)
 
 	if err := b.Get(dst); err != nil {
-		if err == datastore.ErrNoSuchEntity {
+		if err == mdatastore.ErrNoSuchEntity {
 			return false, nil
 		}
 		return false, errors.WithStack(err)
@@ -200,6 +211,14 @@ func (c *client) DeleteTx(tx *boom.Transaction, src interface{}) error {
 		return errors.WithStack(err)
 	}
 
+	return nil
+}
+
+func (c *client) Delete(ctx context.Context, src interface{}) error {
+	b := FromContext(ctx)
+	if err := b.Delete(src); err != nil {
+		return errors.WithStack(err)
+	}
 	return nil
 }
 

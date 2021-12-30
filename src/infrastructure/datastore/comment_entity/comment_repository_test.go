@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"testing"
@@ -46,42 +45,6 @@ func resetDatastoreEmulator() error {
 	}
 	return nil
 }
-
-//func TestCommentCRUD(t *testing.T) {
-//	resetDatastoreEmulator()
-//
-//	ctx := context.Background()
-//	audioRepo := repo{client: _dbClient}
-//
-//	userRepo := user_entity.NewUserRepository(ds)
-//	user, err := userRepo.Get(ctx, "103843140833205663533")
-//	if err != nil {
-//		t.Error(err)
-//	}
-//	t.Log(user)
-//
-//	audioRepo := audio_entity.NewAudioRepository(ds)
-//	if err != nil {
-//		t.Error(err)
-//	}
-//	audio, err := audioRepo.Get(ctx, "F02D2M3L1C7")
-//	if err != nil {
-//		t.Error(err)
-//	}
-//	t.Log(audio.PublishedAt)
-//
-//	comments, nextCursor, _, err := r.GetAllByAudio(
-//		ctx, audio.ID, "", 100, "CreatedAt",
-//	)
-//
-//	log.Println(comments)
-//	log.Println(nextCursor)
-//	log.Println(err)
-//
-//	for _, cm := range comments {
-//		log.Println(cm.Body)
-//	}
-//}
 
 func TestCommentCRUD(t *testing.T) {
 	resetDatastoreEmulator()
@@ -125,11 +88,16 @@ func TestQuery(t *testing.T)  {
 	if err != nil {
 		t.Error(err)
 	}
-	comments, _, _, err := commentRepo.GetAllByAudio(ctx, "1", "", 10, "CreatedAt")
-	if err != nil {
-		t.Error(err)
-	}
-	log.Println(len(comments))
+
+	t.Run("audio filtered", func(t *testing.T) {
+		comments, _, _, err := commentRepo.GetAllByAudio(ctx, "1", "", 10, "CreatedAt")
+		if err != nil {
+			t.Error(err)
+		}
+		if len(comments) != 1 {
+			t.Errorf("want: 1, but got record count %d", len(comments))
+		}
+	})
 }
 
 var (

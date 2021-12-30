@@ -7,7 +7,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hayashiki/audiy-api/src/domain/model"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"testing"
@@ -117,6 +116,7 @@ func TestAudiosQuery(t *testing.T) {
 		testAudio2,
 		testAudio3,
 	}
+	// TODO: PutMulti
 	for _, a := range audios {
 		err := audioRepo.Put(ctx, a)
 		if err != nil {
@@ -143,7 +143,9 @@ func TestAudiosQuery(t *testing.T) {
 			}
 			cursor = nextCursor
 		}
-		log.Println(count)
+		if count != 3 {
+			t.Fatalf("failed to get next cursor, total record count %d", count)
+		}
 	})
 
 	t.Run(" PublishedAt sorted", func(t *testing.T) {
