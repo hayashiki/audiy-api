@@ -35,23 +35,33 @@ func (r *repo) GetAll(
 	//filters := map[string]interface{}{
 	//	//"AudioID=": audioID,
 	//}
-	keys, nextCursor, hasMore, err := r.client.RunQuery(
-		ctx, kind, parentKey, filters, cursor, limit, orderBy)
+	q := &model.Query{
+		Kind: kind,
+		Parent: parentKey,
+		Limit:     limit,
+		Cursor:    cursor,
+		Filters:   nil,
+		OrderBy:   orderBy,
+		Namespace: "",
+	}
+	keys, nextCursor, hasMore, err := r.client.Run(ctx, q)
 	if err != nil {
 		return nil, nextCursor, hasMore, errors.WithStack(err)
 	}
+	log.Println("keys", len(keys), keys[0])
 	entities := make([]*entity, len(keys))
 	if err := r.client.GetMulti(ctx, keys, entities); err != nil {
+		log.Println("keys", len(keys), keys[0], err)
 		return nil, nextCursor, hasMore, errors.WithStack(err)
 	}
-	audios := make([]*model.Feed, len(entities))
+	feeds := make([]*model.Feed, len(entities))
 	for i, e := range entities {
-		audios[i] = e.toDomain()
+		feeds[i] = e.toDomain()
 	}
-	return audios, nextCursor, hasMore, err
+	return feeds, nextCursor, hasMore, err
 }
 
-func (r *repo) GetMulti(ctx context.Context, userID string, ids []int64) ([]*model.Feed, error) {
+func (r *repo) GetMulti(ctx context.Context, userID string, ids []string) ([]*model.Feed, error) {
 
 	keys := make([]*clouddatastore.Key, 0, len(ids))
 	var parentKey *clouddatastore.Key
@@ -60,7 +70,7 @@ func (r *repo) GetMulti(ctx context.Context, userID string, ids []int64) ([]*mod
 	entities := make([]*entity, 0, len(ids))
 	for i, id := range ids {
 		entities[i] = onlyID(id)
-		keys[i] = clouddatastore.IDKey(kind, id, parentKey)
+		keys[i] = clouddatastore.NameKey(kind, id, parentKey)
 	}
 
 	if err := r.client.GetMulti(ctx, keys, entities); err != nil {
@@ -75,16 +85,14 @@ func (r *repo) GetMulti(ctx context.Context, userID string, ids []int64) ([]*mod
 	return items, nil
 }
 
-func (r *repo) Get(ctx context.Context, userID string, id int64) (*model.Feed, error) {
-	entity := onlyID(id)
+func (r *repo) Get(ctx context.Context, id string, userID string) (*model.Feed, error) {
+	en := &entity{}
 	parentKey := clouddatastore.NameKey(parentKind, userID, nil)
-	key := clouddatastore.IDKey(kind, id, parentKey)
-	if err := r.client.Get(ctx, key, entity); err != nil {
-		log.Println(entity, err)
+	key := clouddatastore.NameKey(kind, id, parentKey)
+	if err := r.client.Get(ctx, key, en); err != nil {
 		return nil, errors.WithStack(err)
 	}
-
-	return entity.toDomain(), nil
+	return en.toDomain(), nil
 }
 
 // TODO: ancestor
@@ -93,7 +101,16 @@ func (r *repo) GetByAudio(ctx context.Context, userID string, audioID string) (*
 		"AudioID=": audioID,
 	}
 	parentKey := clouddatastore.NameKey(parentKind, userID, nil)
-	keys, _, _, err := r.client.RunQuery(ctx, kind, parentKey, filters, "", 1, "")
+	q := &model.Query{
+		Kind:      kind,
+		Parent:    parentKey,
+		Limit:     1,
+		Cursor:    "",
+		Filters:   filters,
+		OrderBy:   "",
+		Namespace: "",
+	}
+	keys, _, _, err := r.client.Run(ctx, q)
 	if err != nil {
 		return nil, err
 	}
@@ -106,21 +123,20 @@ func (r *repo) GetByAudio(ctx context.Context, userID string, audioID string) (*
 	return item.toDomain(), nil
 }
 
-func (r *repo) Exists(ctx context.Context, userID string, id int64) (bool, error) {
+func (r *repo) Exists(ctx context.Context, userID string, id string) (bool, error) {
 	parentKey := clouddatastore.NameKey(parentKind, userID, nil)
-	key := clouddatastore.IDKey(kind, id, parentKey)
+	key := clouddatastore.NameKey(kind, id, parentKey)
 	exists, err := r.client.Exists(ctx, key, onlyID(id))
-	if err != nil {
+	if err != nil && !errors.Is(err, clouddatastore.ErrNoSuchEntity) {
 		return false, errors.WithStack(err)
 	}
 
 	return exists, nil
-
 }
 
 func (r *repo) Put(ctx context.Context, userID string, item *model.Feed) error {
 	parentKey := clouddatastore.NameKey(parentKind, userID, nil)
-	key := clouddatastore.IDKey(kind, item.ID, parentKey)
+	key := clouddatastore.NameKey(kind, string(item.ID()), parentKey)
 	if err := r.client.Put(ctx, key, toEntity(item)); err != nil {
 		return errors.WithStack(err)
 	}
@@ -130,21 +146,20 @@ func (r *repo) Put(ctx context.Context, userID string, item *model.Feed) error {
 
 func (r *repo) PutMulti(ctx context.Context, feeds []*model.Feed) error {
 	keys := make([]*clouddatastore.Key, len(feeds))
+	entities := make([]*entity, len(feeds))
 
 	for i, item := range feeds {
-		parentKey := clouddatastore.NameKey(kind, item.UserID, nil)
-		keys[i] = clouddatastore.IDKey(kind, item.ID, parentKey)
+		parentKey := clouddatastore.NameKey(parentKind, item.UserID, nil)
+		keys[i] = clouddatastore.NameKey(kind, string(item.ID()), parentKey)
+		entities[i] = toEntity(item)
 	}
-
 	err := r.client.PutMulti(ctx, keys, feeds)
-	//feed.Key = key
-
 	return err
 }
 
 func (r *repo) PutTx(tx *clouddatastore.Transaction, userID string, item *model.Feed) error {
 	parentKey := clouddatastore.NameKey(parentKind, userID, nil)
-	key := clouddatastore.IDKey(kind, item.ID, parentKey)
+	key := clouddatastore.NameKey(kind, string(item.ID()), parentKey)
 
 	if err := r.client.PutTx(tx, key, toEntity(item)); err != nil {
 		return errors.WithStack(err)
@@ -154,11 +169,22 @@ func (r *repo) PutTx(tx *clouddatastore.Transaction, userID string, item *model.
 }
 //
 //// TODO: idに型をつけよう。。
-func (r *repo) DeleteTx(tx *clouddatastore.Transaction, userID string, id int64) error {
+func (r *repo) DeleteTx(tx *clouddatastore.Transaction, userID string, id string) error {
 	pKey := clouddatastore.NameKey(parentKind, userID, nil)
-	key := clouddatastore.IDKey(kind, id, pKey)
+	key := clouddatastore.NameKey(kind, id, pKey)
 
 	if err := r.client.DeleteTx(tx, key); err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
+}
+
+func (r *repo) Delete(ctx context.Context, userID string, id string) error {
+	pKey := clouddatastore.NameKey(parentKind, userID, nil)
+	key := clouddatastore.NameKey(kind, id, pKey)
+
+	if err := r.client.Delete(ctx, key); err != nil {
 		return errors.WithStack(err)
 	}
 

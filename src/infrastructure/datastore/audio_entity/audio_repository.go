@@ -29,7 +29,7 @@ func (r *repo) GetAll(
 		//"AudioID=": audioID,
 	}
 	//
-	keys, nextCursor, hasMore, err := r.client.RunQuery(
+	keys, nextCursor, hasMore, err := r.client.Run(
 		ctx, kind, filters, cursor, limit, orderBy)
 	if err != nil {
 		return nil, nextCursor, hasMore, errors.WithStack(err)
@@ -106,6 +106,14 @@ func (r *repo) PutTx(tx *boom.Transaction, item *model.Audio) error {
 // TODO: idに型をつけよう。。
 func (r *repo) DeleteTx(tx *boom.Transaction, id string) error {
 	if err := r.client.DeleteTx(tx, onlyID(id)); err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
+}
+
+func (r *repo) Delete(ctx context.Context, id string) error {
+	if err := r.client.Delete(ctx, onlyID(id)); err != nil {
 		return errors.WithStack(err)
 	}
 
