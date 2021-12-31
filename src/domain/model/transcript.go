@@ -1,22 +1,22 @@
 package model
 
 import (
-	speechpb "google.golang.org/genproto/googleapis/cloud/speech/v1p1beta1"
 	"log"
 	"strings"
 	"time"
+
+	speechpb "google.golang.org/genproto/googleapis/cloud/speech/v1p1beta1"
 )
 
 const TranscriptKind = "Transcript"
 
 type Transcript struct {
-	ID         int64          `json:"id"`
-	//AudioKey   *datastore.Key `json:"audio_key"`
-	AudioID   string `json:"audio_key" datastore:"audio_key"`
-	Body       string         `json:"body"`
+	ID         int64       `json:"id"`
+	AudioID    string      `json:"audio_key"`
+	Body       string      `json:"body"`
 	Monologues []Monologue `json:"monologues"`
-	CreatedAt  time.Time `json:"createdAt"`
-	UpdatedAt  time.Time `json:"updatedAt"`
+	CreatedAt  time.Time   `json:"createdAt"`
+	UpdatedAt  time.Time   `json:"updatedAt"`
 }
 
 type Monologue struct {
@@ -26,8 +26,8 @@ type Monologue struct {
 type MonologueElement struct {
 	StartTime  float64 `json:"start_time" datastore:"start_time"`
 	EndTime    float64 `json:"end_time" datastore:"end_time"`
-	Word       string `json:"word" datastore:"word"`
-	WordKana   string `json:"word_kana" datastore:"word_kana"`
+	Word       string  `json:"word" datastore:"word"`
+	WordKana   string  `json:"word_kana" datastore:"word_kana"`
 	Confidence float32 `json:"confidence" datastore:"confidence"`
 }
 
@@ -57,7 +57,7 @@ func NewTranscript(audioID string, resp *speechpb.LongRunningRecognizeResponse) 
 			}
 
 			ws[i] = MonologueElement{
-				Word:      parts[0],
+				Word: parts[0],
 				//WordKana:  parts[1],
 				StartTime: float64(w.StartTime.Seconds) + float64(w.StartTime.Nanos)*1e-9,
 				EndTime:   float64(w.EndTime.Seconds) + float64(w.EndTime.Nanos)*1e-9,

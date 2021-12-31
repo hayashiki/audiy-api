@@ -21,7 +21,7 @@ func NewUserRepository(client datastore.Client) repository.UserRepository {
 
 func (r *repo) GetAll(ctx context.Context) ([]*model.User, error) {
 	var entities []*entity
-	if err := r.client.GetMulti(ctx, entities); err != nil {
+	if err := r.client.GetAll(ctx, kind, &entities); err != nil {
 		return nil, err
 	}
 	users := make([]*model.User, len(entities))
@@ -73,3 +73,12 @@ func (r *repo) DeleteTx(tx *boom.Transaction, id string) error {
 
 	return nil
 }
+
+func (r *repo) Delete(ctx context.Context, id string) error {
+	if err := r.client.Delete(ctx, onlyID(id)); err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
+}
+

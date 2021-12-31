@@ -10,7 +10,7 @@ import (
 
 type FeedUsecase interface {
 	GetConnection(ctx context.Context, userID string, cursor string, limit int, filter *model.FeedEvent, orderBy string) (*model.FeedConnection, error)
-	Get(ctx context.Context, userID string, id int64) (*model.Feed, error)
+	Get(ctx context.Context, userID string, id string) (*model.Feed, error)
 	Put(ctx context.Context, userID string, audioID string, event model.FeedEvent) (*model.Feed, error)
 }
 
@@ -81,7 +81,7 @@ func (u *feedUsecase) GetConnection(ctx context.Context, userID string, cursor s
 	}, nil
 }
 
-func (u *feedUsecase) Get(ctx context.Context, userID string, id int64) (*model.Feed, error) {
+func (u *feedUsecase) Get(ctx context.Context, userID string, id string) (*model.Feed, error) {
 	return u.feedRepo.Get(ctx, userID, id)
 }
 

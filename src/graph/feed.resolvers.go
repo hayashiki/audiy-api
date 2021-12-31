@@ -12,6 +12,10 @@ import (
 	"github.com/hayashiki/audiy-api/src/graph/generated"
 )
 
+func (r *feedResolver) ID(ctx context.Context, obj *model.Feed) (string, error) {
+	return string(obj.ID()), nil
+}
+
 func (r *feedResolver) Audio(ctx context.Context, obj *model.Feed) (*model.Audio, error) {
 	return r.dataLoaders.AudioGetByID(ctx, obj.AudioID)
 	//return r.audioUsecase.Get(ctx, obj.AudioKey.Name)

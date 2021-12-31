@@ -3,7 +3,6 @@ package usecase
 import (
 	"bytes"
 	"context"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"github.com/hayashiki/audiy-api/src/domain/repository"
@@ -122,7 +121,7 @@ func (au *integrateAudioUsecase) Do(ctx context.Context, input *AudioInput) erro
 	ut := time.Unix(input.Created, 0)
 	newAudio := model.NewAudio(input.ID, input.Name, data.Format.DurationSeconds, getFilePath, input.Mimetype, ut)
 	err = au.audioRepo.Put(ctx, newAudio)
-	log.Printf("newAudio %+v", newAudio.GetKey())
+	log.Printf("newAudio %+v", newAudio.ID)
 	if err != nil {
 		return fmt.Errorf("fail to create radios record err: %w", err)
 	}
@@ -134,17 +133,11 @@ func (au *integrateAudioUsecase) Do(ctx context.Context, input *AudioInput) erro
 	feeds := make([]*model.Feed, len(users))
 	for i, u := range users {
 		newFeed := model.NewFeed(newAudio.ID, u.ID, newAudio.PublishedAt)
-		// TODO: setter
-		newFeed.PublishedAt = newAudio.PublishedAt
 		feeds[i] = newFeed
 	}
 	err = au.feedRepo.PutMulti(ctx, feeds)
 
-	return nil
-}
-
-func getSize(data []byte) int32 {
-	return int32(binary.Size(data))
+	return err
 }
 
 func getFilePath(bucket, name string) string {

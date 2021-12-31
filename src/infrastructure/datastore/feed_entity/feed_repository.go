@@ -42,7 +42,6 @@ func (r *repo) GetAll(
 		Cursor:    cursor,
 		Filters:   nil,
 		OrderBy:   orderBy,
-		Namespace: "",
 	}
 	keys, nextCursor, hasMore, err := r.client.Run(ctx, q)
 	if err != nil {
@@ -86,13 +85,13 @@ func (r *repo) GetMulti(ctx context.Context, userID string, ids []string) ([]*mo
 }
 
 func (r *repo) Get(ctx context.Context, id string, userID string) (*model.Feed, error) {
-	en := &entity{}
+	item := &entity{}
 	parentKey := clouddatastore.NameKey(parentKind, userID, nil)
 	key := clouddatastore.NameKey(kind, id, parentKey)
-	if err := r.client.Get(ctx, key, en); err != nil {
+	if err := r.client.Get(ctx, key, item); err != nil {
 		return nil, errors.WithStack(err)
 	}
-	return en.toDomain(), nil
+	return item.toDomain(), nil
 }
 
 // TODO: ancestor
