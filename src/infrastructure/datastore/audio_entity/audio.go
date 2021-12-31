@@ -46,7 +46,7 @@ func (f *entity) toDomain() *model.Audio {
 
 func toEntity(from *model.Audio) *entity {
 	return &entity{
-		//ID:        from.ID,
+		ID:        from.ID,
 		Name:      from.Name,
 		Length:     from.Length,
 		//URL:     f.URL,

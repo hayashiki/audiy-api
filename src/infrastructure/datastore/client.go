@@ -4,6 +4,7 @@ import (
 	"cloud.google.com/go/datastore"
 	"context"
 	"github.com/hayashiki/audiy-api/src/config"
+	mdatastore "go.mercari.io/datastore"
 	"go.mercari.io/datastore/boom"
 	"go.mercari.io/datastore/clouddatastore"
 	"google.golang.org/api/option"
@@ -26,7 +27,15 @@ func NewClient(ctx context.Context, projectID string, options ...option.ClientOp
 }
 
 func FromContext(ctx context.Context) *boom.Boom {
-	cli, err := datastore.NewClient(ctx, config.GetProject())
+	var opts []option.ClientOption
+
+	if os.Getenv("DATASTORE_EMULATOR_HOST") == "" {
+		if credentialsFile := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"); credentialsFile != "" {
+			opts = append(opts, option.WithCredentialsFile(credentialsFile))
+		}
+	}
+
+	cli, err := datastore.NewClient(ctx, config.GetProject(), opts...)
 	if err != nil {
 		log.Println("cli", err)
 		panic(err)
@@ -36,4 +45,26 @@ func FromContext(ctx context.Context) *boom.Boom {
 		panic(err)
 	}
 	return boom.FromClient(ctx, ds)
+}
+
+func FromContext2(ctx context.Context) (*boom.Boom, mdatastore.Client) {
+	var opts []option.ClientOption
+
+	if os.Getenv("DATASTORE_EMULATOR_HOST") == "" {
+		if credentialsFile := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"); credentialsFile != "" {
+			opts = append(opts, option.WithCredentialsFile(credentialsFile))
+		}
+	}
+
+	cli, err := datastore.NewClient(ctx, config.GetProject(), opts...)
+	if err != nil {
+		log.Println("cli", err)
+		panic(err)
+	}
+	ds, err := clouddatastore.FromClient(ctx, cli)
+
+	if err != nil {
+		panic(err)
+	}
+	return boom.FromClient(ctx, ds), ds
 }

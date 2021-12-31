@@ -7,31 +7,20 @@ import (
 	"cloud.google.com/go/datastore"
 )
 
-// AudioKind is kind name for audio app
-const AudioKind = "Audio"
-
 // Audio is an object representing the radio schema
 type Audio struct {
-	Key    *datastore.Key `datastore:"__key__"`
-	ID     string         `json:"id" datastore:"-"`
-	Name   string         `json:"name" datastore:"name"`
-	Length float64        `json:"length" datastore:"length"`
+	ID     string         `json:"id"`
+	Name   string         `json:"name"`
+	Length float64        `json:"length"`
 	//URL         string         `json:"url" datastore:"url"`
-	Mimetype     string    `json:"mimetype" datastore:"mimetype"`
-	PublishedAt  time.Time `json:"published_at" datastore:"published_at"`
-	CreatedAt    time.Time `json:"created_at" datastore:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at" datastore:"updated_at"`
-	LikeCount    int       `json:"like_count" datastore:"like_count"`
-	PlayCount    int       `json:"play_count" datastore:"play_count"`
-	CommentCount int       `json:"comment_count" datastore:"comment_count"`
-	Transcribed  bool      `json:"transcribed" datastore:"transcribed"`
-}
-
-func (a *Audio) GetKey() *datastore.Key {
-	if a.ID == "" {
-		return nil
-	}
-	return datastore.NameKey(AudioKind, a.ID, nil)
+	Mimetype     string    `json:"mimetype"`
+	PublishedAt  time.Time `json:"published_at"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+	LikeCount    int       `json:"like_count"`
+	PlayCount    int       `json:"play_count"`
+	CommentCount int       `json:"comment_count"`
+	Transcribed  bool      `json:"transcribed"`
 }
 
 func (a *Audio) GetID() string {
@@ -61,11 +50,6 @@ func (a *Audio) GetUpdatedAt() time.Time {
 // TODO
 func (a *Audio) IsPublished() bool {
 	return true
-}
-
-func GetAudioKey(id string) *datastore.Key {
-	entity := Audio{ID: id}
-	return entity.GetKey()
 }
 
 func (a *Audio) SetTranscribed() {

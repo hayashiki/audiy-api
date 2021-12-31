@@ -45,7 +45,7 @@ func (u *audioUsecase) CreateAudio(ctx context.Context, input *model.CreateAudio
 	newAudio :=  model.NewAudio(input.ID, input.Name, input.Length, input.URL, input.Mimetype, time.Now())
 
 	err := u.audioRepo.Put(ctx, newAudio)
-	log.Printf("newAudio %+v", newAudio.GetKey())
+	log.Printf("newAudio %+v", newAudio.ID)
 	if err != nil {
 		return nil, fmt.Errorf("fail to create radios record err: %w", err)
 	}

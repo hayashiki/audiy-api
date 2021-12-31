@@ -231,6 +231,7 @@ type CommentResolver interface {
 	Audio(ctx context.Context, obj *model.Comment) (*model.Audio, error)
 }
 type FeedResolver interface {
+	ID(ctx context.Context, obj *model.Feed) (string, error)
 	Audio(ctx context.Context, obj *model.Feed) (*model.Audio, error)
 	User(ctx context.Context, obj *model.Feed) (*model.User, error)
 }
@@ -3453,14 +3454,14 @@ func (ec *executionContext) _Feed_id(ctx context.Context, field graphql.Collecte
 		Object:     "Feed",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
+		return ec.resolvers.Feed().ID(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3472,9 +3473,9 @@ func (ec *executionContext) _Feed_id(ctx context.Context, field graphql.Collecte
 		}
 		return graphql.Null
 	}
-	res := resTmp.(int64)
+	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalNID2int64(ctx, field.Selections, res)
+	return ec.marshalNID2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Feed_audio(ctx context.Context, field graphql.CollectedField, obj *model.Feed) (ret graphql.Marshaler) {
@@ -3714,9 +3715,9 @@ func (ec *executionContext) _Feed_startTime(ctx context.Context, field graphql.C
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*float64)
+	res := resTmp.(float64)
 	fc.Result = res
-	return ec.marshalOFloat2ᚖfloat64(ctx, field.Selections, res)
+	return ec.marshalOFloat2float64(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Feed_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.Feed) (ret graphql.Marshaler) {
@@ -7988,10 +7989,19 @@ func (ec *executionContext) _Feed(ctx context.Context, sel ast.SelectionSet, obj
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Feed")
 		case "id":
-			out.Values[i] = ec._Feed_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Feed_id(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "audio":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -9910,19 +9920,13 @@ func (ec *executionContext) marshalOFeedEvent2ᚖgithubᚗcomᚋhayashikiᚋaudi
 	return v
 }
 
-func (ec *executionContext) unmarshalOFloat2ᚖfloat64(ctx context.Context, v interface{}) (*float64, error) {
-	if v == nil {
-		return nil, nil
-	}
+func (ec *executionContext) unmarshalOFloat2float64(ctx context.Context, v interface{}) (float64, error) {
 	res, err := graphql.UnmarshalFloat(v)
-	return &res, graphql.ErrorOnPath(ctx, err)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOFloat2ᚖfloat64(ctx context.Context, sel ast.SelectionSet, v *float64) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return graphql.MarshalFloat(*v)
+func (ec *executionContext) marshalOFloat2float64(ctx context.Context, sel ast.SelectionSet, v float64) graphql.Marshaler {
+	return graphql.MarshalFloat(v)
 }
 
 func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {

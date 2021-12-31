@@ -1,0 +1,68 @@
+### FCM ###
+type FCM implements Node {
+    id: ID!
+#    User情報は不要と判断
+    userID: ID!
+#    現状WebPushだけ
+    deviceID: String!
+    token: String!
+    createdAt: Time!
+    updatedAt: Time!
+}
+
+type FCMEdge implements Edge {
+    cursor: Cursor!
+    node: FCM!
+}
+
+type FCMConnection implements Connection {
+    pageInfo: PageInfo!
+    edges: [FCMEdge]!
+}
+
+input FCMFilter {
+    role: String
+}
+
+input CreateFCMInput {
+    userID: ID!
+    #    現状WebPushだけ
+    deviceID: String!
+    token: String!
+}
+
+input UpdateFCMInput {
+    id: ID!
+}
+
+type DeleteFCMResult {
+  success: Boolean!
+  id: ID!
+}
+
+enum FCMOrderField {
+  ID
+}
+
+input FCMOrder {
+  field: FCMOrderField
+  direction: SortDirection
+}
+
+extend type Query {
+  ### lower ###
+  fcm(id: ID!): FCM
+  ### lower ###
+  fcms(
+      cursor: Cursor
+      filter: AudioFilter
+      limit: Int = 10
+      order: AudioOrder = CREATED_AT_DESC
+  ): FCMConnection!
+}
+
+extend type Mutation {
+  createFCM(input: CreateFCMInput!): FCM!
+  updateFCM(input: UpdateFCMInput!): FCM!
+  deleteFCM(id: ID!): DeleteFCMResult!
+}

@@ -1,6 +1,8 @@
 package app
 
 import (
+	"context"
+	firebase "firebase.google.com/go"
 	"github.com/hayashiki/audiy-api/src/domain/repository"
 	"github.com/hayashiki/audiy-api/src/domain/service"
 	"github.com/hayashiki/audiy-api/src/graph/dataloaders"
@@ -57,6 +59,15 @@ func (d *Dependency) Inject(conf config.Config) {
 	//if err != nil {
 	//	log.Fatalf("failed to read datastore client")
 	//}
+	fbConf := &firebase.Config{ProjectID: config.GetProject()}
+	fbCli, err := firebase.NewApp(context.Background(), fbConf)
+	if err != nil {
+		panic(err)
+	}
+	fbAuth, err := fbCli.Auth(context.Background())
+	if err != nil {
+		panic(err)
+	}
 
 	transaction := datastore.NewDatastoreTransactor()
 
@@ -76,7 +87,7 @@ func (d *Dependency) Inject(conf config.Config) {
 	transcriptRepo := transcript_entity.NewTranscriptRepository(mDsClid)
 
 	// middleware
-	authenticator := middleware.NewAuthenticator()
+	authenticator := middleware.NewAuthenticator(fbAuth)
 
 	// domain/service
 	ds := datastore.New()
@@ -86,7 +97,7 @@ func (d *Dependency) Inject(conf config.Config) {
 	// usecase
 	audioUsecase := usecase.NewAudioUsecase(gcsSvc, audioRepo, feedRepo, userRepo)
 	commentUsecase := usecase.NewCommentUsecase(transaction, commentRepo, audioRepo)
-	userUsecase := usecase.NewUserUsecase(userRepo, audioRepo, feedRepo)
+	userUsecase := usecase.NewUserUsecase(transaction, userRepo, audioRepo, feedRepo)
 	feedUsecase := usecase.NewFeedUsecase(feedRepo, audioRepo)
 	transcriptUsecase := usecase.NewTranscriptAudioUsecase(gcsSvc, audioRepo, transcriptRepo, proveSvc, transcoder, transcriptSvc)
 	fcmUsecase := usecase.NewFcmUsecase(fcmSvc)
